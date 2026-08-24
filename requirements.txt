@@ -1,0 +1,11 @@
+gymnasium>=1.0
+stable-baselines3>=2.4
+torch>=2.2
+numpy
+pandas
+scipy
+matplotlib
+pyyaml
+tensorboard
+pyarrow
+requests

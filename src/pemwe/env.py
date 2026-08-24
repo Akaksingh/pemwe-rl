@@ -1,0 +1,142 @@
+"""Gymnasium environment. OWNER: Person A.
+
+This runs END TO END right now. That is the whole point: Person B trains against it on
+Day 1 hour 1 while Person A is still replacing the physics underneath. The observation
+space, action space and `info` keys are FROZEN (CONTRACTS.md section 1) -- change the
+physics freely, never the signatures.
+"""
+
+from __future__ import annotations
+
+import numpy as np
+import gymnasium as gym
+from gymnasium import spaces
+
+from .stack import StackModel
+from .degradation import DegradationModel
+
+
+def synthetic_day(rng: np.random.Generator, n: int, p_rated: float,
+                  cloudiness: float = 0.4) -> np.ndarray:
+    """Placeholder profile so A and B are not blocked on C's data pipeline.
+
+    REPLACE with pemwe.profiles.get_day() once data/processed/ lands (Day 1 PM).
+    """
+    t = np.linspace(0, 24, n)
+    clear = np.clip(np.sin((t - 6) / 12 * np.pi), 0, None) ** 1.3
+    # crude OU-ish cloud transients; C's real version is turbulence-calibrated
+    noise = np.zeros(n)
+    for i in range(1, n):
+        noise[i] = 0.92 * noise[i - 1] + rng.normal(0, cloudiness)
+    return np.clip(clear * (1 + 0.25 * noise), 0, 1) * p_rated
+
+
+class PEMWEEnv(gym.Env):
+    metadata = {"render_modes": []}
+
+    def __init__(self, cfg: dict, profiles: np.ndarray | None = None, seed: int | None = None):
+        super().__init__()
+        self.cfg = cfg
+        self.stack = StackModel(cfg)
+        self.deg = DegradationModel(cfg)
+
+        e = cfg["env"]
+        self.dt_min = e["dt_min"]
+        self.n_steps = e["steps_per_episode"]
+        self.persist_deg = e["persist_degradation"]
+
+        r = cfg["reward"]
+        self.w1, self.w2, self.w3 = r["w1"], r["w2"], r["w3"]
+        self.h2_scale = r["h2_scale_kg"]
+        self.deg_scale = r["deg_scale_uv"]
+
+        self.p_rated = self.stack.p_rated
+        self.profiles = profiles  # (n_days, n_steps) in W, from Person C
+
+        self.observation_space = spaces.Box(-1.0, 2.0, shape=(8,), dtype=np.float32)
+        self.action_space = spaces.Box(-1.0, 1.0, shape=(1,), dtype=np.float32)
+
+        self._rng = np.random.default_rng(seed)
+        self.dv_deg_uv = 0.0
+
+    # --- gym api ---------------------------------------------------------
+
+    def reset(self, *, seed=None, options=None):
+        super().reset(seed=seed)
+        if seed is not None:
+            self._rng = np.random.default_rng(seed)
+
+        if self.profiles is not None:
+            idx = (options or {}).get("day_idx", self._rng.integers(len(self.profiles)))
+            self.profile = np.asarray(self.profiles[idx], dtype=float)
+        else:
+            self.profile = synthetic_day(self._rng, self.n_steps, self.p_rated)
+
+        self.t = 0
+        self.j = 0.0
+        self.j_prev = 0.0
+        self.is_on = False
+        self.h2_total = 0.0
+        if not self.persist_deg:
+            self.dv_deg_uv = 0.0
+        self._renew_hist = [self.profile[0]] * 15
+        return self._obs(0.0, 0.0), {}
+
+    def step(self, action):
+        a = float(np.clip(action, -1.0, 1.0)[0])
+        p_frac = 0.5 * (a + 1.0)                       # [-1,1] -> [0,1]
+        p_cmd = p_frac * self.p_rated
+        p_renew = float(self.profile[self.t])
+        p_set = min(p_cmd, p_renew)                    # DECISION 3: renewable-only hard cap
+
+        dv_v = self.dv_deg_uv * 1e-6
+        j = self.stack.j_from_power(p_set, dv_v)
+        was_on, self.is_on = self.is_on, j > self.stack.j_min
+        if not self.is_on:
+            j = 0.0
+
+        h2_kg = self.stack.h2_rate_kg_s(j, dv_v) * self.dt_min * 60.0 if self.is_on else 0.0
+        dv_step, dv_parts = self.deg.step_uv(j, self.j_prev, self.stack.j_rated,
+                                             self.dt_min, self.is_on, was_on)
+        self.dv_deg_uv += dv_step
+        self.h2_total += h2_kg
+
+        # UNWEIGHTED components -- CONTRACTS.md section 1. Never collapse these into one number.
+        r_yield = h2_kg / self.h2_scale
+        r_deg = dv_step / self.deg_scale
+        r_ramp = abs(j - self.j_prev) / self.stack.j_rated
+        reward = self.w1 * r_yield - self.w2 * r_deg - self.w3 * r_ramp
+
+        self.j_prev, self.j = j, j
+        self._renew_hist.append(p_renew)
+        self._renew_hist = self._renew_hist[-15:]
+        self.t += 1
+        truncated = self.t >= self.n_steps
+
+        p_stack = self.stack.power_w(j, dv_v) if self.is_on else 0.0
+        info = {
+            "p_renew_w": p_renew, "p_set_w": p_set, "p_stack_w": p_stack,
+            "j": j, "v_cell": float(self.stack.v_cell(max(j, 1e-9), dv_v)),
+            "h2_kg": h2_kg, "eta_lhv": float(self.stack.eta_lhv(max(j, 1e-9), dv_v)) if self.is_on else 0.0,
+            "dv_deg_uv": dv_step, "dv_deg_total_uv": self.dv_deg_uv,
+            "dv_parts": dv_parts, "is_on": self.is_on, "cycled": was_on != self.is_on,
+            "curtailed_w": max(0.0, p_renew - p_set),
+            "r_yield": r_yield, "r_deg": r_deg, "r_ramp": r_ramp,
+        }
+        return self._obs(p_renew, h2_kg), float(reward), False, truncated, info
+
+    # --- observation -----------------------------------------------------
+
+    def _obs(self, p_renew, h2_kg):
+        hour = (self.t * self.dt_min / 60.0) % 24
+        h2_ref = self.stack.h2_rate_kg_s(self.stack.j_rated) * self.dt_min * 60.0
+        return np.array([
+            p_renew / self.p_rated,
+            float(np.mean(self._renew_hist)) / self.p_rated,
+            self.j_prev / self.stack.j_rated,
+            self.j / self.stack.j_rated,
+            self.dv_deg_uv / self.deg.dv_eol,
+            h2_kg / max(h2_ref, 1e-12),
+            np.sin(2 * np.pi * hour / 24),
+            np.cos(2 * np.pi * hour / 24),
+        ], dtype=np.float32)

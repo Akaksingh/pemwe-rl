@@ -1,0 +1,66 @@
+# Single source of truth. No magic numbers in code.
+# Ablations run as `--override reward.w2=2.0`, never by editing this file.
+
+stack:
+  n_cells: 280
+  area_cm2: 1000.0
+  j_rated_a_cm2: 2.0
+  j_min_a_cm2: 0.05          # below this the stack is considered OFF
+  temp_k: 333.15             # 60 C
+  pressure_bar: 30.0
+  # --- polarization curve (Amphlett form) --- OWNER: A, calibrate Day 1
+  e_rev_ref_v: 1.229
+  e_rev_dtemp_v_per_k: -0.9e-3
+  alpha_anode: 2.0
+  j0_anode_a_cm2: 1.0e-7
+  alpha_cathode: 2.0
+  j0_cathode_a_cm2: 1.0e-1
+  asr_ohm_cm2: 0.15          # membrane + contact + PTL area-specific resistance
+  j_lim_a_cm2: 4.0
+  conc_coeff_v: 0.05
+  # --- faradaic efficiency (H2 crossover) --- this is what kills low-power efficiency
+  j_crossover_a_cm2: 0.03
+  # --- balance of plant ---
+  bop_frac_of_rated: 0.02    # constant parasitic draw while ON
+
+degradation:
+  # OWNER: A. Day 2 = scale these so the RULE-BASED BASELINE on real Kutch profiles
+  # lands at 4.0 +/- 0.5 uV/h, i.e. the ~5-year lifetime of ref #7. See DECISIONS.md 5.
+  r_base_uv_per_h: 1.5
+  k_j_uv_per_h: 25.0         # x max(0, j/j_rated - j_stress_threshold)^2
+  j_stress_threshold: 0.6
+  j_stress_exponent: 2.0
+  k_ramp_uv_per_h: 4.0       # x |dj/dt| in (A/cm^2)/min
+  dv_cycle_uv: 1.0           # per ON<->OFF transition
+  r_idle_uv_per_h: 2.0       # OCV / Ir dissolution while OFF -- keeps "idle forever" from winning
+  dv_eol_uv: 177000.0        # end of life = 10% rise on 1.77 V
+
+reward:
+  w1: 1.0                    # H2 yield        (kg/step, scaled)
+  w2: 1.0                    # degradation     <-- the ablation knob, DECISIONS.md 8
+  w3: 0.1                    # ramp smoothness
+  h2_scale_kg: 0.01          # normalizes r_yield to O(1) per step
+  deg_scale_uv: 0.1          # normalizes r_deg to O(1) per step
+
+env:
+  dt_min: 1.0
+  steps_per_episode: 1440    # 24 h at 1 min -- DECISIONS.md 1,2
+  persist_degradation: false # true only for the 90-day long-horizon rollout
+
+baseline:
+  p_idle_threshold_frac: 0.10   # ref #8 load-following rule
+  p_idle_frac: 0.0
+  ramp_limit_frac_per_min: 0.02 # ramp-limited variant -- keep this baseline HONEST
+
+train:
+  total_timesteps: 2000000
+  seeds: [0, 1, 2, 3, 4]
+  n_envs: 8
+
+data:
+  lat: 23.25
+  lon: 69.00
+  year: 2019
+  site_name: "Kutch, Gujarat, India"
+  profile_path: "data/processed/kutch_2019_1min.parquet"
+  plant_rating_w: 1.0e6
