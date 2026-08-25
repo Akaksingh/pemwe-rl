@@ -4,7 +4,7 @@
 degradation models… C should not be transcribing physics secondhand"*).
 
 **For Person C:** this is draft prose for `paper/`, in the paper's voice, for you to edit
-into one voice — not a hand-off of raw notes. Numbers are live as of the Day-2 freeze;
+into one voice — not a hand-off of raw notes. Numbers are live against the REAL Kutch profiles and the current coefficients;
 every one of them regenerates from `scripts/validate_physics.py`,
 `scripts/calibrate_degradation.py` and `scripts/longhorizon_rollout.py`.
 Figure: `results/figures/fig_validation.pdf` (vector, 7.0 × 2.7 in, two-column).
@@ -118,11 +118,13 @@ with neither contributing less than 20 % of the policy-dependent total. Without 
 condition a coefficient set can satisfy the numerical targets while modelling only half
 the physics.
 
-The solution places all five coefficients interior to their published intervals
-(*r*<sub>base</sub> = 2.25 µV h⁻¹, *k*<sub>j</sub> = 50.0, *k*<sub>r</sub> = 16.0,
-Δ*V*<sub>cycle</sub> = 4.0 µV, *r*<sub>idle</sub> = 1.0 µV h⁻¹). Averaged over eight days,
-the rule-based baseline lands at 4.5 µV h⁻¹ (4.5 yr projected life) and the
-jittery/smooth separation at 5.3×, against a required 3×.
+The solution, computed on the real Kutch profiles, places all five coefficients interior to
+their published intervals (*r*<sub>base</sub> = 1.75 µV h⁻¹, *k*<sub>j</sub> = 20.0,
+*k*<sub>r</sub> = 31.0, Δ*V*<sub>cycle</sub> = 1.0 µV, *r*<sub>idle</sub> = 0.75 µV h⁻¹).
+The rule-based baseline lands at **4.00 µV h⁻¹** — a 5.05-year projected life against the
+≈5 years reported in [7] — and the jittery/smooth separation at **4.38×** against a required
+3×. Of the jittery policy's policy-dependent degradation, ramping supplies 63 % and on/off
+cycling 37 %, so both of the mechanisms [4] identifies are load-bearing.
 
 Two honest caveats belong with this. First, the model is calibrated to literature-reported
 *aggregate* rates and is **not validated against a physical stack**; it reproduces a
@@ -140,9 +142,9 @@ consequence we additionally run a 90-day rollout with degradation persisting acr
 episodes, over which the feedback into (1) becomes measurable.
 
 On this rollout the two rule-based controllers already trace the trade the paper is about:
-the naive load-following law [8] yields 12 669 kg of H₂ at 4.34 µV h⁻¹ (4.66 yr projected
-life), while the ramp-limited variant yields 12 235 kg at 3.40 µV h⁻¹ (5.94 yr) — **+1.28
-years of life, +27.5 %, for 3.4 % less hydrogen**. This is the frontier a learned policy must
+the naive load-following law [8] yields 17 144 kg of H₂ at 4.05 µV h⁻¹ (4.99 yr projected
+life), while the ramp-limited variant yields 16 955 kg at 3.20 µV h⁻¹ (6.31 yr) — **+1.32
+years of life, +26.5 %, for 1.1 % less hydrogen**. This is the frontier a learned policy must
 improve on, and it is why the results are reported as a yield–degradation Pareto front
 rather than a single percentage gain (DECISIONS §8).
 
