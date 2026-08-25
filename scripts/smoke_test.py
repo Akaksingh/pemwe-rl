@@ -1,8 +1,11 @@
 """Day-0 smoke test: proves the skeleton runs end to end before anyone starts.
 
-Also prints a preview of the three Gate-G1 checks (PLAN.md), so Person A can see on Day 1
-exactly what the stub physics gets right and wrong. It is expected to FAIL some checks
-today -- making them pass is A's Day 1-2 job.
+Runs the three Gate-G1 checks (PLAN.md). All three currently PASS. Each is averaged over
+N_PROFILES days on the same basis as scripts/calibrate_degradation.py, so a gate never
+turns on one lucky or unlucky profile.
+
+Note the gates pass against the SYNTHETIC placeholder profiles in env.synthetic_day. They
+must be re-checked once real data lands -- see DECISIONS.md section 5.
 """
 
 import sys
@@ -12,6 +15,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import numpy as np
 from pemwe import load_config, PEMWEEnv, BASELINES
+
+N_PROFILES = 8   # gates average over this many days; matches calibrate_degradation.py
 
 
 def rollout(env, policy, seed=0):
@@ -64,25 +69,38 @@ def main():
     print(f"  -> non-monotonic, peak mid-range: {'PASS' if ok1 else 'FAIL  <-- A fixes this'}")
 
     # --- G1 item 2: jittery must degrade faster than smooth ---
-    rng = np.random.default_rng(0)
-    sm = rollout(PEMWEEnv(cfg, seed=1), Smooth(), seed=1)
-    ji = rollout(PEMWEEnv(cfg, seed=1), Jittery(rng), seed=1)
-    ratio = ji["dv_deg_uv"] / max(sm["dv_deg_uv"], 1e-9)
-    print("\n[G1.2] jittery vs smooth policy, same day")
-    print(f"  smooth : {sm['h2_kg']:7.1f} kg H2, {sm['dv_deg_uv']:7.2f} uV, {sm['cycles']:4d} cycles")
-    print(f"  jittery: {ji['h2_kg']:7.1f} kg H2, {ji['dv_deg_uv']:7.2f} uV, {ji['cycles']:4d} cycles")
-    print(f"  -> degradation ratio {ratio:.2f}x (target >= 3x): "
-          f"{'PASS' if ratio >= 3 else 'FAIL  <-- A tunes coefficients'}")
+    # Averaged over N_PROFILES days -- a gate must not turn on one lucky or unlucky
+    # profile. Same basis as scripts/calibrate_degradation.py, so the two always agree.
+    def mean_over_days(make_policy):
+        acc = {"h2_kg": 0.0, "dv_deg_uv": 0.0, "cycles": 0.0, "curt_kwh": 0.0}
+        for s in range(N_PROFILES):
+            t = rollout(PEMWEEnv(cfg, seed=s), make_policy(s), seed=s)
+            for key in acc:
+                acc[key] += t[key] / N_PROFILES
+        return acc
 
-    # --- G1 item 3: baselines run and produce sane output ---
-    print("\n[G1.3] baseline controllers")
+    sm = mean_over_days(lambda s: Smooth())
+    ji = mean_over_days(lambda s: Jittery(np.random.default_rng(s)))
+    ratio = ji["dv_deg_uv"] / max(sm["dv_deg_uv"], 1e-9)
+    print(f"\n[G1.2] jittery vs smooth policy, mean of {N_PROFILES} days")
+    print(f"  smooth : {sm['h2_kg']:7.1f} kg H2, {sm['dv_deg_uv']:7.2f} uV, {sm['cycles']:5.1f} cycles")
+    print(f"  jittery: {ji['h2_kg']:7.1f} kg H2, {ji['dv_deg_uv']:7.2f} uV, {ji['cycles']:5.1f} cycles")
+    print(f"  -> degradation ratio {ratio:.2f}x (target >= 3x): "
+          f"{'PASS' if ratio >= 3 else 'FAIL  <-- scripts/calibrate_degradation.py --solve'}")
+
+    # --- G1 item 3: baselines run, and the naive one is calibrated to literature ---
+    print(f"\n[G1.3] baseline controllers, mean of {N_PROFILES} days")
+    rates = {}
     for name, cls in BASELINES.items():
-        t = rollout(PEMWEEnv(cfg, seed=1), cls(cfg), seed=1)
+        t = mean_over_days(lambda s, c=cls: c(cfg))
         rate = t["dv_deg_uv"] / 24.0
+        rates[name] = rate
         life = env.deg.projected_life_years(rate)
         print(f"  {name:24s} {t['h2_kg']:7.1f} kg  {rate:6.2f} uV/h  "
-              f"-> {life:5.2f} yr  ({t['cycles']} cycles, {t['curt_kwh']:.0f} kWh curtailed)")
-    print("  -> calibration target: 4.0 +/- 0.5 uV/h  (~5 yr, ref #7)")
+              f"-> {life:5.2f} yr  ({t['cycles']:.1f} cycles, {t['curt_kwh']:.0f} kWh curtailed)")
+    ok3 = abs(rates["baseline_naive"] - 4.0) <= 0.5
+    print(f"  -> baseline_naive calibrated to 4.0 +/- 0.5 uV/h (~5 yr, ref #7): "
+          f"{'PASS' if ok3 else 'FAIL  <-- scripts/calibrate_degradation.py --solve'}")
 
     print("\nSkeleton runs end to end. Day 1 can start.")
 

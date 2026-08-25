@@ -82,6 +82,12 @@ SPLITS: dict                              # {"train": [...], "test": [...], "arc
 Output: `data/processed/kutch_2019_1min.parquet`. That file is the entire coupling between
 you and the rest of the project.
 
+> **Tell Person A the moment that file exists.** The degradation model is currently
+> calibrated against synthetic placeholder profiles; A has to re-run
+> `scripts/calibrate_degradation.py --solve` on your real data, because real cloud-transient
+> statistics change the ramp and cycling integrals. That is a Day-1/2 handoff. If it slips
+> to Day 4, every degradation number in the paper was calibrated against fake weather.
+
 ## Day 1 also — draft Related Work
 
 All 11 references with per-reference why-cite notes are in `paper/REFERENCES.md`. The

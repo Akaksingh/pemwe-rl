@@ -142,6 +142,54 @@ bound) and scale the set. Then "how much life does the RL policy add?" is answer
 scale anchored to published numbers rather than to invented ones. Write this paragraph
 into Methodology — it pre-empts the obvious "where did these constants come from?"
 
+### Calibration result — solved, and how
+
+`scripts/calibrate_degradation.py` does this properly rather than by hand. Every term is
+**linear in its coefficient**, so the script measures each term's integral once per policy
+with all coefficients set to 1.0, then solves the two constraints analytically over a
+literature-bounded grid. Hand-tuning does not converge because the targets pull against
+each other: separation needs the *policy-dependent* terms (ramp, cycling, high-j) to
+dominate the *common-mode* terms (base, idle) that every policy pays equally, while the
+absolute target constrains the total.
+
+The diagnostic that made it tractable: **base + idle were 91 % of the smooth policy's
+degradation**, which capped the achievable ratio at ~2.1× no matter how the other terms
+were scaled.
+
+| Coefficient | Was | Now |
+|---|---|---|
+| `r_base_uv_per_h` | 1.5 | **2.25** |
+| `r_idle_uv_per_h` | 2.0 | **1.0** |
+| `k_ramp_uv_per_h` | 4.0 | **16.0** |
+| `dv_cycle_uv` | 1.0 | **4.0** |
+| `k_j_uv_per_h` | 25.0 | **50.0** |
+
+Resulting behaviour (mean of 8 days), both Gate-G1 targets met:
+
+| Policy | Rate | Projected life | |
+|---|---|---|---|
+| jittery (adversarial) | 10.20 µV/h | 2.0 yr | separation **4.50×** vs smooth ✅ |
+| `baseline_naive` (ref #8) | 4.15 µV/h | **4.87 yr** | calibration target 4.0 ± 0.5 ✅ |
+| `baseline_ramplimited` | 3.31 µV/h | 6.10 yr | smoothing extends life, as ref #7 reports |
+| smooth reference | 2.27 µV/h | 8.9 yr | |
+
+Two constraints the search enforced, so the fit stays physical rather than numerical:
+
+- The aggressive-policy rate must stay under ref #4's **50 µV/h** worst-case ceiling — it
+  lands at 10.2, comfortably inside.
+- The separation must come from **both** intermittency mechanisms ref #4 names — ramping
+  *and* on/off cycling — with neither supplying less than 20 % of it. A solution where
+  `dv_cycle` alone did the work would be a curve fit, not a model.
+
+`r_base = 2.25 µV/h` sits inside ref #3's 1–10 µV/h steady-state band, and `r_idle` stays
+strictly positive so "idle forever" remains costly.
+
+> ⚠️ **This calibration used the synthetic placeholder profiles in `env.synthetic_day`, not
+> real data.** It must be re-run — `python scripts/calibrate_degradation.py --solve` — once
+> Person C lands `data/processed/kutch_2019_1min.parquet`. Real profiles have different
+> cloud-transient statistics, so the ramp and cycling integrals will shift. Person C tells
+> Person A the moment that file exists; it is a Day-2 handoff, not a Day-4 discovery.
+
 ## 6. Site — Kutch, Gujarat (23.25 °N, 69.00 °E)
 
 Needs strong solar *and* strong wind from one coordinate so the solar-heavy / wind-heavy

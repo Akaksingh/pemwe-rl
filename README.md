@@ -28,8 +28,12 @@ Each one is self-contained.
 ./.venv/Scripts/python.exe scripts/fake_results.py   # results in the final schema, fake numbers
 ```
 
-The smoke test currently prints **one FAIL** on gate check G1.2. That is deliberate and
-correct — it is Person A's concrete first target (see below).
+All three Gate-G1 checks pass. The degradation model is calibrated so the literature
+baseline reproduces a ~4.9-year stack life (ref #7's ~5 years), with a 4.50× separation
+between a jittery and a smooth policy — see [DECISIONS.md §5](DECISIONS.md).
+
+**Calibrated on synthetic placeholder profiles.** Person A re-runs
+`scripts/calibrate_degradation.py --solve` as soon as Person C lands the real Kutch data.
 
 ---
 
