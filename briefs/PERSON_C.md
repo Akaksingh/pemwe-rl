@@ -32,7 +32,25 @@ picture, so **you are the one who calls a descope** when a gate slips. The ladde
 
 ---
 
-## Day 1 morning — get the data before anything else
+> ## Status: the data pipeline and the figures are already built
+>
+> `src/pemwe/profiles.py`, `scripts/build_profiles.py` and `src/pemwe/plots.py` exist and
+> run. `data/processed/kutch_2019_1min.parquet` is committed: 365 days, 293 train / 72 test,
+> month-stratified. All six figures render to vector PDF from `scripts/fake_results.py`.
+>
+> **Your two live tasks are (a) the provenance decision below and (b) the paper.**
+> `paper/main.tex` and `paper/refs.bib` are scaffolded; Related Work, the resource-data
+> subsection and Limitations are written. Everything else is marked `\TODO`.
+>
+> **The provenance decision, which only you can close:** the data currently comes from
+> ERA5 via Open-Meteo, not Renewables.ninja, because the latter needs an account. They are
+> not equivalent — Renewables.ninja supplies its own published PV and turbine models, while
+> on ERA5 those conversions are *ours* and must be described and cited as such. Register
+> for a token and re-run with `--source renewables_ninja` if you can; it removes two of our
+> own models from the chain of custody. If not, cite ERA5 and own the conversions in
+> Methodology. Either way the citation in `main.tex` §Experimental Setup has to change.
+
+## Day 1 morning — get the data (already done, keep for reference)
 
 Renewables.ninja, site locked in `DECISIONS.md` §6: **Kutch, Gujarat, India — 23.25 °N,
 69.00 °E** (chosen because it has strong solar *and* strong wind from one coordinate, so the

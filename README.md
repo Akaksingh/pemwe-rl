@@ -29,11 +29,12 @@ Each one is self-contained.
 ```
 
 All three Gate-G1 checks pass. The degradation model is calibrated so the literature
-baseline reproduces a 5.35-year stack life (ref #7's ~5 years), with a 4.50× separation
+baseline reproduces a 5.05-year stack life (ref #7's ~5 years), with a 4.38× separation
 between a jittery and a smooth policy — see [DECISIONS.md §5](DECISIONS.md).
 
-**Calibrated on synthetic placeholder profiles.** Person A re-runs
-`scripts/calibrate_degradation.py --solve` as soon as Person C lands the real Kutch data.
+Calibrated on **real Kutch 2019 weather** (`data/processed/kutch_2019_1min.parquet`).
+Notably, the two rule-based baselines alone span 5.05 → 7.07 years, reproducing the
+5 → 7.5 years ref #7 reports for power smoothing — before RL is involved.
 
 ---
 

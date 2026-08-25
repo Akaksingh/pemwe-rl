@@ -92,9 +92,13 @@ Run it now:
 ```
 
 `[G1.2]` and `[G1.3]` now pass: separation **4.50×** (target ≥3) and `baseline_naive` at
-**3.78 µV/h → 5.35 yr**, against the ~5-year figure in ref [7]. `DECISIONS.md` §5 records
-the coefficients and the reasoning, including why they were re-solved after PR #1 corrected
-the plant model.
+**4.00 µV/h → 5.05 yr** on real Kutch weather, against the ~5-year figure in ref [7].
+`DECISIONS.md` §5 records the coefficients and both re-solves — after your PR corrected the
+plant model, and again once the real profiles landed (real weather ran the baseline at
+6.95 µV/h under the synthetic-calibrated coefficients).
+
+The real data is now in the repo, so **the handoff you were told to wait for has already
+happened**. What is left for you is to check the result rather than run it.
 
 **Your job is not to redo this — it is to (a) satisfy yourself the numbers are physical, and
 (b) re-run it on real data.** The calibration used the synthetic placeholder profiles in
