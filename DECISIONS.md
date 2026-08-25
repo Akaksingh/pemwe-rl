@@ -50,6 +50,27 @@ PPO is more tolerant of bad hyperparameters. Both are three lines in SB3, so run
 a result that holds across two algorithm families is a stronger claim than a result from
 one, and if SAC destabilises, PPO is already running.
 
+### Device assignment — measured, not assumed (see `BENCHMARK.md`)
+
+This decision was re-examined against measurements on the H200 server. The algorithm choice
+stands; the device and hyperparameters are now fixed by data:
+
+| | Device | Settings | Throughput |
+|---|---|---|---|
+| **PPO** | **CPU**, no `gpurun` | `n_envs=32` | 9,712 steps/s |
+| **SAC** | **GPU**, `gpurun -g 1` | `n_envs=32, train_freq=32, gradient_steps=32` | 6,520 steps/s |
+
+Two findings worth carrying into the paper's reproducibility notes:
+
+- **PPO is ~30 % slower on an H200 than on CPU.** The bottleneck is Python env stepping, not
+  the network. Do not "optimise" by moving PPO to the GPU.
+- **SAC's SB3 defaults are 26× slower than necessary** (one gradient update per env step on
+  a single env). Batching updates across 32 parallel envs at an unchanged 1:1
+  update-to-step ratio recovers all of it, and there the GPU genuinely wins by 2.7×.
+
+Because the two use different resources, run them concurrently. The full 40-run matrix is
+under an hour of wall-clock and ~1.7 of the 90 weekly GPU-hours.
+
 ## 5. Degradation model — five terms, and idle is NOT free
 
 Rates are lumped into a single scalar `dV_deg` (cell-voltage rise, µV), which feeds back
