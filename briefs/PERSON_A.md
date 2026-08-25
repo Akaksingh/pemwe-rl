@@ -92,8 +92,9 @@ Run it now:
 ```
 
 `[G1.2]` and `[G1.3]` now pass: separation **4.50×** (target ≥3) and `baseline_naive` at
-**4.15 µV/h → 4.87 yr**, against the ~5-year figure in ref [7]. `DECISIONS.md` §5 records
-the coefficients and the reasoning.
+**3.78 µV/h → 5.35 yr**, against the ~5-year figure in ref [7]. `DECISIONS.md` §5 records
+the coefficients and the reasoning, including why they were re-solved after PR #1 corrected
+the plant model.
 
 **Your job is not to redo this — it is to (a) satisfy yourself the numbers are physical, and
 (b) re-run it on real data.** The calibration used the synthetic placeholder profiles in

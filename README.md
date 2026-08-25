@@ -29,7 +29,7 @@ Each one is self-contained.
 ```
 
 All three Gate-G1 checks pass. The degradation model is calibrated so the literature
-baseline reproduces a ~4.9-year stack life (ref #7's ~5 years), with a 4.50× separation
+baseline reproduces a 5.35-year stack life (ref #7's ~5 years), with a 4.50× separation
 between a jittery and a smooth policy — see [DECISIONS.md §5](DECISIONS.md).
 
 **Calibrated on synthetic placeholder profiles.** Person A re-runs

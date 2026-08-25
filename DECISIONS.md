@@ -154,24 +154,33 @@ absolute target constrains the total.
 
 The diagnostic that made it tractable: **base + idle were 91 % of the smooth policy's
 degradation**, which capped the achievable ratio at ~2.1× no matter how the other terms
-were scaled.
+were scaled. That common-mode share is now 72 %.
 
-| Coefficient | Was | Now |
-|---|---|---|
-| `r_base_uv_per_h` | 1.5 | **2.25** |
-| `r_idle_uv_per_h` | 2.0 | **1.0** |
-| `k_ramp_uv_per_h` | 4.0 | **16.0** |
-| `dv_cycle_uv` | 1.0 | **4.0** |
-| `k_j_uv_per_h` | 25.0 | **50.0** |
+**These are the values after PR #1.** The first solve ran against the pre-PR physics; once
+that PR corrected the rated-power definition, the stale observation and the hard-cap leak,
+the exposure integrals moved and `baseline_naive` drifted to 4.49 µV/h — inside the ±0.5
+band but 0.01 from its ceiling, with single days at 5.01. Re-solved on the corrected
+physics:
+
+| Coefficient | Day-0 stub | First solve | **Now** |
+|---|---|---|---|
+| `r_base_uv_per_h` | 1.5 | 2.25 | **1.5** |
+| `r_idle_uv_per_h` | 2.0 | 1.0 | **2.0** |
+| `k_ramp_uv_per_h` | 4.0 | 16.0 | **11.0** |
+| `dv_cycle_uv` | 1.0 | 4.0 | **3.5** |
+| `k_j_uv_per_h` | 25.0 | 50.0 | **20.0** |
 
 Resulting behaviour (mean of 8 days), both Gate-G1 targets met:
 
 | Policy | Rate | Projected life | |
 |---|---|---|---|
-| jittery (adversarial) | 10.20 µV/h | 2.0 yr | separation **4.50×** vs smooth ✅ |
-| `baseline_naive` (ref #8) | 4.15 µV/h | **4.87 yr** | calibration target 4.0 ± 0.5 ✅ |
-| `baseline_ramplimited` | 3.31 µV/h | 6.10 yr | smoothing extends life, as ref #7 reports |
-| smooth reference | 2.27 µV/h | 8.9 yr | |
+| jittery (adversarial) | 11.08 µV/h | 1.82 yr | separation **4.50×** vs smooth ✅ |
+| `baseline_naive` (ref #8) | 3.78 µV/h | **5.35 yr** | calibration target 4.0 ± 0.5 ✅ |
+| `baseline_ramplimited` | 2.95 µV/h | 6.86 yr | smoothing extends life 1.28×, as ref #7 reports |
+| smooth reference | 2.46 µV/h | 8.21 yr | |
+
+`baseline_naive` at **5.35 yr** now reproduces ref #7's ~5-year PEM stack lifetime more
+closely than the first solve did, and sits mid-band rather than at its edge.
 
 Two constraints the search enforced, so the fit stays physical rather than numerical:
 
@@ -184,8 +193,10 @@ Two constraints the search enforced, so the fit stays physical rather than numer
 `r_base = 2.25 µV/h` sits inside ref #3's 1–10 µV/h steady-state band, and `r_idle` stays
 strictly positive so "idle forever" remains costly.
 
-> ⚠️ **This calibration used the synthetic placeholder profiles in `env.synthetic_day`, not
-> real data.** It must be re-run — `python scripts/calibrate_degradation.py --solve` — once
+> ⚠️ **Re-solve whenever the physics or the profiles change.** It has already had to be
+> redone once, after PR #1 corrected the plant model. It must be redone again on real data:
+> this calibration still uses the synthetic placeholder profiles in `env.synthetic_day`, not
+> real weather.** It must be re-run — `python scripts/calibrate_degradation.py --solve` — once
 > Person C lands `data/processed/kutch_2019_1min.parquet`. Real profiles have different
 > cloud-transient statistics, so the ramp and cycling integrals will shift. Person C tells
 > Person A the moment that file exists; it is a Day-2 handoff, not a Day-4 discovery.
