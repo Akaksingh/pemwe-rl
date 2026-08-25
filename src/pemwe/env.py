@@ -4,6 +4,15 @@ This runs END TO END right now. That is the whole point: Person B trains against
 Day 1 hour 1 while Person A is still replacing the physics underneath. The observation
 space, action space and `info` keys are FROZEN (CONTRACTS.md section 1) -- change the
 physics freely, never the signatures.
+
+Day-2 status: physics validated, degradation calibrated, Gate G1 passing. Two contract
+BUGS were fixed here without touching the shape or the ordering of anything frozen:
+
+  * obs[2] `p_set_prev` and obs[3] `j_frac` were byte-identical, because the stub wrote
+    `self.j_prev, self.j = j, j`. One of eight observation dimensions was wasted and the
+    previous SETPOINT the contract promises the agent was never actually supplied.
+  * reset() reported p_renew = 0 regardless of the profile, so the first action of every
+    episode was taken against a false observation.
 """
 
 from __future__ import annotations
@@ -75,12 +84,15 @@ class PEMWEEnv(gym.Env):
         self.t = 0
         self.j = 0.0
         self.j_prev = 0.0
+        self.p_set_prev = 0.0
         self.is_on = False
         self.h2_total = 0.0
         if not self.persist_deg:
             self.dv_deg_uv = 0.0
-        self._renew_hist = [self.profile[0]] * 15
-        return self._obs(0.0, 0.0), {}
+        self._renew_hist = [float(self.profile[0])] * 15
+        # The agent's first action must see the renewable power actually available at
+        # t = 0, not a hard-coded zero.
+        return self._obs(float(self.profile[0]), 0.0), {}
 
     def step(self, action):
         a = float(np.clip(action, -1.0, 1.0)[0])
@@ -91,9 +103,11 @@ class PEMWEEnv(gym.Env):
 
         dv_v = self.dv_deg_uv * 1e-6
         j = self.stack.j_from_power(p_set, dv_v)
-        was_on, self.is_on = self.is_on, j > self.stack.j_min
+        was_on, self.is_on = self.is_on, j >= self.stack.j_min
         if not self.is_on:
             j = 0.0
+            p_set = 0.0            # cannot part-load below the ON threshold; drawing the
+                                   # commanded power while OFF would break the hard cap
 
         h2_kg = self.stack.h2_rate_kg_s(j, dv_v) * self.dt_min * 60.0 if self.is_on else 0.0
         dv_step, dv_parts = self.deg.step_uv(j, self.j_prev, self.stack.j_rated,
@@ -107,12 +121,6 @@ class PEMWEEnv(gym.Env):
         r_ramp = abs(j - self.j_prev) / self.stack.j_rated
         reward = self.w1 * r_yield - self.w2 * r_deg - self.w3 * r_ramp
 
-        self.j_prev, self.j = j, j
-        self._renew_hist.append(p_renew)
-        self._renew_hist = self._renew_hist[-15:]
-        self.t += 1
-        truncated = self.t >= self.n_steps
-
         p_stack = self.stack.power_w(j, dv_v) if self.is_on else 0.0
         info = {
             "p_renew_w": p_renew, "p_set_w": p_set, "p_stack_w": p_stack,
@@ -123,20 +131,32 @@ class PEMWEEnv(gym.Env):
             "curtailed_w": max(0.0, p_renew - p_set),
             "r_yield": r_yield, "r_deg": r_deg, "r_ramp": r_ramp,
         }
-        return self._obs(p_renew, h2_kg), float(reward), False, truncated, info
+
+        # advance state AFTER info is built, so info describes the step just taken
+        self.j_prev = j
+        self.j = j
+        self.p_set_prev = p_set
+        self._renew_hist.append(p_renew)
+        self._renew_hist = self._renew_hist[-15:]
+        self.t += 1
+        truncated = self.t >= self.n_steps
+
+        next_renew = float(self.profile[min(self.t, self.n_steps - 1)])
+        return self._obs(next_renew, h2_kg), float(reward), False, truncated, info
 
     # --- observation -----------------------------------------------------
 
     def _obs(self, p_renew, h2_kg):
+        """CONTRACTS.md section 1, eight fields, this order. FROZEN."""
         hour = (self.t * self.dt_min / 60.0) % 24
         h2_ref = self.stack.h2_rate_kg_s(self.stack.j_rated) * self.dt_min * 60.0
         return np.array([
-            p_renew / self.p_rated,
-            float(np.mean(self._renew_hist)) / self.p_rated,
-            self.j_prev / self.stack.j_rated,
-            self.j / self.stack.j_rated,
-            self.dv_deg_uv / self.deg.dv_eol,
-            h2_kg / max(h2_ref, 1e-12),
-            np.sin(2 * np.pi * hour / 24),
-            np.cos(2 * np.pi * hour / 24),
+            p_renew / self.p_rated,                        # 0 p_renew
+            float(np.mean(self._renew_hist)) / self.p_rated,  # 1 p_renew_ma15
+            self.p_set_prev / self.p_rated,                # 2 p_set_prev  (was a duplicate of 3)
+            self.j / self.stack.j_rated,                   # 3 j_frac
+            self.dv_deg_uv / self.deg.dv_eol,              # 4 deg_norm
+            h2_kg / max(h2_ref, 1e-12),                    # 5 h2_rate_norm
+            np.sin(2 * np.pi * hour / 24),                 # 6 tod_sin
+            np.cos(2 * np.pi * hour / 24),                 # 7 tod_cos
         ], dtype=np.float32)
