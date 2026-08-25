@@ -82,20 +82,31 @@ Confirm `dv_deg_uv` genuinely feeds back into `stack.v_cell` through `env.step` 
 accumulated degradation actually costs future yield. Without that feedback there is no
 long-term/short-term tradeoff and the agent has nothing to learn.
 
-### 4. Fix the failing gate check — this is your hardest task
+### 4. The degradation calibration — already solved, but you own re-running it
 
 Run it now:
 
 ```bash
-./.venv/Scripts/python.exe scripts/smoke_test.py
+./.venv/Scripts/python.exe scripts/smoke_test.py        # all three G1 checks PASS
+./.venv/Scripts/python.exe scripts/calibrate_degradation.py    # the decomposition
 ```
 
-`[G1.2]` currently **FAILS**: the jittery policy degrades only **2.06×** faster than the
-smooth one, against a target of **≥ 3×**. I left it failing deliberately — it is your first
-real task, not an oversight.
+`[G1.2]` and `[G1.3]` now pass: separation **4.50×** (target ≥3) and `baseline_naive` at
+**4.15 µV/h → 4.87 yr**, against the ~5-year figure in ref [7]. `DECISIONS.md` §5 records
+the coefficients and the reasoning.
 
-**The subtlety that will cost you an afternoon if you miss it:** you have two calibration
-targets that pull against each other.
+**Your job is not to redo this — it is to (a) satisfy yourself the numbers are physical, and
+(b) re-run it on real data.** The calibration used the synthetic placeholder profiles in
+`env.synthetic_day`. The moment Person C lands `data/processed/kutch_2019_1min.parquet`,
+re-run `scripts/calibrate_degradation.py --solve`: real cloud-transient statistics change
+the ramp and cycling integrals, so the coefficients will move. **Ask C for that file on Day
+1, do not wait to be told.**
+
+You also write this up — it is a genuine methodology contribution and reviewers will ask
+where the constants came from.
+
+**The subtlety, which is why this was solved with a solver and not by hand:** you have two
+calibration targets that pull against each other.
 
 - The **ratio** target (≥3×) needs the cycling and ramp terms to be *large relative to* the
   base and idle terms.
@@ -109,17 +120,16 @@ breaks the absolute rate. Solve both together.
 Keep the relative weights physically defensible: ref [4] gives ≲50 µV/h as the worst-case
 rate under cycling, so that is your upper bound for an aggressive policy.
 
-### 5. Calibrate against the literature — this is a methodology contribution, write it down
+### 5. Write the calibration up — it is a methodology contribution
 
-Do not hand-pick the coefficients. Tune them so that **the rule-based baseline, driven by
-Person C's real Kutch profiles, reproduces the ~5-year PEM stack lifetime reported in
-ref [7]**, with end-of-life defined as a 10 % cell-voltage rise (177 mV).
+The anchor is: **the rule-based baseline (ref [8]), driven by real Kutch profiles, must
+reproduce the ~5-year PEM stack lifetime of ref [7]**, end-of-life defined as a 10 %
+cell-voltage rise (177 mV). Target 4.0 ± 0.5 µV/h; the smoke test prints the achieved rate
+and implied lifetime for both baselines every run.
 
-Target: **baseline mean degradation rate 4.0 ± 0.5 µV/h.** The smoke test already prints
-this number and the implied lifetime for both baselines.
-
-Write the procedure up as a paragraph as you go. It pre-empts the obvious reviewer question
-and turns an arbitrary-looking parameterisation into a defensible one.
+Written as a paragraph, this turns an arbitrary-looking parameterisation into a defensible
+one and pre-empts the obvious reviewer question. `DECISIONS.md` §5 has the material — your
+job is to check it, own it, and put it in the paper in your own words.
 
 ---
 

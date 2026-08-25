@@ -101,18 +101,86 @@ Smoke-test against A's real environment as it lands, then queue the first honest
 
 ---
 
-## Day 3 — your highest-risk two hours
+## The compute situation — read `SERVER.md` and `BENCHMARK.md` before you plan anything
 
-**Do this before committing any overnight compute.**
+You have a shared box: **4× NVIDIA H200 + 128 CPU cores**, 90 GPU-h/week quota. The repo is
+already set up there at `~/pemwe-rl` with an identical SB3/gymnasium stack, and the smoke
+test reproduces bit-for-bit against Windows.
 
-Coarse reward-weight sweep: `w2 ∈ {0.1, 1, 10, 100}`, short runs (~200k steps each). Read
-the **component** logs, not total reward. You are looking for the band where the agent:
+The device split is **measured, not guessed** — do not re-litigate it by intuition:
+
+| | Device | Settings | Throughput |
+|---|---|---|---|
+| **PPO** | **CPU**, plain SSH | `n_envs=32` | 9,712 steps/s |
+| **SAC** | **GPU**, `gpurun -g 1` | `train_freq=32, gradient_steps=32` | 6,520 steps/s |
+
+- **PPO is ~30 % slower on the H200** than on CPU — this workload is bound by Python env
+  stepping, not matmuls. Never run PPO under `gpurun`: slower *and* it burns quota, because
+  the broker bills wall-clock time the job *holds* a GPU, not utilisation.
+- **SAC's SB3 defaults are 26× slower than necessary.** Batching updates across 32 envs at
+  an unchanged 1:1 update-to-step ratio recovers all of it. There the GPU genuinely wins.
+
+They use different resources, so **run PPO and SAC concurrently**. The full 130-run matrix
+(13 w₂ × 5 seeds × 2 algorithms) is ≈83 min wall-clock and ≈5.5 GPU-h of your 90/week.
+
+⚠️ One caveat you must check yourself: `n_envs=32` changes SAC's replay and exploration
+dynamics versus `n_envs=1`. Sanity-check a single learning curve before launching the full
+matrix. And ignore the 13,889 steps/s row in `BENCHMARK.md` — it reaches that by doing 4×
+fewer gradient updates per env step, which is a different algorithm, not a free speedup.
+
+## Day 3 — the reward-weight sweep
+
+**Do this before committing to the full matrix.**
+
+Reward-weight sweep, short runs (~200k steps each). Read the **component** logs, not total
+reward. You are looking for the band where the agent:
 
 - does **not** park at `P_idle` forever (w₂ too high — the classic degenerate policy), and
 - does **not** chase every fluctuation straight to rated power (w₂ too low)
 
-Two hours here versus a wasted day of long runs at a useless weighting. Then queue the real
-runs overnight: **{SAC, PPO} × 5 seeds** at the chosen weights.
+This was originally budgeted as the sprint's most expensive step, at 4 coarse points
+(`w2 ∈ {0.1, 1, 10, 100}`). On the server it is minutes, so it is now **13 points**, already
+fixed in `configs/default.yaml → sweep.w2`:
+
+```
+[0.1, 0.178, 0.316, 0.562, 1.0, 1.78, 3.16, 5.62, 10.0, 17.8, 31.6, 56.2, 100.0]
+```
+
+Quarter-decade log spacing over the **unchanged** 0.1–100 range. The old coarse points are
+still in the list as a subset, so this is a strict refinement — anything you measured
+against the coarse sweep stays comparable. Do not re-derive the range; it is locked.
+
+That is not gold-plating. The headline figure is the yield-vs-degradation Pareto frontier
+and **each w₂ value is exactly one point on it**. Four points cannot show the shape of the
+curve, and in particular cannot resolve the knee — the region where a small yield sacrifice
+buys a large degradation reduction, which is the paper's actual claim.
+
+**Seeds stay at 5** (`[0,1,2,3,4]`). Do not trade replication for sweep points: 13 w₂ × 3
+seeds is a worse result than 13 w₂ × 5 seeds, and the compute is there.
+
+Full matrix: 13 w₂ × 5 seeds × {SAC, PPO} = **130 runs**. PPO on CPU and SAC on GPU
+concurrently ≈ **83 min wall-clock, ≈5.5 GPU-h** of your 90/week.
+
+### Launch scripts — already written, they dry-run by default
+
+```bash
+./scripts/validate_experiment_config.py   # 22 invariant checks, run this first
+./scripts/run_ppo_sweep.sh                # dry run: prints the plan, launches nothing
+./scripts/run_sac_sweep.sh                # dry run
+./scripts/run_ppo_sweep.sh --go &         # CPU
+./scripts/run_sac_sweep.sh --go &         # GPU, via gpurun -g 1
+```
+
+They read the sweep and seeds from `configs/default.yaml`, so there is no hard-coded list
+to drift, and they enforce two things you cannot easily catch by eye:
+
+- `run_ppo_sweep.sh` **exits 1 if launched under `gpurun`** and clears
+  `CUDA_VISIBLE_DEVICES`, so PPO can never take a GPU.
+- `run_sac_sweep.sh` **aborts unless `gradient_steps == train_freq == n_envs`**, so the
+  `gradient_steps=8` config can never silently become your headline SAC result.
+
+They expect `src/pemwe/train.py` to accept `--algo`, `--seed`, `--override`, `--run-id`.
+That is the interface to build against — the scripts print a NOTE until the file exists.
 
 ### Gate G2 — end of Day 3
 
