@@ -7,6 +7,11 @@
 | **[PLAN.md](PLAN.md)** | The 3-person / 5-day plan — roles, day-by-day, gates, risks, descope ladder |
 | **[DECISIONS.md](DECISIONS.md)** | The 8 open decisions, resolved and locked, with reasoning for the paper |
 | **[CONTRACTS.md](CONTRACTS.md)** | The frozen interfaces that let three people work without blocking each other |
+| **[paper/REFERENCES.md](paper/REFERENCES.md)** | The 11 references, each with the specific job it does in the paper |
+
+**Starting your lane?** Paste your brief to your Claude session as the first message:
+[Person A](briefs/PERSON_A.md) · [Person B](briefs/PERSON_B.md) · [Person C](briefs/PERSON_C.md).
+Each one is self-contained.
 
 ---
 
