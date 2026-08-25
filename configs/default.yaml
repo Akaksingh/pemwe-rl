@@ -55,7 +55,16 @@ baseline:
 train:
   total_timesteps: 2000000
   seeds: [0, 1, 2, 3, 4]
-  n_envs: 8
+  n_envs: 32                 # measured optimum on the 128-core server; 64 oversubscribes
+  # Device + algo settings are MEASURED, not guessed -- see BENCHMARK.md.
+  # PPO on GPU is ~30% SLOWER than CPU (env-stepping bound). Do not "optimise" it there.
+  ppo:
+    device: cpu              # never run PPO under gpurun: slower AND burns quota
+  sac:
+    device: cuda             # gpurun -g 1; genuinely 2.7x faster than CPU here
+    train_freq: 32           # batching updates across 32 envs at an unchanged 1:1
+    gradient_steps: 32       # update-to-step ratio = 26x faster than SB3 defaults
+    batch_size: 512
 
 data:
   lat: 23.25

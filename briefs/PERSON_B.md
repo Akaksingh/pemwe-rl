@@ -101,18 +101,53 @@ Smoke-test against A's real environment as it lands, then queue the first honest
 
 ---
 
-## Day 3 — your highest-risk two hours
+## The compute situation — read `SERVER.md` and `BENCHMARK.md` before you plan anything
 
-**Do this before committing any overnight compute.**
+You have a shared box: **4× NVIDIA H200 + 128 CPU cores**, 90 GPU-h/week quota. The repo is
+already set up there at `~/pemwe-rl` with an identical SB3/gymnasium stack, and the smoke
+test reproduces bit-for-bit against Windows.
 
-Coarse reward-weight sweep: `w2 ∈ {0.1, 1, 10, 100}`, short runs (~200k steps each). Read
-the **component** logs, not total reward. You are looking for the band where the agent:
+The device split is **measured, not guessed** — do not re-litigate it by intuition:
+
+| | Device | Settings | Throughput |
+|---|---|---|---|
+| **PPO** | **CPU**, plain SSH | `n_envs=32` | 9,712 steps/s |
+| **SAC** | **GPU**, `gpurun -g 1` | `train_freq=32, gradient_steps=32` | 6,520 steps/s |
+
+- **PPO is ~30 % slower on the H200** than on CPU — this workload is bound by Python env
+  stepping, not matmuls. Never run PPO under `gpurun`: slower *and* it burns quota, because
+  the broker bills wall-clock time the job *holds* a GPU, not utilisation.
+- **SAC's SB3 defaults are 26× slower than necessary.** Batching updates across 32 envs at
+  an unchanged 1:1 update-to-step ratio recovers all of it. There the GPU genuinely wins.
+
+They use different resources, so **run PPO and SAC concurrently**. The whole 40-run matrix
+is under an hour and costs ~1.7 GPU-h.
+
+⚠️ One caveat you must check yourself: `n_envs=32` changes SAC's replay and exploration
+dynamics versus `n_envs=1`. Sanity-check a single learning curve before launching the full
+matrix. And ignore the 13,889 steps/s row in `BENCHMARK.md` — it reaches that by doing 4×
+fewer gradient updates per env step, which is a different algorithm, not a free speedup.
+
+## Day 3 — the reward-weight sweep
+
+**Do this before committing to the full matrix.**
+
+Reward-weight sweep, short runs (~200k steps each). Read the **component** logs, not total
+reward. You are looking for the band where the agent:
 
 - does **not** park at `P_idle` forever (w₂ too high — the classic degenerate policy), and
 - does **not** chase every fluctuation straight to rated power (w₂ too low)
 
-Two hours here versus a wasted day of long runs at a useless weighting. Then queue the real
-runs overnight: **{SAC, PPO} × 5 seeds** at the chosen weights.
+This was originally budgeted as the sprint's most expensive step, at 4 coarse points
+(`w2 ∈ {0.1, 1, 10, 100}`). **On the server it is minutes, so spend it: run 12–15 points
+instead.**
+
+That is not gold-plating. The paper's headline figure is the yield-vs-degradation Pareto
+frontier, and each w₂ value is one point on it. A frontier traced by 15 points is a far
+stronger figure than one traced by 4 — this is the single most valuable thing the server
+buys the paper, worth more than the raw speedup.
+
+Then run the real matrix: **{SAC, PPO} × 5 seeds** across the chosen weights.
 
 ### Gate G2 — end of Day 3
 
