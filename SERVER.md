@@ -19,9 +19,9 @@ os      Ubuntu 24.04.4, Python 3.12.3
 ssh anshgupta456ansh@192.168.2.69
 ```
 
-The `-L 11434:localhost:11434` tunnel is Ollama's port. **Nothing on that port is running
-on this server, and nothing in this project uses it** — no LLM is in the training loop. Drop
-the flag unless you are using the box for something else.
+**Do not add `-L 11434:localhost:11434`.** That is Ollama's port: nothing listens on it on
+this server, and **no part of this RL loop has an LLM or Ollama dependency**. The plain `ssh`
+line above is the entire connection recipe.
 
 ## GPUs are brokered — you cannot touch them directly
 
@@ -89,24 +89,32 @@ cd ~/pemwe-rl
 nohup .venv/bin/python -m pemwe.train --algo sac --seed 0 > logs/sac_s0.log 2>&1 &
 ```
 
-For a whole seed sweep, launch them as separate processes — with 128 cores there is no
-reason to run seeds sequentially. PPO on cores, SAC on GPUs, concurrently:
+## The Pareto sweep — use the launch scripts
+
+Both read `configs/default.yaml` (13 w₂ values × 5 seeds) and **dry-run by default**: they
+print the plan and launch nothing until you pass `--go`.
 
 ```bash
-cd ~/pemwe-rl && mkdir -p logs
+cd ~/pemwe-rl
+./scripts/run_ppo_sweep.sh          # dry run - 65 runs, ~55 min
+./scripts/run_sac_sweep.sh          # dry run - 65 runs, ~82 min, ~5 GPU-h
 
-# PPO: CPU only, no broker. 4 concurrent x 32 envs = 128 cores.
-for s in 0 1 2 3 4; do
-  OMP_NUM_THREADS=8 nohup .venv/bin/python -m pemwe.train --algo ppo --seed $s \
-    > logs/ppo_s$s.log 2>&1 &
-done
-
-# SAC: one GPU each, 4 at a time (4 GPUs available).
-for s in 0 1 2 3; do
-  OMP_NUM_THREADS=8 nohup gpurun -g 1 .venv/bin/python -m pemwe.train --algo sac --seed $s \
-    > logs/sac_s$s.log 2>&1 &
-done
+./scripts/run_ppo_sweep.sh --go &   # CPU, 4 concurrent, no broker
+./scripts/run_sac_sweep.sh --go &   # GPU, 4 concurrent via gpurun -g 1
 ```
+
+Run both at once — they use different resources, so total wall-clock is ≈83 min.
+
+They enforce the two rules that are easiest to break by accident:
+
+- **`run_ppo_sweep.sh` refuses to start if submitted through `gpurun`** (it checks
+  `GPU_BROKER_JOB`) and clears `CUDA_VISIBLE_DEVICES`, so PPO cannot take a GPU even if one
+  is visible. On the H200 PPO is slower *and* burns quota.
+- **`run_sac_sweep.sh` aborts unless `gradient_steps == train_freq == n_envs`**, so the
+  `gradient_steps=8` configuration can never silently become the primary SAC result
+  (`DECISIONS.md` §4).
+
+Both derive every number from the config, so there is no hard-coded sweep to drift.
 
 **Set `OMP_NUM_THREADS`.** Torch defaults to grabbing every core per process; five
 unconstrained processes on 128 cores will fight each other and run slower than one.

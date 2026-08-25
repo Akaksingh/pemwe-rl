@@ -42,6 +42,24 @@ reward:
   h2_scale_kg: 0.01          # normalizes r_yield to O(1) per step
   deg_scale_uv: 0.1          # normalizes r_deg to O(1) per step
 
+# --- Day-3 Pareto sweep -----------------------------------------------------
+# w2 is the degradation weight and the ONLY swept reward term. w1 and w3 stay fixed,
+# so each w2 value is one point on the yield-vs-degradation Pareto frontier that is
+# the paper's headline figure (DECISIONS.md 8).
+#
+# Range 0.1 .. 100 is UNCHANGED from the original coarse sweep. This is a strict
+# refinement of it: {0.1, 1, 10, 100} all remain in the list as a subset, so anything
+# already measured against the coarse sweep stays directly comparable.
+#
+# Log spacing (quarter-decade, 4 points per decade) because w2 spans three orders of
+# magnitude against w1 = 1.0. Linear spacing would crowd almost every point into the
+# high-penalty regime and leave the low-w2 end of the frontier unresolved.
+#
+# 13 points x 5 seeds x 2 algorithms = 130 runs. Seed count is NOT reduced to pay for
+# the extra points -- see train.seeds.
+sweep:
+  w2: [0.1, 0.178, 0.316, 0.562, 1.0, 1.78, 3.16, 5.62, 10.0, 17.8, 31.6, 56.2, 100.0]
+
 env:
   dt_min: 1.0
   steps_per_episode: 1440    # 24 h at 1 min -- DECISIONS.md 1,2
