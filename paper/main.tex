@@ -175,7 +175,7 @@ coefficients directly, we fix them through the Tafel slope $b=2.303\,RT/\alpha F
 at \SI{60}{\celsius}, since that is the quantity experimental work reports:
 $\alpha_\mathrm{a}=1.5$ gives \SI{44}{\milli\volt\per\deci\bel} per decade, inside the
 40--60\,mV/dec reported for oxygen evolution on
-IrO\textsubscript{2}~\cite{feng2017review,yu2020iridium}, and $\alpha_\mathrm{c}=2.0$ gives
+IrO\textsubscript{2}~\cite{feng2017pemwe,yu2020iridium}, and $\alpha_\mathrm{c}=2.0$ gives
 33\,mV/dec, consistent with the $\approx$30\,mV/dec of hydrogen evolution on platinum.
 
 Ohmic loss and hydrogen crossover are deliberately derived from a \emph{single} membrane
@@ -233,15 +233,15 @@ and not merely reward: at a fixed available power a degraded stack settles at a 
 current density and produces less hydrogen.
 
 Five mechanisms contribute per timestep, with $j_f=j/j_\mathrm{r}$: a steady-state base
-rate $r_\mathrm{base}$~\cite{pemwe_degradation_models_2025}; a high-current stress term
+rate $r_\mathrm{base}$~\cite{degmodels2025}; a high-current stress term
 $k_j\max(0,j_f-0.6)^2$, since iridium dissolution and membrane thinning accelerate
-superlinearly at high overpotential~\cite{feng2017review,yu2020iridium}; a ramp term
+superlinearly at high overpotential~\cite{feng2017pemwe,yu2020iridium}; a ramp term
 $k_r|\mathrm{d}j/\mathrm{d}t|$ for thermal fatigue, independent of absolute
-power~\cite{dynamic_degradation_2025}; a fixed penalty $\Delta V_\mathrm{cycle}$ per on/off
+power~\cite{intermittency2025}; a fixed penalty $\Delta V_\mathrm{cycle}$ per on/off
 transition, start/stop being the dominant intermittency
-mechanism~\cite{dynamic_degradation_2025}; and an idle term $r_\mathrm{idle}$ while off,
+mechanism~\cite{intermittency2025}; and an idle term $r_\mathrm{idle}$ while off,
 because the anode at open-circuit potential drives iridium
-dissolution~\cite{feng2017review,yu2020iridium}.
+dissolution~\cite{feng2017pemwe,yu2020iridium}.
 
 The idle term is load-bearing rather than incidental. Without it the reward-maximising
 degenerate policy is to park at idle forever---no degradation, almost no hydrogen---and a
@@ -263,9 +263,9 @@ in~\cite{mpc_refuel_2026} at a \SI{10}{\percent} (\SI{177}{\milli\volt}) end-of-
 criterion; (ii) a deliberately jittery policy degrades at least three times faster than a
 smooth one, so the model can distinguish control strategies at all; (iii) no policy exceeds
 the $\approx$\SI{50}{\micro\volt\per\hour} worst case reported under
-cycling~\cite{dynamic_degradation_2025}; (iv) every coefficient lies inside its published
+cycling~\cite{intermittency2025}; (iv) every coefficient lies inside its published
 interval; and (v) the separation is carried by \emph{both} intermittency mechanisms
-of~\cite{dynamic_degradation_2025}, ramping and on/off cycling, with neither below
+of~\cite{intermittency2025}, ramping and on/off cycling, with neither below
 \SI{20}{\percent} of the policy-dependent total. Condition (v) matters: without it a
 coefficient set can satisfy the numerical targets while modelling only half the physics.
 
