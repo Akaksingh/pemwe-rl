@@ -1,36 +1,96 @@
 # Single source of truth. No magic numbers in code.
 # Ablations run as `--override reward.w2=2.0`, never by editing this file.
+#
+# OWNER: Person A (stack:, degradation:, env:). Reference numbers in [brackets] are
+# paper/REFERENCES.md. Validation table + method: notes/A_constants.md.
+# Regenerate the evidence with:  python scripts/validate_physics.py
 
 stack:
+  # --- geometry and operating point: LOCKED by DECISIONS.md 7, do not tune -----
   n_cells: 280
   area_cm2: 1000.0
   j_rated_a_cm2: 2.0
-  j_min_a_cm2: 0.05          # below this the stack is considered OFF
-  temp_k: 333.15             # 60 C
-  pressure_bar: 30.0
-  # --- polarization curve (Amphlett form) --- OWNER: A, calibrate Day 1
-  e_rev_ref_v: 1.229
-  e_rev_dtemp_v_per_k: -0.9e-3
-  alpha_anode: 2.0
-  j0_anode_a_cm2: 1.0e-7
-  alpha_cathode: 2.0
-  j0_cathode_a_cm2: 1.0e-1
-  asr_ohm_cm2: 0.15          # membrane + contact + PTL area-specific resistance
-  j_lim_a_cm2: 4.0
-  conc_coeff_v: 0.05
-  # --- faradaic efficiency (H2 crossover) --- this is what kills low-power efficiency
-  j_crossover_a_cm2: 0.03
-  # --- balance of plant ---
-  bop_frac_of_rated: 0.02    # constant parasitic draw while ON
+  j_min_a_cm2: 0.05          # 2.5% of rated; below this the stack is considered OFF.
+                             # PEMWE turndown is typically 5-10% of rated [3]; we take a
+                             # deliberately permissive floor so that "run very low" stays
+                             # available to the agent and is rejected on efficiency
+                             # grounds rather than by fiat.
+  temp_k: 333.15             # 60 C  (LOCKED, DECISIONS.md 7)
+
+  # --- pressure: differential mode, cathode pressurised, anode near ambient ----
+  # This is the standard commercial PEMWE arrangement and it is load-bearing twice:
+  # it adds a Nernst penalty to E_rev AND it drives H2 crossover (both in stack.py).
+  pressure_bar: 30.0         # cathode / H2 side (LOCKED, DECISIONS.md 7)
+  pressure_anode_bar: 1.0    # anode / O2 side, ambient
+
+  # --- reversible voltage ------------------------------------------------------
+  e_rev_ref_v: 1.229         # standard potential, 25 C, 1 bar. Thermodynamic constant.
+  e_rev_dtemp_v_per_k: -0.9e-3   # dE/dT for liquid-water electrolysis, -0.85..-0.9 mV/K.
+                                 # CONFIRMED (thermodynamic, consistent with [1] Sec.2).
+
+  # --- activation (Butler-Volmer, symmetric) -----------------------------------
+  # alpha is validated through the Tafel slope b = 2.303 RT / (alpha F) it implies at
+  # 60 C, which is the quantity papers actually report.
+  alpha_anode: 1.5           # CORRECTED from 2.0. b = 44 mV/dec, inside the 40-60 mV/dec
+                             # reported for OER on IrO2 [1,5]. alpha=2.0 implied 33 mV/dec,
+                             # which is a cathode-like slope and too fast for OER.
+  j0_anode_a_cm2: 1.0e-7     # CONFIRMED. IrO2 OER exchange current density spans
+                             # 1e-7..1e-12 A/cm2 [1,5]; we sit at the fast end, which is
+                             # appropriate for a modern high-loading anode catalyst layer.
+  alpha_cathode: 2.0         # CONFIRMED. b = 33 mV/dec, matches the ~30 mV/dec Tafel
+                             # slope for HER on Pt [1].
+  j0_cathode_a_cm2: 1.0e-1   # CONFIRMED. HER on Pt is fast, 1e-3..1e-1 A/cm2 [1].
+
+  # --- ohmic: derived from the membrane, NOT a free parameter -------------------
+  membrane_thickness_cm: 0.0070   # 70 um reinforced PFSA composite, the class used in
+                                  # MW-scale PEMWE rated at ~2 A/cm2. Between N212 (51 um)
+                                  # and N115 (127 um).
+  membrane_conductivity_s_cm: 0.10  # fully hydrated PFSA at 60 C, 0.09-0.13 S/cm [1,3].
+  r_contact_ohm_cm2: 0.03    # PTL + bipolar plate + interfacial contact, 0.02-0.05 [3].
+  # => ASR = 0.0070/0.10 + 0.03 = 0.100 ohm cm2. Was a bare 0.15 with no provenance.
+
+  # --- mass transport -----------------------------------------------------------
+  j_lim_a_cm2: 4.0           # CONFIRMED as a conservative value. Anode-side water/O2
+                             # transport limits are reported at 3-8 A/cm2 [3]; 4.0 is the
+                             # low end, so we do not understate the high-j penalty.
+  conc_coeff_v: 0.05         # fitted pre-factor of the -B ln(1 - j/j_lim) form. Adds only
+                             # 35 mV at rated, i.e. it shapes the knee without dominating.
+
+  # --- faradaic efficiency: H2 crossover ----------------------------------------
+  # j_crossover is NO LONGER a free constant. stack.py computes it from Fick's law,
+  #   j_cross = 2 F * P_H2 * p_cathode / membrane_thickness,
+  # so it is tied to the SAME thickness that sets the ohmic loss and to the SAME cathode
+  # pressure that sets the Nernst penalty. Thinning the membrane to buy high-j efficiency
+  # therefore costs low-j efficiency, which is the real physical trade-off.
+  h2_permeability_mol_cm_s_bar: 2.0e-11   # H2 permeability of hydrated PFSA at 60-80 C,
+                                          # reported 1e-11..3e-11 [1].
+  # => j_cross = 0.0165 A/cm2 at 30 bar / 70 um. The Day-0 stub asserted 0.03 with no
+  #    derivation; the derived value is ~half that and still collapses efficiency below
+  #    ~0.2 A/cm2, which is what creates the control tension (DECISIONS.md 7).
+
+  # --- balance of plant ----------------------------------------------------------
+  bop_frac_of_rated: 0.015   # ALWAYS-ON parasitic floor only: circulation pumps, chiller,
+                             # controls, gas drying (~15 kW on a 1 MW plant). Load-
+                             # proportional BoP is not modelled separately; it is absorbed
+                             # into the stack-side losses. Stated as a Limitation.
+                             # This constant fixes the LEFT edge of the efficiency peak.
 
 degradation:
-  # OWNER: A. Day 2 = scale these so the RULE-BASED BASELINE on real Kutch profiles
-  # lands at 4.0 +/- 0.5 uV/h, i.e. the ~5-year lifetime of ref #7. See DECISIONS.md 5.
+  # OWNER: A. Solved against two simultaneous targets by
+  # scripts/calibrate_degradation.py --solve; DECISIONS.md 5 records the reasoning.
+  #
+  # NOTE (A, Day 2): these are the values solved against the PRE-CORRECTION physics.
+  # They still pass both gates on the corrected plant model, but baseline_naive now
+  # sits at 4.49 uV/h -- the upper edge of the 4.0 +/- 0.5 band -- because the fixes
+  # to P_rated, the stale obs[0] and the ON threshold changed the exposure integrals.
+  # Re-solving gives r_base 1.5 / k_j 20.0 / k_ramp 11.0 / dv_cycle 3.5 / r_idle 2.0
+  # -> 3.78 uV/h at 4.50x separation. Not applied unilaterally: it would also move the
+  # numbers quoted in DECISIONS.md 5. Standup decision. See notes/A_handoff.md.
   r_base_uv_per_h: 2.25
   k_j_uv_per_h: 50.0         # x max(0, j/j_rated - j_stress_threshold)^2
   j_stress_threshold: 0.6
   j_stress_exponent: 2.0
-  k_ramp_uv_per_h: 16.0       # x |dj/dt| in (A/cm^2)/min
+  k_ramp_uv_per_h: 16.0      # x |dj/dt| in (A/cm^2)/min
   dv_cycle_uv: 4.0           # per ON<->OFF transition
   r_idle_uv_per_h: 1.0       # OCV / Ir dissolution while OFF -- keeps "idle forever" from winning
   dv_eol_uv: 177000.0        # end of life = 10% rise on 1.77 V
