@@ -10,9 +10,27 @@ Term-by-term justification and the Day-2 calibration procedure: DECISIONS.md sec
 The idle term is load-bearing. Delete it and the reward-optimal degenerate policy becomes
 "sit at P_idle forever": zero degradation, near-zero yield. It is also physically correct
 (anode at open-circuit potential drives Ir dissolution, refs #1/#5).
+
+CALIBRATION HOOK -- `basis()`
+----------------------------
+The five terms are LINEAR in their five coefficients: the shape parameters
+(`j_stress_threshold`, `j_stress_exponent`) are held fixed by DECISIONS.md 5, so
+
+    dv_total(policy) = coeffs . sum_over_steps basis(step)
+
+exactly. `basis()` returns that per-step exposure vector with the coefficients stripped
+out. A single rollout of each policy therefore reduces the whole calibration to a small
+linear program: solve for the coefficients that put the rule-based baseline at
+4.0 uV/h AND the jittery policy at >= 3x the smooth one, instead of hand-tuning against
+two targets that pull in opposite directions. See scripts/calibrate_degradation.py.
 """
 
 from __future__ import annotations
+
+import numpy as np
+
+# Order is fixed and shared with the calibration script and configs/default.yaml.
+TERMS = ("base", "stress", "ramp", "cycle", "idle")
 
 
 class DegradationModel:
@@ -27,20 +45,33 @@ class DegradationModel:
         self.r_idle = d["r_idle_uv_per_h"]
         self.dv_eol = d["dv_eol_uv"]
 
+    @property
+    def coeffs(self) -> np.ndarray:
+        """The five scale coefficients, in TERMS order."""
+        return np.array([self.r_base, self.k_j, self.k_ramp, self.dv_cycle, self.r_idle],
+                        dtype=float)
+
+    def basis(self, j, j_prev, j_rated, dt_min, is_on, was_on) -> np.ndarray:
+        """Per-step exposure vector, coefficients stripped. dv = coeffs . basis.
+
+        Depends only on the trajectory and on the FIXED shape parameters, never on the
+        coefficients being calibrated. That is what makes the calibration linear.
+        """
+        dt_h = dt_min / 60.0
+        jf = j / j_rated
+        return np.array([
+            dt_h if is_on else 0.0,                                        # base
+            (max(0.0, jf - self.j_thr) ** self.j_exp * dt_h) if is_on else 0.0,  # stress
+            abs(j - j_prev) / dt_min * dt_h,                               # ramp
+            1.0 if (is_on != was_on) else 0.0,                             # cycle
+            0.0 if is_on else dt_h,                                        # idle
+        ], dtype=float)
+
     def step_uv(self, j, j_prev, j_rated, dt_min, is_on, was_on):
         """Degradation added this step, in microvolts. Returns (total, components)."""
-        dt_h = dt_min / 60.0
-        jf, jf_prev = j / j_rated, j_prev / j_rated
-
-        base = self.r_base * dt_h if is_on else 0.0
-        stress = (self.k_j * max(0.0, jf - self.j_thr) ** self.j_exp * dt_h) if is_on else 0.0
-        ramp = self.k_ramp * abs(j - j_prev) / dt_min * dt_h
-        cycle = self.dv_cycle if (is_on != was_on) else 0.0
-        idle = self.r_idle * dt_h if not is_on else 0.0
-
-        total = base + stress + ramp + cycle + idle
-        return total, {"base": base, "stress": stress, "ramp": ramp,
-                       "cycle": cycle, "idle": idle}
+        e = self.basis(j, j_prev, j_rated, dt_min, is_on, was_on)
+        parts = self.coeffs * e
+        return float(parts.sum()), dict(zip(TERMS, (float(x) for x in parts)))
 
     def projected_life_years(self, mean_rate_uv_per_h: float) -> float:
         """End of life = 10% cell-voltage rise. Calibration target: baseline ~5 years."""
