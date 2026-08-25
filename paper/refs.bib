@@ -1,0 +1,141 @@
+% Bibliography for the PEMWE RL setpoint-control paper.
+% Per-reference "why cite" notes live in paper/REFERENCES.md -- read those before using
+% any of these, and do not cite an entry without doing the job named there.
+
+@article{feng2017pemwe,
+  author  = {Feng, Qi and Yuan, Xiao-Zi and Liu, Gaoyang and Wei, Bing and Zhang, Zhen
+             and Li, Hui and Wang, Haijiang},
+  title   = {A review of proton exchange membrane water electrolysis on degradation
+             mechanisms and mitigation strategies},
+  journal = {Journal of Power Sources},
+  volume  = {366}, pages = {33--55}, year = {2017},
+  doi     = {10.1016/j.jpowsour.2017.09.006}
+}
+
+@article{bernhardt2026degradation,
+  author  = {Bernhardt, A. and Lange, K.},
+  title   = {Degradation Mechanisms in {PEM} Water Electrolysis: Diagnosis and Impact},
+  journal = {Advanced Materials Technologies},
+  pages   = {e02419}, year = {2026}
+}
+
+@article{degmodels2025,
+  title   = {Proton exchange membrane water electrolyzers degradation models review:
+             implications for power allocation and energy management},
+  journal = {Electric Power Systems Research},
+  year    = {2025},
+  note    = {Quantitative degradation rates used to parameterise the model in this work}
+}
+
+@article{intermittency2025,
+  title   = {Dynamic electrical degradation of {PEM} electrolyzers under renewable energy
+             intermittency: mechanisms, diagnostics, and mitigation strategies},
+  journal = {Renewable and Sustainable Energy Reviews},
+  year    = {2025},
+  note    = {Source of the ON/OFF cycling and ramp-fatigue mechanisms, and of the
+             worst-case degradation ceiling used in calibration}
+}
+
+@article{yu2020iridium,
+  author  = {Yu, Haoran and Bonville, Leonard and Jankovic, Jasna and Maric, Radenka},
+  title   = {Microscopic insights on the degradation of a {PEM} water electrolyzer with
+             ultra-low catalyst loading},
+  journal = {Applied Catalysis B: Environmental},
+  volume  = {260}, pages = {118194}, year = {2020},
+  doi     = {10.1016/j.apcatb.2019.118194}
+}
+
+@article{awe_rl_2025,
+  title   = {Surrogate-assisted reinforcement learning framework for zero-gap alkaline
+             water electrolyser operation},
+  journal = {Applied Energy},
+  year    = {2025},
+  note    = {Closest prior art: RL under renewable input, but alkaline rather than PEM
+             and without an explicit degradation term in the reward}
+}
+
+@article{mpc_refuel_2026,
+  title   = {Automated Electrolyzer Control System for the Production, Accumulation, and
+             Storage of Hydrogen for Refueling Vehicles},
+  journal = {Hydrogen},
+  volume  = {7}, number = {2}, pages = {76}, year = {2026},
+  doi     = {10.3390/hydrogen7020076},
+  note    = {Degradation-aware predictive control; source of the stack lifetime our
+             degradation model is calibrated against}
+}
+
+@article{pvt_control_2026,
+  title   = {Dynamic Control of a {PV/T} Electrolysis System for Hydrogen and Hot-Water
+             Production},
+  journal = {Hydrogen},
+  volume  = {7}, number = {2}, pages = {68}, year = {2026},
+  doi     = {10.3390/hydrogen7020068},
+  note    = {Source of the load-following baseline control law}
+}
+
+@article{drl_scheduling_2026,
+  title   = {Deep Reinforcement Learning-Based Scheduling for an Electric--Hydrogen
+             Integrated Station Using a Data-Driven Electrolyzer Model},
+  journal = {Applied Sciences},
+  year    = {2026},
+  doi     = {10.3390/16073605},
+  note    = {Nearest RL+PEM work, at scheduling rather than real-time control granularity}
+}
+
+@article{cao2020rlreview,
+  author  = {Cao, Di and Hu, Weihao and Zhao, Junbo and Zhang, Guozhou and Zhang, Bin
+             and Liu, Zhou and Chen, Zhe and Blaabjerg, Frede},
+  title   = {Reinforcement Learning and Its Applications in Modern Power and Energy
+             Systems: A Review},
+  journal = {Journal of Modern Power Systems and Clean Energy},
+  volume  = {8}, number = {6}, pages = {1029--1042}, year = {2020},
+  doi     = {10.35833/MPCE.2020.000552}
+}
+
+@article{pfenninger2016,
+  author  = {Pfenninger, Stefan and Staffell, Iain},
+  title   = {Long-term patterns of European {PV} output using 30 years of validated
+             hourly reanalysis and satellite data},
+  journal = {Energy},
+  volume  = {114}, pages = {1251--1265}, year = {2016},
+  doi     = {10.1016/j.energy.2016.08.060}
+}
+
+% Cite ONLY if the profiles were built with the ERA5 fallback rather than
+% Renewables.ninja. Check data/processed/kutch_2019_1min.json -> "source".
+@article{hersbach2020era5,
+  author  = {Hersbach, Hans and others},
+  title   = {The {ERA5} global reanalysis},
+  journal = {Quarterly Journal of the Royal Meteorological Society},
+  volume  = {146}, number = {730}, pages = {1999--2049}, year = {2020},
+  doi     = {10.1002/qj.3803}
+}
+
+@techreport{dobos2014pvwatts,
+  author      = {Dobos, Aron P.},
+  title       = {{PVWatts} Version 5 Manual},
+  institution = {National Renewable Energy Laboratory},
+  number      = {NREL/TP-6A20-62641}, year = {2014}
+}
+
+@article{haarnoja2018sac,
+  author  = {Haarnoja, Tuomas and Zhou, Aurick and Abbeel, Pieter and Levine, Sergey},
+  title   = {Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning
+             with a Stochastic Actor},
+  journal = {Proc. ICML}, year = {2018}
+}
+
+@article{schulman2017ppo,
+  author  = {Schulman, John and Wolski, Filip and Dhariwal, Prafulla and Radford, Alec
+             and Klimov, Oleg},
+  title   = {Proximal Policy Optimization Algorithms},
+  journal = {arXiv:1707.06347}, year = {2017}
+}
+
+@article{raffin2021sb3,
+  author  = {Raffin, Antonin and Hill, Ashley and Gleave, Adam and Kanervisto, Anssi
+             and Ernestus, Maximilian and Dormann, Noah},
+  title   = {Stable-Baselines3: Reliable Reinforcement Learning Implementations},
+  journal = {Journal of Machine Learning Research},
+  volume  = {22}, number = {268}, pages = {1--8}, year = {2021}
+}

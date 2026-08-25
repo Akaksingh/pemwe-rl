@@ -15,12 +15,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import numpy as np
 from pemwe import load_config, PEMWEEnv, BASELINES
+from pemwe import profiles as _P
 
 N_PROFILES = 8   # gates average over this many days; matches calibrate_degradation.py
 
+# Real Kutch weather once data/processed/ exists, synthetic placeholder before that.
+# Same basis as scripts/calibrate_degradation.py so the gates and the calibration can
+# never disagree about what they were measured on.
+REAL = _P.env_profiles(N_PROFILES, split="train", source="hybrid")
+PROFILE_SOURCE = "real Kutch (train split)" if REAL is not None else "SYNTHETIC placeholder"
 
-def rollout(env, policy, seed=0):
-    obs, _ = env.reset(seed=seed)
+
+def rollout(env, policy, seed=0, options=None):
+    obs, _ = env.reset(seed=seed, options=options)
     policy.reset()
     tot = {"h2_kg": 0.0, "dv_deg_uv": 0.0, "reward": 0.0, "cycles": 0, "curt_kwh": 0.0}
     while True:
@@ -56,6 +63,7 @@ def main():
     env = PEMWEEnv(cfg, seed=0)
 
     print(f"P_rated = {env.p_rated/1e3:.1f} kW   ({cfg['stack']['n_cells']} cells)")
+    print(f"profiles: {PROFILE_SOURCE}")
 
     # --- G1 item 1: efficiency must be non-monotonic ---
     j, v, eta, pf = env.stack.efficiency_curve()
@@ -74,7 +82,9 @@ def main():
     def mean_over_days(make_policy):
         acc = {"h2_kg": 0.0, "dv_deg_uv": 0.0, "cycles": 0.0, "curt_kwh": 0.0}
         for s in range(N_PROFILES):
-            t = rollout(PEMWEEnv(cfg, seed=s), make_policy(s), seed=s)
+            env_s = PEMWEEnv(cfg, profiles=REAL, seed=s)
+            opts = {"day_idx": s % N_PROFILES} if REAL is not None else None
+            t = rollout(env_s, make_policy(s), seed=s, options=opts)
             for key in acc:
                 acc[key] += t[key] / N_PROFILES
         return acc
