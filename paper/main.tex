@@ -153,12 +153,65 @@ Predictive control, PEM~\cite{mpc_refuel_2026}  & \checkmark & \checkmark & --- 
 \section{Methodology}\label{sec:method}
 
 \subsection{Plant model}
-\TODO{Person A --- draft prose in \texttt{notes/A\_methodology.md} \S A.}
-Summary: Amphlett-form cell voltage with a Nernst pressure correction, Butler--Volmer
-activation, ohmic loss and a concentration term; Faradaic efficiency set by hydrogen
-crossover. Ohmic resistance and crossover are both derived from a single membrane
-thickness, so the two ends of the efficiency curve cannot be tuned independently.
-Fig.~\ref{fig:validation} shows the resulting curves.
+We model a \SI{1}{\mega\watt}-class PEM electrolyzer of 280 cells, each
+\SI{1000}{\centi\meter\squared}, rated at
+$j_\mathrm{r}=\SI{2.0}{\ampere\per\centi\meter\squared}$ and \SI{60}{\celsius}, operated in
+differential-pressure mode with the cathode at \SI{30}{\bar} and the anode near ambient.
+Cell voltage follows the Amphlett form
+\begin{equation}
+V_\mathrm{cell}(j) = E_\mathrm{rev}(T,p) + V_\mathrm{act}(j) + V_\mathrm{ohm}(j)
+                     + V_\mathrm{conc}(j) + \dVdeg ,
+\label{eq:vcell}
+\end{equation}
+where $\dVdeg$ is the lumped degradation state of Section~\ref{sec:degmodel}. The
+reversible voltage carries the usual linear temperature correction plus a Nernst pressure
+term, giving $E_\mathrm{rev}=\SI{1.246}{\volt}$ at the operating point, of which
+\SI{48.8}{\milli\volt} is the thermodynamic cost of evolving hydrogen against the
+pressurised cathode.
+
+Activation losses use the symmetric Butler--Volmer relation inverted as
+$\eta=(RT/\alpha F)\,\mathrm{asinh}(j/2j_0)$ at both electrodes. Rather than adopt transfer
+coefficients directly, we fix them through the Tafel slope $b=2.303\,RT/\alpha F$ they imply
+at \SI{60}{\celsius}, since that is the quantity experimental work reports:
+$\alpha_\mathrm{a}=1.5$ gives \SI{44}{\milli\volt\per\deci\bel} per decade, inside the
+40--60\,mV/dec reported for oxygen evolution on
+IrO\textsubscript{2}~\cite{feng2017review,yu2020iridium}, and $\alpha_\mathrm{c}=2.0$ gives
+33\,mV/dec, consistent with the $\approx$30\,mV/dec of hydrogen evolution on platinum.
+
+Ohmic loss and hydrogen crossover are deliberately derived from a \emph{single} membrane
+description. For a \SI{70}{\micro\meter} reinforced perfluorosulfonic-acid membrane at
+\SI{0.10}{\siemens\per\centi\meter} with \SI{0.030}{\ohm\centi\meter\squared} of contact,
+porous-transport-layer and bipolar-plate resistance, the area-specific resistance is
+\SI{0.100}{\ohm\centi\meter\squared}. The same thickness $\delta$ sets the hydrogen
+permeation flux, expressed as an equivalent crossover current density by Fick's law,
+\begin{equation}
+j_\mathrm{cross} = 2F\,P_{\mathrm{H_2}}\,p_\mathrm{cat} / \delta
+                 = \SI{0.0165}{\ampere\per\centi\meter\squared},
+\label{eq:crossover}
+\end{equation}
+so that the Faradaic efficiency is $\eta_F = 1 - j_\mathrm{cross}/j$. Because crossover is
+a current-independent leak, it consumes a larger \emph{fraction} of the product the lower
+the current density: a thinner membrane buys efficiency at high current and loses it at low
+current. Tying both terms to one thickness means the two ends of the efficiency curve
+cannot be tuned independently, so the trade-off the controller faces is a property of the
+membrane rather than of our parameter choices.
+
+Hydrogen production follows Faraday's law derated by $\eta_F$. A constant balance-of-plant
+parasitic of \SI{1.5}{\percent} of rated (circulation pumps, chiller, controls, gas drying)
+is drawn whenever the stack is on, so reported efficiencies are \emph{system} rather than
+stack figures. Rated plant power is therefore \SI{1049}{\kilo\watt}, and the plant cannot
+run below \SI{36.8}{\kilo\watt} (\SI{3.5}{\percent} of rated), the stack at $j_\mathrm{min}$
+plus the parasitic floor.
+
+Fig.~\ref{fig:validation} shows the resulting polarization curve with its loss budget and
+the system LHV efficiency. Cell voltage rises from \SI{1.507}{\volt} at
+\SI{0.05}{\ampere\per\centi\meter\squared} to \SI{1.846}{\volt} at rated. Efficiency is
+\emph{non-monotonic}: it peaks at \SI{70.5}{\percent} at
+$j=\SI{0.73}{\ampere\per\centi\meter\squared}$, \SI{36}{\percent} of rated current, falling
+to \SI{66.3}{\percent} at rated as voltage efficiency degrades and to \SI{31.9}{\percent} at
+minimum load as crossover dominates. That non-monotonicity is why a controller has anything
+to decide: the setpoint maximising hydrogen \emph{rate} is rated power, while the setpoint
+maximising hydrogen \emph{per unit energy} is roughly one third of it.
 
 \begin{figure}[t]
 \centering
@@ -170,22 +223,69 @@ hydrogen \emph{per unit energy}. This is what gives the controller something to 
 \label{fig:validation}
 \end{figure}
 
-\subsection{Degradation model}
-\TODO{Person A --- \texttt{notes/A\_methodology.md} \S B.}
-Five terms accumulate into a single scalar cell-voltage rise $\dVdeg$, which feeds back
-into the polarization curve so that degradation costs future yield rather than only
-reward: a steady-state base rate, a superlinear high-current-density stress term, a
-ramp-rate term, a fixed penalty per on/off transition, and an idle term for the anode at
-open-circuit potential~\cite{yu2020iridium}.
+\subsection{Degradation model}\label{sec:degmodel}
+Degradation is represented as a single scalar $\dVdeg$, the cumulative cell-voltage rise in
+microvolts, entering~\eqref{eq:vcell} directly. Physically this lumps combined ohmic and
+kinetic degradation; it is the quantity manufacturers report, and recent reviews support it
+as a reasonable summary of several distinct mechanisms~\cite{bernhardt2026degradation}.
+Because it enters the polarization curve, accumulated degradation costs \emph{future yield}
+and not merely reward: at a fixed available power a degraded stack settles at a lower
+current density and produces less hydrogen.
+
+Five mechanisms contribute per timestep, with $j_f=j/j_\mathrm{r}$: a steady-state base
+rate $r_\mathrm{base}$~\cite{pemwe_degradation_models_2025}; a high-current stress term
+$k_j\max(0,j_f-0.6)^2$, since iridium dissolution and membrane thinning accelerate
+superlinearly at high overpotential~\cite{feng2017review,yu2020iridium}; a ramp term
+$k_r|\mathrm{d}j/\mathrm{d}t|$ for thermal fatigue, independent of absolute
+power~\cite{dynamic_degradation_2025}; a fixed penalty $\Delta V_\mathrm{cycle}$ per on/off
+transition, start/stop being the dominant intermittency
+mechanism~\cite{dynamic_degradation_2025}; and an idle term $r_\mathrm{idle}$ while off,
+because the anode at open-circuit potential drives iridium
+dissolution~\cite{feng2017review,yu2020iridium}.
+
+The idle term is load-bearing rather than incidental. Without it the reward-maximising
+degenerate policy is to park at idle forever---no degradation, almost no hydrogen---and a
+badly weighted run will find it. Including it is both physically correct and a structural
+guard against the most likely reward-hacking failure.
 
 \subsection{Calibration}\label{sec:calibration}
-\TODO{Person A --- \texttt{notes/A\_methodology.md} \S C.}
-The five coefficients are not hand-chosen. Each term is linear in its coefficient, so a
-single rollout per policy reduces calibration to a small search over coefficient-free
-exposure integrals, constrained so that the rule-based baseline of
-Ref.~\cite{pvt_control_2026}, driven by the measured resource, reproduces the
-approximately five-year stack life reported in Ref.~\cite{mpc_refuel_2026} at an
-end-of-life criterion of a \SI{10}{\percent} cell-voltage rise.
+The five coefficients are solved for, not chosen, so that the degradation scale is anchored
+to published numbers rather than invented ones.
+
+With the shape parameters held fixed, each term is exactly linear in its coefficient, so
+for any policy $p$ we have $\dVdeg(p)=\mathbf{c}\cdot\mathbf{E}(p)$, where $\mathbf{E}(p)$
+accumulates coefficient-free exposure integrals over a rollout. One rollout per policy
+therefore reduces calibration to a small search in which every candidate is an exact dot
+product. We require that (i) the literature rule-based controller
+of~\cite{pvt_control_2026}, driven by the measured Kutch resource, reproduces
+\SI{4.0}{\micro\volt\per\hour}, the $\approx$5-year stack life reported
+in~\cite{mpc_refuel_2026} at a \SI{10}{\percent} (\SI{177}{\milli\volt}) end-of-life
+criterion; (ii) a deliberately jittery policy degrades at least three times faster than a
+smooth one, so the model can distinguish control strategies at all; (iii) no policy exceeds
+the $\approx$\SI{50}{\micro\volt\per\hour} worst case reported under
+cycling~\cite{dynamic_degradation_2025}; (iv) every coefficient lies inside its published
+interval; and (v) the separation is carried by \emph{both} intermittency mechanisms
+of~\cite{dynamic_degradation_2025}, ramping and on/off cycling, with neither below
+\SI{20}{\percent} of the policy-dependent total. Condition (v) matters: without it a
+coefficient set can satisfy the numerical targets while modelling only half the physics.
+
+The solution places all five coefficients interior to their intervals
+($r_\mathrm{base}=\SI{1.75}{\micro\volt\per\hour}$, $k_j=20.0$, $k_r=31.0$,
+$\Delta V_\mathrm{cycle}=\SI{1.0}{\micro\volt}$,
+$r_\mathrm{idle}=\SI{0.75}{\micro\volt\per\hour}$). The rule-based baseline lands at
+\SI{4.00}{\micro\volt\per\hour}, a 5.05-year projected life, and the jittery/smooth
+separation at $4.38\times$. Of the jittery policy's policy-dependent degradation, ramping
+supplies \SI{63}{\percent} and cycling \SI{37}{\percent}, so both mechanisms are active.
+
+Two caveats belong with this. First, the model is calibrated to literature-reported
+\emph{aggregate} rates and is \emph{not} validated against a physical stack: it reproduces
+a published lifetime and a published worst case and apportions them between five mechanisms
+using published relative magnitudes, but it does not claim the apportionment is
+individually correct. Second, $k_r$ sits near the top of its published interval, because
+genuine one-minute cloud transients ramp the stack considerably harder than a smoothed
+resource would; reproducing a five-year baseline life alongside a threefold separation
+requires it. All conclusions drawn here are consequently about the \emph{relative}
+lifetimes of different control policies, which is the quantity this apportionment supports.
 
 \subsection{MDP formulation}
 \TODO{Person B.} State, action, reward, episode structure. Reward:
@@ -272,7 +372,17 @@ The lower panel shows the resulting difference in accumulated degradation.}
 the \SI{10}{\percent} end-of-life criterion.}
 \label{fig:longhorizon}
 \end{figure}
-\TODO{Person A/C.} Report projected stack life for each controller.
+Over the \num{90}-day rollout the two rule-based controllers already trace the trade this
+paper is about. The naive load-following law of~\cite{pvt_control_2026} produces
+\SI{17144}{\kilo\gram} of hydrogen while degrading at \SI{4.05}{\micro\volt\per\hour}, a
+projected life of \SI{4.99}{\year}; adding a slew limit yields \SI{16955}{\kilo\gram} at
+\SI{3.20}{\micro\volt\per\hour}, or \SI{6.31}{\year}. Smoothing the setpoint therefore buys
+\SI{1.32}{\year} of stack life, an increase of \SI{26.5}{\percent}, for
+\SI{1.1}{\percent} less hydrogen---a trade available to a purely rule-based controller and
+the frontier a learned policy must improve upon.
+\TODO{Person A/C, after G3 --- add the learned-policy row once the sweep lands.
+Run \texttt{scripts/longhorizon\_rollout.py --model <ckpt> --policy sac}; the baseline
+figures above are already final.}
 
 % =============================================================================
 \section{Conclusion and Future Work}
