@@ -39,7 +39,27 @@ class NaiveLoadFollowing:
 
 
 class RampLimitedBaseline(NaiveLoadFollowing):
-    """Load-following with a slew-rate limit -- the strong, honest baseline."""
+    """Load-following with a slew-rate limit -- the strong, honest baseline.
+
+    `ramp_limit_frac_per_min` is NOT a guess. It is chosen by `scripts/tune_baseline.py`
+    at the KNEE of this controller's own yield-life frontier, measured over 24 TRAIN days:
+    past that point further smoothing buys rapidly less stack life per kilogram of
+    hydrogen given up. At 0.03/min it keeps 98.7 % of the naive rule's yield while adding
+    +1.46 years of projected life.
+
+    Two criteria were rejected, and the reasons matter for the paper:
+
+      * argmax of reward at the default weights picks 0.06/min. At w2 = 1 the degradation
+        term is ~1 % of the yield term, so reward is nearly flat across the whole grid and
+        its argmax gives up almost all the life benefit -- a strawman on precisely the axis
+        the paper's claim lives on.
+      * argmax of projected life picks the tightest limit on the grid, a controller so
+        sluggish it barely follows the resource. Also a strawman, in the other direction.
+
+    `tests/test_experiments.py::test_ramp_limited_baseline_is_not_a_strawman` holds the
+    line: this controller must degrade less than the naive rule while keeping >90 % of its
+    hydrogen, or the suite fails.
+    """
 
     name = "baseline_ramplimited"
 

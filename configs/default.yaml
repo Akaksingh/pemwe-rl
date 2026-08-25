@@ -128,7 +128,7 @@ env:
 baseline:
   p_idle_threshold_frac: 0.10   # ref #8 load-following rule
   p_idle_frac: 0.0
-  ramp_limit_frac_per_min: 0.02 # ramp-limited variant -- keep this baseline HONEST
+  ramp_limit_frac_per_min: 0.03 # ramp-limited variant -- keep this baseline HONEST
 
 train:
   total_timesteps: 2000000
