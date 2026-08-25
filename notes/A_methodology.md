@@ -112,16 +112,17 @@ then reduces calibration to a small constrained program over **c** ≥ 0. We req
 3. no policy exceeds the ≈50 µV h⁻¹ worst case reported under cycling [4];
 4. every coefficient lies inside its published interval;
 
-and among all admissible solutions we take the one minimising squared log-distance to the
-geometric centres of those intervals — that is, the **least distorted** parameter set
-consistent with the evidence.
+and among all admissible solutions we additionally require that the separation be carried
+by **both** intermittency mechanisms identified in [4] — ramping *and* on/off cycling —
+with neither contributing less than 20 % of the policy-dependent total. Without that last
+condition a coefficient set can satisfy the numerical targets while modelling only half
+the physics.
 
-The solution places all five coefficients interior to their intervals
-(*r*<sub>base</sub> = 2.34 µV h⁻¹, *k*<sub>j</sub> = 21.8, *k*<sub>r</sub> = 7.29,
-Δ*V*<sub>cycle</sub> = 2.85 µV, *r*<sub>idle</sub> = 1.86 µV h⁻¹). The per-cycle term is
-the one that sits highest within its range, which is consistent with [4] identifying
-start/stop as the dominant intermittency mechanism. The rule-based baseline lands at
-4.00 µV h⁻¹ (5.05 yr) and the jittery/smooth ratio at 3.30.
+The solution places all five coefficients interior to their published intervals
+(*r*<sub>base</sub> = 2.25 µV h⁻¹, *k*<sub>j</sub> = 50.0, *k*<sub>r</sub> = 16.0,
+Δ*V*<sub>cycle</sub> = 4.0 µV, *r*<sub>idle</sub> = 1.0 µV h⁻¹). Averaged over eight days,
+the rule-based baseline lands at 4.5 µV h⁻¹ (4.5 yr projected life) and the
+jittery/smooth separation at 5.3×, against a required 3×.
 
 Two honest caveats belong with this. First, the model is calibrated to literature-reported
 *aggregate* rates and is **not validated against a physical stack**; it reproduces a
@@ -139,9 +140,9 @@ consequence we additionally run a 90-day rollout with degradation persisting acr
 episodes, over which the feedback into (1) becomes measurable.
 
 On this rollout the two rule-based controllers already trace the trade the paper is about:
-the naive load-following law [8] yields 12 674 kg of H₂ at 3.63 µV h⁻¹ (5.57 yr projected
-life), while the ramp-limited variant yields 12 237 kg at 3.05 µV h⁻¹ (6.63 yr) — **+1.06
-years of life, +19 %, for 3.4 % less hydrogen**. This is the frontier a learned policy must
+the naive load-following law [8] yields 12 669 kg of H₂ at 4.34 µV h⁻¹ (4.66 yr projected
+life), while the ramp-limited variant yields 12 235 kg at 3.40 µV h⁻¹ (5.94 yr) — **+1.28
+years of life, +27.5 %, for 3.4 % less hydrogen**. This is the frontier a learned policy must
 improve on, and it is why the results are reported as a yield–degradation Pareto front
 rather than a single percentage gain (DECISIONS §8).
 

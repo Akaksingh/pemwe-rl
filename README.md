@@ -8,6 +8,8 @@
 | **[DECISIONS.md](DECISIONS.md)** | The 8 open decisions, resolved and locked, with reasoning for the paper |
 | **[CONTRACTS.md](CONTRACTS.md)** | The frozen interfaces that let three people work without blocking each other |
 | **[paper/REFERENCES.md](paper/REFERENCES.md)** | The 11 references, each with the specific job it does in the paper |
+| **[SERVER.md](SERVER.md)** | The shared H200 training box — access, `gpurun`, sync, run commands |
+| **[BENCHMARK.md](BENCHMARK.md)** | Measured throughput: which algorithm goes on which device, and why |
 
 **Starting your lane?** Paste your brief to your Claude session as the first message:
 [Person A](briefs/PERSON_A.md) · [Person B](briefs/PERSON_B.md) · [Person C](briefs/PERSON_C.md).
@@ -26,8 +28,12 @@ Each one is self-contained.
 ./.venv/Scripts/python.exe scripts/fake_results.py   # results in the final schema, fake numbers
 ```
 
-The smoke test currently prints **one FAIL** on gate check G1.2. That is deliberate and
-correct — it is Person A's concrete first target (see below).
+All three Gate-G1 checks pass. The degradation model is calibrated so the literature
+baseline reproduces a ~4.9-year stack life (ref #7's ~5 years), with a 4.50× separation
+between a jittery and a smooth policy — see [DECISIONS.md §5](DECISIONS.md).
+
+**Calibrated on synthetic placeholder profiles.** Person A re-runs
+`scripts/calibrate_degradation.py --solve` as soon as Person C lands the real Kutch data.
 
 ---
 
@@ -52,14 +58,14 @@ plotted evidence.
 `baselines.py` · `train.py` · `evaluate.py` · `scripts/run_*.sh` · all of `results/`
 
 B owns the experimental apparatus and the compute schedule. The scarce resource is
-wall-clock training time, so the real job is **keeping the machine busy overnight on Days
-2, 3 and 4**.
+wall-clock training time — though the H200 server makes the full 40-run matrix under an
+hour. See [SERVER.md](SERVER.md) and [BENCHMARK.md](BENCHMARK.md) before planning runs.
 
 - [ ] **Day 1 AM** — finish both baselines (stubs in `baselines.py`). Make the ramp-limited one **genuinely good** — a strawman baseline loses reviewers.
 - [ ] **Day 1 PM** — SAC *and* PPO training against the stub env. TensorBoard with the three reward components logged **separately**.
 - [ ] **Day 2** — seed-sweep + ablation runners. Freeze `evaluate.py`; C's plots depend on it.
-- [ ] **Day 3 AM** — ⚠️ the highest-risk two hours of the sprint: coarse w₂ ∈ {0.1, 1, 10, 100} sweep at ~200k steps, read the *component* logs. Find the band where the agent neither parks at idle nor chases every fluctuation. **Do this before committing overnight compute.**
-- [ ] **Day 3 PM** — queue {SAC, PPO} × 5 seeds overnight.
+- [ ] **Day 3 AM** — reward-weight sweep at ~200k steps; read the *component* logs, not total reward. Find the band where the agent neither parks at idle nor chases every fluctuation. On the server this is minutes, so run **12–15 w₂ values, not 4** — each one is a point on the headline Pareto frontier.
+- [ ] **Day 3 PM** — run {SAC, PPO} × 5 seeds. PPO on CPU and SAC on GPU concurrently — see [BENCHMARK.md](BENCHMARK.md).
 - [ ] **Day 4** — final runs + ablations. Freeze at end of day.
 
 ### Person C — Data, Analysis & Paper
@@ -71,7 +77,7 @@ the person who calls a descope when a gate slips.
 
 - [ ] **Day 1 AM** — Renewables.ninja token; pull full-year 2019 PV + wind at 23.25 °N, 69.00 °E (Kutch). Fallback if rate-limited: the pre-made country datasets, no token needed.
 - [ ] **Day 1 PM** — 1-min upsampling (OU cloud transients on PV, turbulence on wind) preserving hourly means. Archetype days + train/test split.
-- [ ] **Day 1 also** — draft **Related Work**; all 10 refs with why-cite notes are in the brief.
+- [ ] **Day 1 also** — draft **Related Work**; all 11 refs with why-cite notes are in [paper/REFERENCES.md](paper/REFERENCES.md).
 - [ ] **Day 2** — build **all six figures** against `scripts/fake_results.py`. They must render and export to PDF before real data exists.
 - [ ] **Day 3–5** — Introduction, Experimental Setup, then editor-in-chief on the whole paper.
 

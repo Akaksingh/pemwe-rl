@@ -115,13 +115,17 @@ C has `kutch_2019_1min.parquet` and a Related Work draft.
 the degradation calibration against literature, and the Methodology physics sections. A is
 also the floating pair of hands for whoever is behind.
 
-**B's morning is the highest-risk two hours of the sprint: the coarse reward-weight sweep.**
-Run w₂ ∈ {0.1, 1, 10, 100} short (~200k steps) and read the *component* logs, not total
+**B's morning is the highest-risk two hours of the sprint: the reward-weight calibration probe.**
+Run a short (~200k step) probe across the sweep and read the *component* logs, not total
 reward. You are looking for the band where the agent neither parks at idle (w₂ too high)
 nor chases every fluctuation to rated power (w₂ too low). Do this **before** the long runs
 — it is the difference between one wasted afternoon and one wasted day.
 
-Then queue the real runs overnight: **{SAC, PPO} × 5 seeds** at the chosen weights.
+Then run the full matrix: **13 w₂ values × 5 seeds × {SAC, PPO} = 130 runs**
+(`configs/default.yaml → sweep.w2`). PPO on the 128 cores and SAC on the 4 GPUs
+concurrently — ≈83 min wall-clock. The sweep is 13 points rather than the originally
+budgeted 4 because measured throughput made it cheap; each point is one point on the
+headline Pareto frontier. See `BENCHMARK.md`.
 
 C: Introduction and Experimental Setup; first figures on real preliminary numbers.
 

@@ -8,6 +8,8 @@ import pytest
 from pemwe import PEMWEEnv, BASELINES
 from pemwe.degradation import TERMS
 
+N_PROFILES = 8   # gate basis, matches scripts/smoke_test.py
+
 
 def rollout(cfg, policy, seed=1, n_days=1):
     """Totals over a rollout, using the same accounting as scripts/smoke_test.py."""
@@ -127,13 +129,27 @@ def test_gate_g1_2_jittery_degrades_at_least_3x_faster_than_smooth(cfg):
 
 
 def test_baseline_is_calibrated_to_the_published_lifetime(cfg):
-    """DECISIONS.md 5: the rule-based baseline [8] must reproduce the ~5 yr life of [7]."""
-    env = PEMWEEnv(cfg, seed=1)
-    t = rollout(cfg, BASELINES["baseline_naive"](cfg), seed=1)
+    """DECISIONS.md 5: the rule-based baseline [8] must reproduce the ~5 yr life of [7].
+
+    Averaged over N_PROFILES days, the same basis as scripts/smoke_test.py and
+    scripts/calibrate_degradation.py, so the gate, the solver and this test can never
+    disagree. A single day is not a calibration: the spread across profiles is wide
+    enough that one lucky or unlucky day moves the rate by ~0.5 uV/h on its own.
+    """
+    env = PEMWEEnv(cfg, seed=0)
+    t = rollout(cfg, BASELINES["baseline_naive"](cfg), seed=0, n_days=N_PROFILES)
     rate = t["dv"] / t["hours"]
     assert 3.5 <= rate <= 4.5, f"baseline at {rate:.2f} uV/h, target 4.0 +/- 0.5"
     life = env.deg.projected_life_years(rate)
     assert 4.0 <= life <= 6.0, f"projected life {life:.2f} yr, [7] reports ~5"
+
+
+def test_the_calibration_does_not_hang_on_one_lucky_profile(cfg):
+    """Every individual day should sit near the band, not merely the mean of them."""
+    rates = [rollout(cfg, BASELINES["baseline_naive"](cfg), seed=s, n_days=1)["dv"] / 24.0
+             for s in range(N_PROFILES)]
+    assert max(rates) - min(rates) < 3.0, f"day-to-day spread too wide: {rates}"
+    assert all(2.5 <= r <= 6.0 for r in rates), f"an individual day is far out: {rates}"
 
 
 def test_no_policy_exceeds_the_worst_case_literature_rate(cfg):

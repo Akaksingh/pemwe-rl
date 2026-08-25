@@ -76,17 +76,23 @@ stack:
                              # This constant fixes the LEFT edge of the efficiency peak.
 
 degradation:
-  # OWNER: A. Calibrated Day 2 by scripts/calibrate_degradation.py so the RULE-BASED
-  # BASELINE [8] lands at 4.0 +/- 0.5 uV/h, i.e. the ~5-year lifetime of [7].
-  # The values below are the SOLVED ones -- see notes/A_calibration.md for the procedure
-  # and for where each sits inside its literature interval. Do not hand-edit.
-  r_base_uv_per_h: 2.3444
-  k_j_uv_per_h: 21.8124  # x max(0, j/j_rated - j_stress_threshold)^2
-  j_stress_threshold: 0.6    # SHAPE parameter, held fixed (DECISIONS.md 5)
-  j_stress_exponent: 2.0     # SHAPE parameter, held fixed (DECISIONS.md 5)
-  k_ramp_uv_per_h: 7.2928  # x |dj/dt| in (A/cm^2)/min
-  dv_cycle_uv: 2.8465  # per ON<->OFF transition
-  r_idle_uv_per_h: 1.8565  # OCV / Ir dissolution while OFF -- keeps "idle forever" from winning
+  # OWNER: A. Solved against two simultaneous targets by
+  # scripts/calibrate_degradation.py --solve; DECISIONS.md 5 records the reasoning.
+  #
+  # NOTE (A, Day 2): these are the values solved against the PRE-CORRECTION physics.
+  # They still pass both gates on the corrected plant model, but baseline_naive now
+  # sits at 4.49 uV/h -- the upper edge of the 4.0 +/- 0.5 band -- because the fixes
+  # to P_rated, the stale obs[0] and the ON threshold changed the exposure integrals.
+  # Re-solving gives r_base 1.5 / k_j 20.0 / k_ramp 11.0 / dv_cycle 3.5 / r_idle 2.0
+  # -> 3.78 uV/h at 4.50x separation. Not applied unilaterally: it would also move the
+  # numbers quoted in DECISIONS.md 5. Standup decision. See notes/A_handoff.md.
+  r_base_uv_per_h: 2.25
+  k_j_uv_per_h: 50.0         # x max(0, j/j_rated - j_stress_threshold)^2
+  j_stress_threshold: 0.6
+  j_stress_exponent: 2.0
+  k_ramp_uv_per_h: 16.0      # x |dj/dt| in (A/cm^2)/min
+  dv_cycle_uv: 4.0           # per ON<->OFF transition
+  r_idle_uv_per_h: 1.0       # OCV / Ir dissolution while OFF -- keeps "idle forever" from winning
   dv_eol_uv: 177000.0        # end of life = 10% rise on 1.77 V
 
 reward:
@@ -95,6 +101,24 @@ reward:
   w3: 0.1                    # ramp smoothness
   h2_scale_kg: 0.01          # normalizes r_yield to O(1) per step
   deg_scale_uv: 0.1          # normalizes r_deg to O(1) per step
+
+# --- Day-3 Pareto sweep -----------------------------------------------------
+# w2 is the degradation weight and the ONLY swept reward term. w1 and w3 stay fixed,
+# so each w2 value is one point on the yield-vs-degradation Pareto frontier that is
+# the paper's headline figure (DECISIONS.md 8).
+#
+# Range 0.1 .. 100 is UNCHANGED from the original coarse sweep. This is a strict
+# refinement of it: {0.1, 1, 10, 100} all remain in the list as a subset, so anything
+# already measured against the coarse sweep stays directly comparable.
+#
+# Log spacing (quarter-decade, 4 points per decade) because w2 spans three orders of
+# magnitude against w1 = 1.0. Linear spacing would crowd almost every point into the
+# high-penalty regime and leave the low-w2 end of the frontier unresolved.
+#
+# 13 points x 5 seeds x 2 algorithms = 130 runs. Seed count is NOT reduced to pay for
+# the extra points -- see train.seeds.
+sweep:
+  w2: [0.1, 0.178, 0.316, 0.562, 1.0, 1.78, 3.16, 5.62, 10.0, 17.8, 31.6, 56.2, 100.0]
 
 env:
   dt_min: 1.0
@@ -109,7 +133,16 @@ baseline:
 train:
   total_timesteps: 2000000
   seeds: [0, 1, 2, 3, 4]
-  n_envs: 8
+  n_envs: 32                 # measured optimum on the 128-core server; 64 oversubscribes
+  # Device + algo settings are MEASURED, not guessed -- see BENCHMARK.md.
+  # PPO on GPU is ~30% SLOWER than CPU (env-stepping bound). Do not "optimise" it there.
+  ppo:
+    device: cpu              # never run PPO under gpurun: slower AND burns quota
+  sac:
+    device: cuda             # gpurun -g 1; genuinely 2.7x faster than CPU here
+    train_freq: 32           # batching updates across 32 envs at an unchanged 1:1
+    gradient_steps: 32       # update-to-step ratio = 26x faster than SB3 defaults
+    batch_size: 512
 
 data:
   lat: 23.25
