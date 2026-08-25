@@ -10,3 +10,5 @@ paper/*.log
 paper/*.out
 paper/*.bbl
 paper/*.blg
+logs/
+results/pipeline_check/
