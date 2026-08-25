@@ -128,7 +128,8 @@ def run(cfg, policy, n_days, profiles, run_id, policy_name, seed=0, keep_day=1):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--days", type=int, default=90)
-    ap.add_argument("--profiles", default=None)
+    ap.add_argument("--profiles", default=None,
+                    help="parquet path; defaults to the real Kutch profiles when built")
     ap.add_argument("--model", default=None, help="trained SB3 checkpoint (Person B)")
     ap.add_argument("--policy", default="sac", help="policy label for --model runs")
     ap.add_argument("--seed", type=int, default=0)
@@ -136,6 +137,14 @@ def main():
 
     cfg = load_config()
     profiles = None
+    # Default to the REAL Kutch weather whenever it exists, the same rule
+    # scripts/calibrate_degradation.py follows. The synthetic generator is a fallback for
+    # a fresh checkout, never a silent default once the parquet is built -- a life-extension
+    # number quoted from synthetic weather would be wrong in the paper.
+    if not args.profiles:
+        default = ROOT / cfg["data"]["profile_path"]
+        if default.exists():
+            args.profiles = str(default)
     if args.profiles:
         import pandas as pd
         df = pd.read_parquet(args.profiles)
@@ -143,7 +152,7 @@ def main():
         col = "hybrid_w" if "hybrid_w" in df.columns else df.columns[0]
         v = df[col].to_numpy(float)
         profiles = v[: len(v) // n * n].reshape(-1, n)
-        print(f"profiles: {args.profiles} ({profiles.shape[0]} days available)")
+        print(f"profiles: REAL {args.profiles} ({profiles.shape[0]} days available)")
     else:
         print("profiles: SYNTHETIC -- re-run with --profiles for the paper number")
 

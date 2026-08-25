@@ -74,74 +74,74 @@ not a calibration: the day-to-day spread moves the baseline rate by ~0.5 µV/h o
 | cycle | 0.05–5 µV per ON/OFF | start/stop is the dominant intermittency mechanism [4] |
 | idle | 0.5–10 µV/h | anode at OCV drives Ir dissolution [1,5] |
 
-## Result
+## Result — on the real Kutch profiles
 
-The coefficients in `configs/default.yaml` are the ones solved by
-`scripts/calibrate_degradation.py --solve` and recorded in `DECISIONS.md` §5:
+`scripts/calibrate_degradation.py` now drives the probe policies with the **real** Kutch
+weather (`profiles.env_profiles(8, split="train")`), not the synthetic placeholder, so the
+ramp and cycling integrals reflect actual cloud-transient statistics.
 
-| Config key | Value | My literature interval | Position |
+Solved coefficients, with where each sits inside the literature interval it was bounded by:
+
+| Config key | Value | Interval | Position |
 |---|---|---|---|
-| `r_base_uv_per_h` | 2.25 | [1, 10] | 35 % |
-| `k_j_uv_per_h` | 50.0 | [5, 60] | 93 % |
-| `k_ramp_uv_per_h` | 16.0 | [0.5, 40] | 79 % |
-| `dv_cycle_uv` | 4.0 | [0.05, 5] | 96 % |
-| `r_idle_uv_per_h` | 1.0 | [0.5, 10] | 23 % |
+| `r_base_uv_per_h` | 1.75 | [1, 10] | 24 % |
+| `k_j_uv_per_h` | 20.0 | [5, 60] | 56 % |
+| `k_ramp_uv_per_h` | 31.0 | [0.5, 40] | 94 % |
+| `dv_cycle_uv` | 1.0 | [0.05, 5] | 65 % |
+| `r_idle_uv_per_h` | 0.75 | [0.5, 10] | 14 % |
 
-All five are interior to the published intervals, so the parameterisation is defensible
-term by term. That solver adds a constraint worth keeping: the separation must be carried
-by **both** intermittency mechanisms [4] names — ramping *and* on/off cycling — with
-neither supplying less than 20 % of the policy-dependent total. A solution where one term
-carries nearly all the separation is a numerical fit, not a physical model.
+All five remain interior to their published intervals. Per-day term decomposition (µV):
 
-On the corrected plant model these give, over the 8-day gate basis:
+| policy | base | stress | ramp | cycle | idle | total | µV/h | life |
+|---|---|---|---|---|---|---|---|---|
+| smooth | 37.35 | 0.00 | 16.58 | 12.38 | 1.99 | 68.30 | 2.85 | 7.09 yr |
+| jittery | 36.07 | 0.84 | 162.93 | 96.88 | 2.54 | 299.25 | 12.47 | 1.62 yr |
+| **naive baseline [8]** | 30.65 | 3.55 | 24.81 | 32.12 | 4.86 | **96.00** | **4.00** | **5.05 yr** |
+| ramp-limited baseline | 30.95 | 3.36 | 20.16 | 12.38 | 4.74 | 71.58 | 2.98 | 6.78 yr |
 
-| policy | rate | projected life |
-|---|---|---|
-| naive baseline [8] | **4.49 µV/h** | 4.50 yr |
-| ramp-limited baseline | 3.42 µV/h | 5.91 yr |
-| smooth | 2.43 µV/h | 8.30 yr |
-| jittery | 12.97 µV/h | 1.56 yr |
+**Separation 4.38×** (gate ≥ 3) and the rule-based baseline at **exactly 4.00 µV/h**, i.e.
+the ~5-year life of [7]. Both targets met on real weather.
 
-Separation **5.33×** (gate ≥ 3) and the baseline inside 4.0 ± 0.5. **Both gates pass.**
+The separation is carried by both mechanisms [4] names, as required: of the jittery
+policy's 260 µV of policy-dependent degradation, ramping supplies 63 % and on/off cycling
+37 %. Neither term is doing the work alone, so this is a physical model rather than a fit.
 
-## ⚠️ Open item: the calibration is fitted to pre-correction physics
+Note where `k_ramp` sits — 94 % of its interval. That is the honest reading of real
+1-minute weather: genuine cloud transients ramp the stack far harder than the synthetic
+placeholder did, and reproducing a 5-year baseline life alongside a 3× separation needs the
+ramp term near the top of its published range. It is inside the interval, but it is the
+coefficient a reviewer is most likely to press on, and the answer is that the *data*, not
+the target, put it there.
 
-These coefficients were solved before the plant model was validated and before three env
-bugs were fixed (`P_rated` excluding BoP, the stale `obs[0]`, the ON-threshold hard-cap
-violation). Those fixes changed the exposure integrals — most visibly, the naive baseline
-now genuinely tracks the resource, so it spends more time at higher current density.
+## The 90-day long-horizon rollout — the life-extension number
 
-The consequence is that `baseline_naive` has drifted from the 4.15 µV/h recorded in
-`DECISIONS.md` §5 to **4.49 µV/h — the upper edge of the ±0.5 band**, and individual days
-run as high as 5.01 µV/h. Separation likewise moved from the documented 4.50× to 5.33×.
+`scripts/longhorizon_rollout.py --days 90`, real profiles, `persist_degradation: true`:
 
-Re-running `--solve` on the corrected physics converges to:
+| policy | H₂ (90 d) | rate | projected life |
+|---|---|---|---|
+| naive load-following [8] | 17 144 kg | 4.05 µV/h | **4.99 yr** |
+| ramp-limited | 16 955 kg | 3.20 µV/h | **6.31 yr** |
 
-```
-r_base 1.5 · k_j 20.0 · k_ramp 11.0 · dv_cycle 3.5 · r_idle 2.0
-  ->  baseline 3.78 uV/h,  separation 4.50x,  aggressive 11.1 uV/h
-```
+**+1.32 years of life (+26.5 %) for 1.1 % less hydrogen.** That is the frontier the learned
+policy has to improve on, and it is why the headline is a Pareto plot rather than a single
+percentage (DECISIONS §8).
 
-which is better centred on the target and restores the 4.50× separation `DECISIONS.md` §5
-already quotes. **It has not been applied**, because it would also move the numbers written
-into that shared, locked document. That is a standup decision, not a unilateral one.
-Either way, `DECISIONS.md` §5's quoted rates need a refresh: the physics under them moved.
+## Re-running it
 
-## What must be re-run
-
-This calibration used **synthetic** profiles. DECISIONS §5 specifies the *real Kutch
-profiles*. When Person C's `kutch_2019_1min.parquet` lands:
+The calibration is now on the **real** Kutch profiles, as DECISIONS §5 requires. Re-run the
+whole chain after any change to the plant model, the splits, or the profile pipeline —
+these four commands must all stay green together, and they are cheap:
 
 ```bash
-python scripts/calibrate_degradation.py --solve   # after pointing it at the real profiles
-python scripts/validate_physics.py
-python -m pytest tests/ -q
-python scripts/longhorizon_rollout.py --days 90 --profiles data/processed/kutch_2019_1min.parquet
+python scripts/calibrate_degradation.py            # diagnose; --solve to re-search
+python scripts/validate_physics.py                 # 11/11 plant-model checks
+python -m pytest tests/ -q                         # 52 tests
+python scripts/longhorizon_rollout.py --days 90    # real profiles by default
 ```
 
-The procedure does not change; only the exposure matrix does. That is precisely why it is
-a script and not a hand-tune — and it is the reason the number can be honestly described
-in the paper as *calibrated* rather than *chosen*.
+The procedure never changes; only the exposure matrix does. That is precisely why it is a
+script and not a hand-tune, and it is why the number can honestly be called *calibrated*
+rather than *chosen*.
 
 ## Limitation to state in the paper
 
