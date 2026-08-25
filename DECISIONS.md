@@ -8,7 +8,7 @@ the paper's Methodology can quote it directly, and so a reviewer question has an
 | 1 | Episode structure | Train on **independent 24 h episodes**; evaluate additionally on a **90-day persistent-degradation rollout** |
 | 2 | Control timestep | **Δt = 1 min** (1440 steps/episode) |
 | 3 | Grid supplement | **Renewable-only.** `P_set(t) ≤ P_renew(t)`, hard cap |
-| 4 | Algorithm | **Both SAC and PPO** (SB3). SAC primary, PPO is the stability fallback |
+| 4 | Algorithm | **Both SAC and PPO** (SB3). SAC primary (measurement-backed), PPO the stability fallback. PPO→CPU, SAC→H200 |
 | 5 | Degradation terms | **5 terms** from day one: base, high-j stress, ramp stress, on/off cycling, idle/OCV |
 | 6 | Site | **Kutch, Gujarat, India — 23.25 °N, 69.00 °E** |
 | 7 | Stack | **1 MW PEM, 280 cells, 1000 cm²/cell, j_rated = 2.0 A/cm², 60 °C** |
@@ -68,8 +68,48 @@ Two findings worth carrying into the paper's reproducibility notes:
   a single env). Batching updates across 32 parallel envs at an unchanged 1:1
   update-to-step ratio recovers all of it, and there the GPU genuinely wins by 2.7×.
 
-Because the two use different resources, run them concurrently. The full 40-run matrix is
-under an hour of wall-clock and ~1.7 of the 90 weekly GPU-hours.
+Because the two use different resources, **run them concurrently**. The 130-run matrix
+(13 w₂ × 5 seeds × 2 algorithms) is ≈83 min of wall-clock and ≈5.5 of the 90 weekly GPU-hours.
+
+### Why SAC stays primary — the earlier reasoning survived, the earlier numbers did not
+
+A first benchmark appeared to show SAC ~34× slower than PPO, which would have been a real
+argument for demoting it. It was an artifact of **SB3's defaults**, not of SAC:
+`n_envs=1, train_freq=1, gradient_steps=1` pays Python and kernel-launch overhead on every
+single environment step. Batching the same work across 32 envs recovers 26× of it.
+
+So the decision is unchanged, and now measurement-backed:
+
+- Properly batched SAC is **fast enough to be practical** — 5.1 min per 2M-step seed.
+- SAC **benefits substantially from the H200** (2.7× over CPU); PPO does not benefit at all.
+- PPO remains **extremely fast on CPU** and needs no GPU resource.
+- The two therefore have a **sensible, non-competing hardware allocation** — which is the
+  reason running both costs barely more wall-clock than running one.
+
+### The `gradient_steps=8` configuration is excluded from the primary comparison
+
+The fastest row in `BENCHMARK.md` is SAC at 13,889 steps/s with `gradient_steps=8`.
+**It must not be used for the primary SAC run or the headline comparison.**
+
+It performs **4× fewer gradient updates per environment step** — a different effective
+algorithmic budget, not a free optimisation. Reporting it against PPO, or against
+`gradient_steps=32`, would compare two different algorithms and attribute the difference to
+hardware.
+
+It may be run **only as a separate, clearly labelled experiment**, and only if learning
+curves are validated at **equal environment steps** (never equal wall-clock).
+
+The primary SAC configuration is `n_envs=32, train_freq=32, gradient_steps=32`, which holds
+the update-to-step ratio at 1:1 — identical learning dynamics to the SB3 default, just
+batched.
+
+### Throughput did not change the science
+
+The device split and batching are engineering decisions about *where* work runs. No
+methodology was altered to gain throughput: the reward function, episode structure, seed
+count and evaluation protocol are all unchanged. The only experimental change the speedup
+bought is **more w₂ points on the same frontier over the same range** (§8), which increases
+resolution rather than changing what is measured.
 
 ## 5. Degradation model — five terms, and idle is NOT free
 
@@ -136,5 +176,26 @@ axis, cumulative degradation on the other, both baselines as points, the RL fami
 the w₂ sweep as a frontier — turns the same data into the actual finding: *the learned
 policy dominates the rule-based controller's operating point, and traces a frontier the
 rule-based controller cannot reach.* Same experiments, result robust to which axis wins.
+
+### Sweep density — 13 points, fixed in `configs/default.yaml → sweep.w2`
+
+Each w₂ value is **exactly one point on the frontier**. The sweep was originally budgeted at
+4 coarse points because it was thought to be the sprint's most expensive step; the measured
+throughput (`BENCHMARK.md`) makes it minutes, so it is now **13 points**:
+
+```
+[0.1, 0.178, 0.316, 0.562, 1.0, 1.78, 3.16, 5.62, 10.0, 17.8, 31.6, 56.2, 100.0]
+```
+
+Log spacing, quarter-decade, over the **unchanged** range 0.1–100. The original coarse
+points {0.1, 1, 10, 100} remain in the list as a subset, so this is a strict refinement, not
+a different experiment. Linear spacing would crowd nearly every point into the high-penalty
+regime and leave the low-w₂ end unresolved.
+
+Four points cannot show the *shape* of a trade-off curve — in particular they cannot resolve
+the knee, the region where a small yield sacrifice buys a large degradation reduction, which
+is the paper's actual claim. Thirteen can.
+
+**Seed count is unchanged at 5** (`train.seeds`). Replication was not traded for resolution.
 
 Build every experiment to feed this figure.

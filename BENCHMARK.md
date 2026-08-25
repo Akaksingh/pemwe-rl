@@ -63,27 +63,45 @@ launching the full matrix.
 
 ---
 
+## Final hardware allocation
+
+| | Device | Broker | Settings | Throughput |
+|---|---|---|---|---|
+| **PPO** | 128-core CPU | **none** | `n_envs=32` | 9,712 steps/s |
+| **SAC** | 1× H200 | `gpurun -g 1` | `n_envs=32, train_freq=32, gradient_steps=32` | 6,520 steps/s |
+
+PPO gets no GPU allocation at all. `gpurun` bills wall-clock time a job *holds* a GPU, not
+utilisation, so submitting PPO through the broker would be **both slower and quota-burning**.
+
 ## What this means for the experiment matrix
 
-Full matrix = 2 algorithms × 5 seeds × 4 reward weights = 40 runs at 2M steps.
+The sweep is now 13 w₂ values × 5 seeds × 2 algorithms = **130 runs** at 2M steps
+(`configs/default.yaml → sweep.w2`). Derived from the measured rates above:
 
-| | Device | Per seed | 20 runs | Concurrency | Wall-clock |
-|---|---|---|---|---|---|
-| PPO | CPU, `n_envs=32` | 3.4 min | 68 min | 4 concurrent (128 cores) | **~17 min** |
-| SAC | GPU, `gpurun -g 1` | 5.1 min | 102 min | 4 concurrent (4 GPUs) | **~26 min** |
+| | Per seed | 65 runs, sequential | Concurrency | Wall-clock |
+|---|---|---|---|---|
+| PPO | 3.4 min | 221 min | 4 concurrent (128 cores ÷ 32 envs) | **~55 min** |
+| SAC | 5.1 min | 332 min | 4 concurrent (4 GPUs) | **~83 min** |
 
-PPO and SAC use **different resources**, so run them at the same time. The entire matrix is
-well under an hour, and costs about **1.7 GPU-h** of the 90 GPU-h weekly quota.
+PPO and SAC use **different resources**, so run them at the same time: total wall-clock is
+set by the slower arm, **≈83 min**, and the GPU cost is **≈5.5 GPU-h** of the 90 GPU-h
+weekly quota.
 
-`gpurun` bills wall-clock time a job *holds* a GPU, not utilisation — so never run PPO under
-the broker. It would be slower *and* burn quota.
+Even at 3× the original experiment count, this is a fraction of one week's quota.
 
 ## The consequence that matters for the paper
 
 Person B's Day-3 reward-weight sweep was planned as 4 coarse points because it was budgeted
-as the sprint's most expensive step. At these rates it is minutes.
+as the sprint's most expensive step. At these measured rates it is minutes, so it is now
+**13 points** — see `configs/default.yaml → sweep.w2`.
 
-**Spend that on a denser w₂ sweep — 12–15 points instead of 4.** The headline figure is the
-yield-vs-degradation Pareto frontier (`DECISIONS.md` §8), and a frontier traced by 15 points
-is a far stronger figure than one traced by 4. This is the single best use of the server for
-the paper's quality, and it is worth more than the raw speedup.
+The headline figure is the yield-vs-degradation Pareto frontier (`DECISIONS.md` §8), and
+**each w₂ value is exactly one point on it**. Four points do not trace a frontier; they
+sample it too sparsely to show its shape, and a reviewer cannot tell a genuine trade-off
+curve from four unconnected results. Thirteen points at quarter-decade spacing resolve the
+knee of the curve — the region where a small yield sacrifice buys a large degradation
+reduction, which is the paper's actual claim.
+
+This is the single best use of the server for the paper's quality, and it is worth more than
+the raw speedup. Note the range is unchanged (0.1–100) and the original coarse points remain
+a subset, so this is a strict refinement rather than a different experiment.
