@@ -1,0 +1,10 @@
+{
+  "source": "open_meteo",
+  "note": "ERA5 via Open-Meteo. PV = PVWatts-style model (25 deg fixed tilt, 10% system loss, -0.35%/K); wind = Vestas V80-2.0MW curve at 100 m. Both conversions are ours -- cite ERA5, NOT Pfenninger & Staffell.",
+  "lat": 23.25,
+  "lon": 69.0,
+  "year": 2019,
+  "seed": 0,
+  "pv_rated_w": 1000000.0,
+  "wind_rated_w": 1000000.0
+}

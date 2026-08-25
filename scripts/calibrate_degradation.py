@@ -34,10 +34,18 @@ import numpy as np
 import yaml
 
 from pemwe import load_config, PEMWEEnv, BASELINES
+from pemwe import profiles as _P
 
 ROOT = Path(__file__).resolve().parents[1]
 TERMS = ("base", "stress", "ramp", "cycle", "idle")
 N_PROFILES = 8          # average over several days so one profile cannot flatter a policy
+
+# Real Kutch weather when it exists, synthetic placeholder otherwise. Real profiles are far
+# more punishing than the smooth synthetic sine: under coefficients calibrated on synthetic
+# data the naive baseline runs at ~6.9 uV/h on real weather against a 4.0 target. Re-solving
+# once the data lands is mandatory, not optional (DECISIONS.md 5).
+REAL = _P.env_profiles(N_PROFILES, split="train", source="hybrid")
+PROFILE_SOURCE = "real Kutch (train split)" if REAL is not None else "SYNTHETIC placeholder"
 
 
 class Jittery:
@@ -56,8 +64,9 @@ class Smooth:
 
 
 def rollout(cfg, policy, seed):
-    env = PEMWEEnv(cfg, seed=seed)
-    obs, _ = env.reset(seed=seed)
+    env = PEMWEEnv(cfg, profiles=REAL, seed=seed)
+    opts = {"day_idx": seed % N_PROFILES} if REAL is not None else None
+    obs, _ = env.reset(seed=seed, options=opts)
     policy.reset()
     parts = dict.fromkeys(TERMS, 0.0)
     h2 = cycles = 0.0
@@ -189,8 +198,12 @@ def solve(cfg):
                 if min(jr, jc) / diff < 0.20:
                     continue
                 n_feasible += 1
-                # Prefer a comfortable but not extreme ratio, then closeness to 4.0 uV/h.
-                score = (-abs(min(ratio, 8.0) - 4.5), -abs(rate - 4.0))
+                # Centre the ABSOLUTE rate first, then take the largest separation.
+                # (Pinning the ratio to 4.5 first, as an earlier version did, parks the
+                # rate at the band edge -- 4.49 against a 4.5 ceiling -- so any later
+                # physics change flips the gate to FAIL. The absolute target has a hard
+                # band; the ratio only has to be comfortably above 3.)
+                score = (-abs(rate - 4.0), min(ratio, 8.0))
                 if best is None or score > best[0]:
                     best = (score, c, ratio, rate, agg)
     print(f"feasible coefficient sets found: {n_feasible}")
@@ -204,7 +217,8 @@ def main():
     args = ap.parse_args()
 
     cfg = load_config()
-    print("=== BEFORE ===\n")
+    print(f"profiles: {PROFILE_SOURCE}")
+    print("\n=== BEFORE ===\n")
     report(cfg)
 
     if not args.solve:

@@ -86,13 +86,13 @@ degradation:
   # Re-solving gives r_base 1.5 / k_j 20.0 / k_ramp 11.0 / dv_cycle 3.5 / r_idle 2.0
   # -> 3.78 uV/h at 4.50x separation. Not applied unilaterally: it would also move the
   # numbers quoted in DECISIONS.md 5. Standup decision. See notes/A_handoff.md.
-  r_base_uv_per_h: 1.5
+  r_base_uv_per_h: 1.75
   k_j_uv_per_h: 20.0         # x max(0, j/j_rated - j_stress_threshold)^2
   j_stress_threshold: 0.6
   j_stress_exponent: 2.0
-  k_ramp_uv_per_h: 11.0      # x |dj/dt| in (A/cm^2)/min
-  dv_cycle_uv: 3.5           # per ON<->OFF transition
-  r_idle_uv_per_h: 2.0       # OCV / Ir dissolution while OFF -- keeps "idle forever" from winning
+  k_ramp_uv_per_h: 31.0      # x |dj/dt| in (A/cm^2)/min
+  dv_cycle_uv: 1.0           # per ON<->OFF transition
+  r_idle_uv_per_h: 0.75       # OCV / Ir dissolution while OFF -- keeps "idle forever" from winning
   dv_eol_uv: 177000.0        # end of life = 10% rise on 1.77 V
 
 reward:

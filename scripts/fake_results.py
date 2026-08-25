@@ -41,6 +41,19 @@ def make_run(run_id, policy, seed, w2, h2_mu, deg_mu, rng, n_days=10):
     rate = float(dvs.mean() / 24.0)
     t = np.arange(1440)
     renew = np.clip(np.sin((t / 60 - 6) / 12 * np.pi), 0, None) ** 1.3 * 1.0e6
+    # cloud transients, so the baseline and the RL policy have something to differ ABOUT.
+    # Without these the two trajectories are identical and the overlay figure silently
+    # tests nothing.
+    gust = np.zeros(1440)
+    for i in range(1, 1440):
+        gust[i] = 0.93 * gust[i - 1] + rng.normal(0, 0.30)
+    renew = np.clip(renew * (1 + 0.22 * gust), 0, 1.0e6)
+    if policy.startswith("baseline"):
+        p_set = renew.copy()                      # chases every transient (ref [8] law)
+    else:
+        # RL: smoothed, and it declines to follow the top of the envelope
+        k = 41
+        p_set = np.convolve(renew, np.ones(k) / k, mode="same") * 0.88
     return {
         "run_id": run_id, "policy": policy, "seed": seed,
         "weights": {"w1": 1.0, "w2": w2, "w3": 0.1},
@@ -55,8 +68,8 @@ def make_run(run_id, policy, seed, w2, h2_mu, deg_mu, rng, n_days=10):
         "trajectory": {
             "t_min": t.tolist(),
             "p_renew_w": renew.tolist(),
-            "p_set_w": (renew * 0.85).tolist(),
-            "j": (renew / 1.0e6 * 1.7).tolist(),
+            "p_set_w": p_set.tolist(),
+            "j": (p_set / 1.0e6 * 1.7).tolist(),
             "dv_deg_total_uv": np.cumsum(np.full(1440, dvs.mean() / 1440)).tolist(),
         },
     }
