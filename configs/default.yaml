@@ -26,13 +26,13 @@ stack:
 degradation:
   # OWNER: A. Day 2 = scale these so the RULE-BASED BASELINE on real Kutch profiles
   # lands at 4.0 +/- 0.5 uV/h, i.e. the ~5-year lifetime of ref #7. See DECISIONS.md 5.
-  r_base_uv_per_h: 1.5
-  k_j_uv_per_h: 25.0         # x max(0, j/j_rated - j_stress_threshold)^2
+  r_base_uv_per_h: 2.25
+  k_j_uv_per_h: 50.0         # x max(0, j/j_rated - j_stress_threshold)^2
   j_stress_threshold: 0.6
   j_stress_exponent: 2.0
-  k_ramp_uv_per_h: 4.0       # x |dj/dt| in (A/cm^2)/min
-  dv_cycle_uv: 1.0           # per ON<->OFF transition
-  r_idle_uv_per_h: 2.0       # OCV / Ir dissolution while OFF -- keeps "idle forever" from winning
+  k_ramp_uv_per_h: 16.0       # x |dj/dt| in (A/cm^2)/min
+  dv_cycle_uv: 4.0           # per ON<->OFF transition
+  r_idle_uv_per_h: 1.0       # OCV / Ir dissolution while OFF -- keeps "idle forever" from winning
   dv_eol_uv: 177000.0        # end of life = 10% rise on 1.77 V
 
 reward:
