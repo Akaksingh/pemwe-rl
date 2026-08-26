@@ -49,6 +49,30 @@ dynamics**, and here the GPU is genuinely worth it: 2.7× over CPU.
 
 **SAC runs on GPU, under `gpurun -g 1`.** 2M steps = 5.1 min per seed.
 
+### CORRECTION: these SAC numbers are warm-up, not steady-state
+
+`bench_sac.py` runs only 6,000 steps per configuration, so the replay buffer never exceeds
+~6.5k entries. Sampling a batch from a nearly-empty buffer is fast and cache-resident;
+sampling from a **filled 1M-entry buffer** is not. Measured on a real 2M-step run with
+`buffer_size=1_000_000`:
+
+```
+SAC cuda n_envs=32  (benchmark, 6k steps)     6,520 steps/s
+SAC cuda n_envs=32  (real run, 2M steps)      1,578 steps/s   <-- 4.1x slower
+```
+
+Some of the gap is server contention (the box is shared, 28 users), but the buffer effect
+is the larger part and it is systematic: throughput degrades as the buffer fills, so a
+short benchmark cannot see it.
+
+**Plan against 1,578 steps/s, not 6,520.** The 65-run SAC arm at 2M steps is ~23 h on one
+GPU, ~11 h on two, ~6 h on four -- not the ~83 min this file originally projected. PPO's
+CPU numbers are unaffected: PPO is on-policy and has no replay buffer, so its short
+benchmark is representative.
+
+The lesson generalises: benchmark an off-policy algorithm for long enough to fill its
+buffer, or the number measures the wrong regime.
+
 ### The 13,889 steps/s row is a trap
 
 `gradient_steps=8` does 8 updates per 32 env steps instead of 32 — a **4× lower update
