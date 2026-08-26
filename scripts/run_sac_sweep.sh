@@ -61,15 +61,16 @@ IFS=',' read -ra SEED <<< "$SEEDS"
 TOTAL=$(( ${#W2[@]} * ${#SEED[@]} ))
 CONCURRENCY=4                      # 4 GPUs
 
-echo "SAC sweep  --  gpurun -g 1 per run"
+echo "SAC sweep  --  device: $DEVICE$([ -n "$LAUNCH" ] && echo " (via gpurun -g 1)")"
 echo "  w2 values   : ${#W2[@]}  (${W2[0]} .. ${W2[-1]})"
 echo "  seeds       : ${#SEED[@]}  ($SEEDS)"
 echo "  n_envs      : $NENVS  train_freq: $TF  gradient_steps: $GS   (1:1 ratio preserved)"
 echo "  runs        : $TOTAL  concurrency: $CONCURRENCY"
-echo "  est. wall   : ~$(( TOTAL * 51 / 10 / CONCURRENCY )) min at the measured 6,520 steps/s"
-echo "  est. quota  : ~$(( TOTAL * 51 / 10 / 60 )) GPU-h of the 90/week"
+# 2M steps at the measured rate on the vectorised env (~7,400 steps/s per run)
+echo "  est. wall   : ~$(( TOTAL * 45 / 10 / CONCURRENCY )) min at ~7,400 steps/s per run"
+[ -n "$LAUNCH" ] && echo "  est. quota  : ~$(( TOTAL * 45 / 10 / 60 )) GPU-h of the 90/week"
 echo
-gpurun --status 2>/dev/null || echo "(gpurun not on PATH -- are you on the server?)"
+[ -n "$LAUNCH" ] && { gpurun --status 2>/dev/null || echo "(gpurun not on PATH)"; }
 echo
 
 if [ ! -f src/pemwe/train.py ]; then
