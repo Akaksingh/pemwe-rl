@@ -50,9 +50,14 @@ def test_naive_baseline_implements_the_published_rule(cfg):
     for frac in (0.0, thr / 2, thr + 0.01, 0.5, 1.0):
         obs = np.zeros(8, dtype=np.float32)
         obs[0] = frac
-        got = 0.5 * (float(p.act(obs)[0]) + 1.0)
+        # The rule is about the resulting SETPOINT, not the action encoding. The action
+        # is now a fraction of AVAILABLE power, so "track the resource fully" is u = 1
+        # rather than u = frac. The setpoint is identical either way, and the setpoint is
+        # what ref [8] actually specifies.
+        u = 0.5 * (float(p.act(obs)[0]) + 1.0)
+        got_setpoint = u * frac                      # p_set / p_rated
         want = frac if frac >= thr else cfg["baseline"]["p_idle_frac"]
-        assert got == pytest.approx(want, abs=1e-6)
+        assert got_setpoint == pytest.approx(want, abs=1e-6)
 
 
 def test_ramp_limited_baseline_respects_its_slew_limit(cfg):
