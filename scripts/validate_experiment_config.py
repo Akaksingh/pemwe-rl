@@ -47,10 +47,12 @@ if sac["gradient_steps"] != sac["train_freq"]:
 print("\nSweep -- Pareto frontier resolution (DECISIONS.md 8)")
 w2 = sw["w2"]
 check(12 <= len(w2) <= 15, "12-15 w2 points", f"{len(w2)} points")
-check(min(w2) == 0.1 and max(w2) == 100.0, "range unchanged at 0.1 .. 100",
+check(min(w2) == 0.1 and max(w2) <= 20.0, "range 0.1 .. 20 (top end is degenerate)",
       f"{min(w2)} .. {max(w2)}")
-check(all(v in w2 for v in (0.1, 1.0, 10.0, 100.0)),
-      "original coarse points still a subset (strict refinement)")
+# Above w2 ~= 20 idling outscores running, so any point up there trains a shut-down
+# policy rather than a Pareto point. Measured, not assumed -- see configs/default.yaml.
+check(max(w2) < 20.3, "no sweep point in the idle-degenerate regime (w2 >= 20.2)",
+      f"max={max(w2)}")
 check(w2 == sorted(w2), "w2 ascending")
 check(len(set(w2)) == len(w2), "no duplicate w2 values")
 

@@ -108,8 +108,12 @@ batched.
 The device split and batching are engineering decisions about *where* work runs. No
 methodology was altered to gain throughput: the reward function, episode structure, seed
 count and evaluation protocol are all unchanged. The only experimental change the speedup
-bought is **more w₂ points on the same frontier over the same range** (§8), which increases
-resolution rather than changing what is measured.
+bought is **more w₂ points on the frontier** (§8), which increases resolution rather than
+changing what is measured.
+
+(The w₂ *range* was later narrowed 0.1–100 → 0.1–20, but for an unrelated reason: the top
+of the old range trains a shut-down policy. That was a correction to a Day-0 guess, not a
+throughput trade. See §8.)
 
 ## 5. Degradation model — five terms, and idle is NOT free
 
@@ -261,13 +265,27 @@ Each w₂ value is **exactly one point on the frontier**. The sweep was original
 throughput (`BENCHMARK.md`) makes it minutes, so it is now **13 points**:
 
 ```
-[0.1, 0.178, 0.316, 0.562, 1.0, 1.78, 3.16, 5.62, 10.0, 17.8, 31.6, 56.2, 100.0]
+[0.1, 0.156, 0.242, 0.376, 0.585, 0.909, 1.41, 2.2, 3.42, 5.32, 8.27, 12.9, 20.0]
 ```
 
-Log spacing, quarter-decade, over the **unchanged** range 0.1–100. The original coarse
-points {0.1, 1, 10, 100} remain in the list as a subset, so this is a strict refinement, not
-a different experiment. Linear spacing would crowd nearly every point into the high-penalty
-regime and leave the low-w₂ end unresolved.
+Log spacing over **0.1–20**. The range was originally 0.1–100; it was **narrowed on
+measured evidence**, and that correction matters more than the density change:
+
+> **Above w₂ ≈ 20 the reward-optimal policy is to shut the plant down.** Running beats
+> idling only while `r_yield > w₂·(r_deg_run − r_deg_idle)` — i.e. `15790 > w₂·(960−180)`,
+> so `w₂ < 20.2`. `scripts/reward_landscape.py` confirms it empirically: scoring 16 fixed
+> policies on held-out days, w₂ ∈ {31.6, 56.2, 100} all select **idle**, 0 kg H₂.
+>
+> Those three points were not Pareto points. They were the degenerate corner §5 warns
+> about, and they would have spent ~0.85 GPU-h training a controller to switch off.
+
+The same scan showed every w₂ from 0.1 to 5.62 selecting the *same* optimum, so the old
+spacing also spent 8 of 13 points on a single Pareto point. The new range puts **5 points in
+the active band [3, 20]** where the optimum actually moves, against 2 before.
+
+The 0.1–100 range was set on Day 0 by analogy, before any of these quantities had been
+measured. It is the clearest case in the project of a Day-0 guess surviving unexamined into
+a locked document — worth remembering when reading the rest of this file.
 
 Four points cannot show the *shape* of a trade-off curve — in particular they cannot resolve
 the knee, the region where a small yield sacrifice buys a large degradation reduction, which
