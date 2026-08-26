@@ -144,7 +144,13 @@ train:
   ppo:
     device: cpu              # never run PPO under gpurun: slower AND burns quota
   sac:
-    device: cuda             # gpurun -g 1; genuinely 2.7x faster than CPU here
+    # CPU, not cuda. The GPU assignment was measured on the pre-optimisation environment,
+    # where env stepping cost 241 us/step and the H200 benchmarked 2.7x. Vectorising the
+    # power->j inversion cut stepping to 47 us, so gradient work is now a much smaller
+    # share of each step and the GPU advantage shrinks with it. On a shared box the queue
+    # dominates anyway: SAC sat 24 min waiting behind other users while 128 cores idled.
+    # Set back to cuda when the box is quiet and GPUs are free.
+    device: cpu
     train_freq: 32           # batching updates across 32 envs at an unchanged 1:1
     gradient_steps: 32       # update-to-step ratio = 26x faster than SB3 defaults
     batch_size: 512
