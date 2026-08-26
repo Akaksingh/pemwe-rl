@@ -216,12 +216,23 @@ def validate(result, reference=None) -> list[str]:
 
 
 def _reference():
+    """A results file to cross-check the emitted schema against.
+
+    Must be a TEST-split result. Taking the first file that merely has the right top-level
+    keys picked up `*_longhorizon.json`, whose aggregate legitimately carries extra fields
+    (n_days, dv_eol_uv, h2_kg_total, dv_deg_uv_total) that an ordinary run does not -- so
+    every run was reported as "MISSING" them. The reference has to be the same KIND of
+    result as the thing being checked, or the check reports a difference in kind as a
+    defect. Pipeline-check output is excluded too: it is never a reference for anything.
+    """
     for f in sorted(RESULTS.glob("*.json")):
+        if f.name.startswith("pipe_") or "_longhorizon" in f.name:
+            continue
         try:
             d = json.loads(f.read_text())
         except Exception:
             continue
-        if {"episodes", "aggregate", "trajectory"} <= set(d):
+        if {"episodes", "aggregate", "trajectory"} <= set(d) and d.get("profile_set") == "test":
             return d
     return None
 
