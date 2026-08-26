@@ -140,15 +140,22 @@ reward. You are looking for the band where the agent:
 
 This was originally budgeted as the sprint's most expensive step, at 4 coarse points
 (`w2 ∈ {0.1, 1, 10, 100}`). On the server it is minutes, so it is now **13 points**, already
-fixed in `configs/default.yaml → sweep.w2`:
+fixed in `configs/default.yaml → sweep.w2`, over a corrected range:
 
 ```
-[0.1, 0.178, 0.316, 0.562, 1.0, 1.78, 3.16, 5.62, 10.0, 17.8, 31.6, 56.2, 100.0]
+[0.1, 0.156, 0.242, 0.376, 0.585, 0.909, 1.41, 2.2, 3.42, 5.32, 8.27, 12.9, 20.0]
 ```
 
-Quarter-decade log spacing over the **unchanged** 0.1–100 range. The old coarse points are
-still in the list as a subset, so this is a strict refinement — anything you measured
-against the coarse sweep stays comparable. Do not re-derive the range; it is locked.
+Log spacing over **0.1–20**. The range is NOT the original 0.1–100: above w₂ ≈ 20 the
+reward-optimal policy is to **shut the plant down**, so the old top three points trained a
+switched-off controller instead of a Pareto point. Confirmed both in closed form
+(`r_yield > w₂·(r_deg_run − r_deg_idle)` → `w₂ < 20.2`) and empirically by
+`scripts/reward_landscape.py`.
+
+Run that script whenever the calibration or the reward scaling changes — it tells you where
+the optimum actually moves **without training anything**, which is far cheaper than
+discovering a dead range after a 130-run matrix. Do not widen the range past 20; the
+config validator will reject it.
 
 That is not gold-plating. The headline figure is the yield-vs-degradation Pareto frontier
 and **each w₂ value is exactly one point on it**. Four points cannot show the shape of the

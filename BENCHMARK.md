@@ -103,5 +103,9 @@ knee of the curve — the region where a small yield sacrifice buys a large degr
 reduction, which is the paper's actual claim.
 
 This is the single best use of the server for the paper's quality, and it is worth more than
-the raw speedup. Note the range is unchanged (0.1–100) and the original coarse points remain
-a subset, so this is a strict refinement rather than a different experiment.
+the raw speedup.
+
+**The range was later narrowed to 0.1–20** for a reason unrelated to throughput: above
+w₂ ≈ 20 the reward-optimal policy is to shut the plant down, so those points trained a
+switched-off controller rather than tracing a frontier. See `DECISIONS.md` §8 and
+`scripts/reward_landscape.py`.

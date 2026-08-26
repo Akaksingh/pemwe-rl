@@ -107,9 +107,14 @@ reward:
 # so each w2 value is one point on the yield-vs-degradation Pareto frontier that is
 # the paper's headline figure (DECISIONS.md 8).
 #
-# Range 0.1 .. 100 is UNCHANGED from the original coarse sweep. This is a strict
-# refinement of it: {0.1, 1, 10, 100} all remain in the list as a subset, so anything
-# already measured against the coarse sweep stays directly comparable.
+# Range is 0.1 .. 20, NARROWED from the original 0.1 .. 100 on measured evidence.
+# Above w2 ~= 20 the reward-optimal policy is to SHUT DOWN: running beats idling only
+# while r_yield > w2 * (r_deg_run - r_deg_idle), i.e. 15790 > w2 * (960 - 180) -> w2 < 20.2.
+# A scan of 16 fixed policies on held-out days confirms it: w2 in {31.6, 56.2, 100} all
+# select idle (0 kg H2). Those were not Pareto points, they were the degenerate corner
+# DECISIONS.md 5 warns about, and they would have burned ~0.85 GPU-h producing nothing.
+# The old 0.1 .. 100 range was set on Day 0 by analogy, before any of these quantities
+# had been measured.
 #
 # Log spacing (quarter-decade, 4 points per decade) because w2 spans three orders of
 # magnitude against w1 = 1.0. Linear spacing would crowd almost every point into the
@@ -118,7 +123,7 @@ reward:
 # 13 points x 5 seeds x 2 algorithms = 130 runs. Seed count is NOT reduced to pay for
 # the extra points -- see train.seeds.
 sweep:
-  w2: [0.1, 0.178, 0.316, 0.562, 1.0, 1.78, 3.16, 5.62, 10.0, 17.8, 31.6, 56.2, 100.0]
+  w2: [0.1, 0.156, 0.242, 0.376, 0.585, 0.909, 1.41, 2.2, 3.42, 5.32, 8.27, 12.9, 20.0]
 
 env:
   dt_min: 1.0
