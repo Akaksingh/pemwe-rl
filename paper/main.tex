@@ -477,8 +477,11 @@ The lower panel shows the resulting difference in accumulated degradation.}
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{fig_longhorizon.pdf}
-\caption{Cumulative degradation over a \num{90}-day rollout with persistent state, against
-the \SI{10}{\percent} end-of-life criterion.}
+\caption{Projected stack life under the two rule-based controllers. Solid segments are the
+\num{90}-day rollout with persistent degradation state (inset, at its own scale); dotted
+lines extrapolate linearly at the measured rate to the \SI{10}{\percent} voltage-rise
+end-of-life criterion. The extrapolation is a projection at the measured rate, not a
+prediction: degradation rates are not constant over a stack's service life.}
 \label{fig:longhorizon}
 \end{figure}
 Over the \num{90}-day rollout the two rule-based controllers already trace the trade this
