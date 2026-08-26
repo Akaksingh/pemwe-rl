@@ -53,7 +53,11 @@ def main():
     ap.add_argument("--w2", type=float, nargs="+", default=[0.1, 5.32, 20.0])
     ap.add_argument("--eval-days", type=int, default=10)
     ap.add_argument("--train-days", type=int, default=32)
-    ap.add_argument("--device", default="cpu")
+    # Default to the CONFIGURED device, not "cpu". Hard-coding cpu here meant a run
+    # submitted through `gpurun -g 1` held a GPU and then trained on the CPU anyway --
+    # burning quota, and producing a throughput number that was mistaken for the GPU rate.
+    ap.add_argument("--device", default=None,
+                    help="override; defaults to configs/default.yaml train.<algo>.device")
     ap.add_argument("--keep", action="store_true", help="keep the throwaway checkpoints")
     args = ap.parse_args()
 
@@ -67,7 +71,8 @@ def main():
         train_main([
             "--algo", args.algo, "--seed", "0", "--run-id", run_id,
             "--total-timesteps", str(args.steps), "--n-envs", str(args.n_envs),
-            "--train-days", str(args.train_days), "--device", args.device,
+            "--train-days", str(args.train_days),
+            *(("--device", args.device) if args.device else ()),
             "--no-subproc", "--override", f"reward.w2={w2}",
         ])
         cfg = load_config(overrides=[f"reward.w2={w2}"])
