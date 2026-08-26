@@ -3,6 +3,10 @@ __pycache__/
 *.pyc
 data/raw/
 results/*.json
+# ...except the 90-day rollout: these ARE paper numbers (projected stack life),
+# they are small, and regenerating them costs a long CPU run. CONTRACTS.md 6 says
+# figures only; this is a deliberate, narrow exception.
+!results/*_longhorizon.json
 results/tb/
 models/
 paper/*.aux

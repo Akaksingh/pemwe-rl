@@ -271,24 +271,73 @@ def fig_ablation(results, name="fig_ablation"):
 # =============================================================================
 
 def fig_longhorizon(series: dict, dv_eol_uv=177000.0, name="fig_longhorizon"):
-    """90-day cumulative degradation with the end-of-life line.
+    """Measured 90-day degradation, extrapolated to end of life.
 
-    `series` maps policy key -> array of cumulative uV, one point per day.
+    Plotting 90 days against the end-of-life line directly does not work: the rollout
+    accumulates ~9 mV against a 177 mV criterion, so every curve is squashed onto the axis
+    and the reader cannot see the difference the figure exists to show. Instead the
+    measured segment is drawn solid at its own scale in an inset, and the main panel
+    carries the linear extrapolation out to end of life, where the projected-life
+    difference between controllers is the visible message.
+
+    The extrapolation is linear and is drawn dotted and labelled as such: degradation rates
+    are not constant over a stack's life, so this is a projection at the measured rate, not
+    a prediction. That caveat belongs in the caption too.
+
+    `series` maps policy key -> array of cumulative uV, one entry per day.
     """
     _rc()
-    fig, ax = plt.subplots(figsize=(COL1, 2.4))
+    fig, ax = plt.subplots(figsize=(COL1, 2.6))
+
+    eol_mv = dv_eol_uv / 1000.0
+    lives = {}
     for pol, dv in series.items():
         st = STYLE.get(pol, STYLE["sac"])
         d = np.asarray(dv, dtype=float)
-        ax.plot(np.arange(len(d)), d / 1000.0, color=st["color"], ls=st["ls"],
-                lw=1.4, label=st["label"])
-    ax.axhline(dv_eol_uv / 1000.0, color=MUTED, lw=0.8, ls=(0, (4, 3)))
-    ax.annotate("end of life (10% $V$ rise)", (0.02, dv_eol_uv / 1000.0),
-                xycoords=("axes fraction", "data"), va="bottom",
-                fontsize=6.5, color=MUTED)
-    ax.set_xlabel("Day")
+        n = len(d)
+        rate_per_day = d[-1] / n                      # uV/day at the measured rate
+        life_days = dv_eol_uv / rate_per_day
+        lives[pol] = life_days / 365.25
+
+        # measured segment, solid
+        ax.plot(np.arange(n) / 365.25, d / 1000.0, color=st["color"], lw=1.8,
+                solid_capstyle="round", zorder=3, label=st["label"])
+        # projection to end of life, dotted
+        t = np.array([n, life_days]) / 365.25
+        ax.plot(t, np.array([d[-1], dv_eol_uv]) / 1000.0, color=st["color"],
+                lw=1.0, ls=(0, (1.5, 2)), zorder=2)
+        ax.plot([life_days / 365.25], [eol_mv], marker=st["marker"], ms=5,
+                color=st["color"], markeredgecolor="white", markeredgewidth=0.6, zorder=4)
+
+    ax.axhline(eol_mv, color=MUTED, lw=0.8, ls=(0, (4, 3)), zorder=1)
+    # right-aligned: the upper-left corner carries the legend
+    ax.text(0.985, eol_mv, "end of life (10% $V$ rise)", transform=ax.get_yaxis_transform(),
+            va="bottom", ha="right", fontsize=6.5, color=MUTED)
+
+    # projected life, called out where the curves reach the criterion
+    for pol, yrs in sorted(lives.items(), key=lambda kv: kv[1]):
+        ax.annotate(f"{yrs:.2f} yr", (yrs, eol_mv), textcoords="offset points",
+                    xytext=(0, -12), ha="center", fontsize=6.5,
+                    color=STYLE.get(pol, STYLE["sac"])["color"])
+
+    ax.set_xlim(0, max(lives.values()) * 1.12)
+    ax.set_ylim(0, eol_mv * 1.18)
+    ax.set_xlabel("Years of operation")
     ax.set_ylabel(r"Cumulative $\Delta V_{\mathrm{deg}}$ [mV]")
     ax.legend(loc="upper left", handletextpad=0.5, borderpad=0.2)
+
+    # inset: the segment that was actually simulated
+    ins = fig.add_axes([0.60, 0.30, 0.27, 0.26])
+    for pol, dv in series.items():
+        st = STYLE.get(pol, STYLE["sac"])
+        d = np.asarray(dv, dtype=float)
+        ins.plot(np.arange(len(d)), d / 1000.0, color=st["color"], lw=1.2)
+    ins.set_title(f"measured, {len(next(iter(series.values())))} d",
+                  fontsize=6, color=INK2, pad=2)
+    ins.tick_params(labelsize=5.5, length=2)
+    ins.set_xlabel("day", fontsize=6, labelpad=1)
+    ins.set_ylabel("mV", fontsize=6, labelpad=1)
+    ins.grid(alpha=0.6, lw=0.3)
     return _finish(fig, name)
 
 
