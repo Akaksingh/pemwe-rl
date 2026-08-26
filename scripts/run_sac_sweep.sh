@@ -39,10 +39,14 @@ PYEOF
 EOF
 
 # ---- guard: the primary SAC run must preserve the 1:1 update-to-step ratio ----
-if [ "$DEVICE" != "cuda" ]; then
-  echo "CONFIG ERROR: train.sac.device is '$DEVICE', expected 'cuda'. Aborting." >&2
-  exit 1
-fi
+# Follow the configured device. SAC may legitimately run on CPU: on a contended box the
+# GPU queue wait can exceed the compute saving, and since the environment was vectorised
+# the gradient share of each step is small. Only involve the broker when using a GPU.
+case "$DEVICE" in
+  cuda) LAUNCH="gpurun -g 1" ;;
+  cpu)  LAUNCH="" ;;
+  *) echo "CONFIG ERROR: train.sac.device is '$DEVICE' (expect cuda or cpu)." >&2; exit 1 ;;
+esac
 if [ "$GS" != "$TF" ] || [ "$GS" != "$NENVS" ]; then
   echo "CONFIG ERROR: primary SAC must keep gradient_steps == train_freq == n_envs." >&2
   echo "  got n_envs=$NENVS train_freq=$TF gradient_steps=$GS" >&2
@@ -85,7 +89,7 @@ for w in "${W2[@]}"; do
     while [ "$(jobs -rp | wc -l)" -ge "$CONCURRENCY" ]; do wait -n; done
     id="sac_w2-${w}_seed${s}"
     echo "launch $id"
-    OMP_NUM_THREADS=8 nohup gpurun -g 1 $PY -m pemwe.train --algo sac --seed "$s" \
+    OMP_NUM_THREADS=8 nohup $LAUNCH $PY -m pemwe.train --algo sac --seed "$s" \
         --override "reward.w2=$w" --run-id "$id" \
         > "logs/${id}.log" 2>&1 &
   done

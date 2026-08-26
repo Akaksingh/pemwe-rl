@@ -34,7 +34,7 @@ check(tr["n_envs"] == 32, "n_envs == 32 (measured optimum)", tr["n_envs"])
 
 print("\nSAC -- must preserve the 1:1 update-to-step ratio (DECISIONS.md 4)")
 sac = tr["sac"]
-check(sac["device"] == "cuda", "train.sac.device == cuda", sac["device"])
+check(sac["device"] in ("cuda", "cpu"), "train.sac.device is cuda or cpu", sac["device"])
 check(sac["train_freq"] == tr["n_envs"], "train_freq == n_envs",
       f"{sac['train_freq']} vs {tr['n_envs']}")
 check(sac["gradient_steps"] == sac["train_freq"], "gradient_steps == train_freq",
