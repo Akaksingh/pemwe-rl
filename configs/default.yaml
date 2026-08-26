@@ -144,13 +144,18 @@ train:
   ppo:
     device: cpu              # never run PPO under gpurun: slower AND burns quota
   sac:
-    # CPU, not cuda. The GPU assignment was measured on the pre-optimisation environment,
-    # where env stepping cost 241 us/step and the H200 benchmarked 2.7x. Vectorising the
-    # power->j inversion cut stepping to 47 us, so gradient work is now a much smaller
-    # share of each step and the GPU advantage shrinks with it. On a shared box the queue
-    # dominates anyway: SAC sat 24 min waiting behind other users while 128 cores idled.
-    # Set back to cuda when the box is quiet and GPUs are free.
-    device: cpu
+    # cuda, and NOT interchangeable with cpu. Measured, after getting this wrong once.
+    #
+    # PPO and SAC are bound by DIFFERENT things, which is why they get different devices:
+    #   PPO is ENV-bound: it collects an n_steps=256 rollout then does 10 epochs over it,
+    #        so gradient cost is amortised over 256*n_envs samples. CPU is correct there.
+    #   SAC is GRADIENT-bound: one update per env step (the 1:1 ratio below), and one
+    #        update measures ~100 ms on CPU. That alone caps CPU SAC near 10 steps/s,
+    #        against 21,256 steps/s of pure env stepping. The GPU is essential.
+    #
+    # So moving SAC to CPU to dodge a busy GPU queue does not work: it trades a queue
+    # wait for a ~100x slowdown. If the GPUs are full, wait or cut the matrix instead.
+    device: cuda
     train_freq: 32           # batching updates across 32 envs at an unchanged 1:1
     gradient_steps: 32       # update-to-step ratio = 26x faster than SB3 defaults
     batch_size: 512
