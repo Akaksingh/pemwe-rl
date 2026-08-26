@@ -10,6 +10,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# `python -m pemwe.train` cannot import the package unless src/ is on the path:
+# the repo is a plain source tree, not an installed distribution. Both sweeps
+# dry-run by default, so this only surfaced the first time one was run for real.
+export PYTHONPATH="$PWD/src${PYTHONPATH:+:$PYTHONPATH}"
+
 # Do not nest: each run requests its own GPU through gpurun below.
 if [ -n "${GPU_BROKER_JOB:-}" ]; then
   echo "REFUSING TO RUN: already inside a gpurun job (GPU_BROKER_JOB=${GPU_BROKER_JOB})." >&2
