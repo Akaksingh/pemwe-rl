@@ -60,17 +60,65 @@ real-time control, variable renewable energy
 
 % =============================================================================
 \section{Introduction}
-\TODO{Person C, Day 3.} Cover, in order:
-\begin{enumerate}
-  \item Green hydrogen and direct renewable coupling; India's National Green Hydrogen
-        Mission as a concrete policy hook for the Kutch site.
-  \item Degradation is the binding constraint, and intermittency-driven degradation is a
-        distinct mechanism from steady-state ageing~\cite{intermittency2025,feng2017pemwe}.
-  \item Maximum power tracking is therefore not the right objective.
-  \item The gap: prior work hits two of three axes (real-time control / PEM / explicit
-        degradation cost). Forward-reference Section~\ref{sec:related}.
-  \item Contributions, as a bulleted list.
-\end{enumerate}
+Electrolytic hydrogen produced directly from variable renewable generation is central to
+current decarbonisation policy. India's National Green Hydrogen Mission targets
+five million tonnes of annual production by 2030, and the hybrid solar--wind resource of
+Kutch, Gujarat --- the site studied here --- is among the regions being developed for it.
+Coupling an electrolyzer directly to such a resource, without grid firming or large
+intermediate storage, is attractive economically but places the stack under an operating
+regime it was not designed for.
+
+The binding constraint in that regime is not conversion efficiency but stack lifetime.
+Degradation in proton exchange membrane (PEM) water electrolysis is well
+characterised~\cite{feng2017pemwe,bernhardt2026degradation}, and a distinct body of
+evidence now separates \emph{intermittency-driven} degradation from steady-state
+ageing~\cite{intermittency2025}: on/off cycling, ohmic resistance rise, and thermal fatigue
+driven by fast ramping. These mechanisms are consequences of \emph{how} the stack is
+operated, not merely how long, which is precisely what makes them a control problem.
+
+This reframes the control objective. The conventional strategy --- track the available
+resource up to the rated limit and idle below a threshold~\cite{pvt_control_2026} ---
+maximises instantaneous hydrogen output and, by construction, also maximises exposure to
+every mechanism above. Two properties of the plant make the resulting trade-off non-trivial
+rather than merely conservative. First, efficiency is non-monotonic in power: hydrogen
+crossover dominates at low current density and voltage losses at high current density, so
+the setpoint maximising hydrogen \emph{rate} is not the one maximising hydrogen \emph{per
+unit energy}. Second, idling is not free, because the anode sits at open-circuit potential
+where iridium dissolution proceeds~\cite{yu2020iridium}. A controller therefore cannot
+minimise degradation simply by running less.
+
+Degradation-aware operation has been addressed with predictive
+control~\cite{mpc_refuel_2026}, and reinforcement learning has been applied both to
+alkaline electrolysers under renewable input~\cite{awe_rl_2025} and to PEM scheduling under
+constraints~\cite{drl_scheduling_2026}. Each of these satisfies two of the three properties
+this problem requires --- real-time setpoint control, a PEM device, and an explicit
+degradation cost in the objective --- but none satisfies all three
+(Section~\ref{sec:related}).
+
+We make the following contributions.
+
+\begin{itemize}
+  \item We formulate PEM electrolyzer setpoint control as a Markov decision process at a
+        \textbf{one-minute control interval}, resolving the cycling and ramping mechanisms
+        that hourly scheduling formulations cannot represent, and we train SAC and PPO
+        agents against it on measured resource data.
+  \item We couple a five-term degradation model to the polarization curve so that
+        accumulated degradation reduces future yield, and we \textbf{calibrate it against a
+        published stack lifetime} rather than choosing its coefficients by hand: the
+        literature rule-based controller, driven by the measured resource, is required to
+        reproduce the reported service life of a real PEM stack.
+  \item We characterise the learned controller as a \textbf{yield--degradation frontier}
+        traced by the degradation weight, rather than as a single operating point. This
+        reports the trade-off the controller can actually make, and it does not depend on
+        the learned policy winning on any one axis.
+  \item We show that the rule-based baseline is \textbf{Pareto-dominated by removing its
+        shutdown threshold alone}, which isolates how much of the achievable improvement is
+        attributable to avoiding on/off cycling before any learning is involved --- and
+        gives the learned controller a substantially stronger baseline to beat.
+\end{itemize}
+
+The study is in simulation; Section~\ref{sec:limitations} states the consequences of that
+plainly.
 
 % =============================================================================
 \section{Related Work}\label{sec:related}
@@ -288,16 +336,55 @@ requires it. All conclusions drawn here are consequently about the \emph{relativ
 lifetimes of different control policies, which is the quantity this apportionment supports.
 
 \subsection{MDP formulation}
-\TODO{Person B.} State, action, reward, episode structure. Reward:
+Control is formulated as a Markov decision process at a fixed interval of
+$\Delta t = \SI{1}{\minute}$, with an episode spanning one day ($T = 1440$ steps).
+
+\paragraph{Observation}
+The agent observes an eight-dimensional vector, normalised to order unity: the available
+renewable power $P_\mathrm{renew}(t)/P_\mathrm{r}$; its trailing 15-minute mean, which
+supplies volatility context a single sample cannot; the previous power setpoint and the
+present current density, both as fractions of rated; the accumulated degradation
+$\dVdeg/\dVdeg^{\,\mathrm{EoL}}$; the instantaneous hydrogen rate; and the hour of day
+encoded as $(\sin, \cos)$ so that the diurnal cycle is continuous at midnight.
+
+\paragraph{Action}
+A single continuous action $a_t \in [-1, 1]$, rescaled to a commanded power fraction and
+then clipped to the resource:
 \begin{equation}
-r_t = w_1 \, \dot m_{\mathrm{H_2}}(t) \;-\; w_2 \, \Delta V_{\mathrm{deg}}(t)
-      \;-\; w_3 \, |\Delta j(t)| ,
+P_\mathrm{set}(t) = \min\!\big(\tfrac{1}{2}(a_t + 1)\,P_\mathrm{r},\;
+                               P_\mathrm{renew}(t)\big).
+\label{eq:action}
+\end{equation}
+The plant is \textbf{renewable-only}: no grid import is permitted. This is a modelling
+choice with consequences, and we state it explicitly because it defines the problem. Were
+grid backfill allowed, the reward-optimal policy would collapse onto a fixed
+peak-efficiency current density with the deficit purchased, the intermittency would leave
+the problem entirely, and ``maximise yield'' would cease to be a meaningful objective.
+Under the hard cap the question stays sharp: given the power that is available, how should
+it be used? Grid-assisted operation is named in future work.
+
+\paragraph{Reward}
+\begin{equation}
+r_t = w_1 \, \tilde m_{\mathrm{H_2}}(t) \;-\; w_2 \, \widetilde{\dVdeg}(t)
+      \;-\; w_3 \, \frac{|\Delta j(t)|}{j_\mathrm{r}} ,
 \label{eq:reward}
 \end{equation}
-with $w_2$ swept to trace the frontier of Section~\ref{sec:results}. State the
-renewable-only constraint $P_{\mathrm{set}}(t) \le P_{\mathrm{renew}}(t)$ explicitly and
-say why: permitting grid backfill collapses the optimal policy onto a fixed
-peak-efficiency setpoint and removes the intermittency from the problem.
+where $\tilde m_{\mathrm{H_2}}$ and $\widetilde{\dVdeg}$ are the per-step hydrogen mass and
+degradation increment, each divided by a fixed scale so both terms are $O(1)$ per step. The
+three components are logged \emph{unweighted and separately} throughout training. This is
+not diagnostic convenience: total reward alone cannot distinguish a policy that is learning
+the trade-off from one that has collapsed onto a degenerate corner, and both corners exist
+here --- idling indefinitely, and tracking the resource to rated power at every instant.
+
+\paragraph{Frontier}
+$w_1$ and $w_3$ are held fixed and $w_2$ is swept, so each $w_2$ yields one point on the
+yield--degradation frontier of Section~\ref{sec:results}. The sweep spans
+$w_2 \in [0.1, 20]$ at 13 logarithmically spaced values. The upper limit is not arbitrary:
+running is preferred to idling only while
+$w_1\tilde m_{\mathrm{H_2}} > w_2(\widetilde{\dVdeg}^{\,\mathrm{run}} -
+\widetilde{\dVdeg}^{\,\mathrm{idle}})$, which for this plant and resource gives
+$w_2 \lesssim 20$. Beyond that the reward-optimal policy is to shut down, and the resulting
+operating points are the degenerate corner rather than part of the frontier.
 
 % =============================================================================
 \section{Experimental Setup}\label{sec:setup}
@@ -322,10 +409,32 @@ test set cannot fall entirely within one season --- a real confound at this site
 a pronounced monsoon.
 
 \subsection{Training}
-\TODO{Person B.} SAC~\cite{haarnoja2018sac} and PPO~\cite{schulman2017ppo} via
-Stable-Baselines3~\cite{raffin2021sb3}; \num{5} seeds; \num{2}M steps; report the device
-split and hyperparameters from \texttt{configs/default.yaml}. All reported results are on
-held-out days.
+We train Soft Actor--Critic~\cite{haarnoja2018sac} and Proximal Policy
+Optimization~\cite{schulman2017ppo} via Stable-Baselines3~\cite{raffin2021sb3}, both with
+the default multilayer-perceptron policy. SAC is the primary algorithm --- the action space
+is one-dimensional and continuous, where it is markedly more sample-efficient --- and PPO is
+retained as an independent check, since a result that holds across two algorithm families
+is a stronger claim than one obtained from a single optimiser.
+
+Each configuration is trained for \num{2e6} environment steps on \num{32} parallel
+environments drawn from the \num{293}-day training split, and evaluated on the
+\num{72}-day held-out split. Every reported quantity is a mean over \num{5} random seeds,
+with the standard deviation taken across seeds.
+
+Two implementation details materially affect reproduction. First, SAC is run with
+$\texttt{train\_freq} = \texttt{gradient\_steps} = n_\mathrm{env} = 32$. This batches the
+updates while holding the update-to-step ratio at exactly $1{:}1$, which is the same
+learning dynamics as the single-environment default at roughly $26\times$ the throughput;
+reducing \texttt{gradient\_steps} below \texttt{train\_freq} would change the effective
+algorithmic budget and is not used. Second, the two algorithms are placed on different
+hardware for measured rather than assumed reasons: PPO runs on CPU and SAC on a GPU. This
+workload is bound by Python environment stepping rather than by the network --- the policy
+is small and the action space is one-dimensional --- so PPO is approximately
+\SI{30}{\percent} \emph{slower} on the GPU than on CPU, while batched SAC gains about
+$2.7\times$ from it.
+
+\TODO{Person B: add the final hyperparameter table (learning rate, buffer size, batch
+size, network width) from \texttt{configs/default.yaml} once the matrix is frozen.}
 
 % =============================================================================
 \section{Results}\label{sec:results}
@@ -388,7 +497,7 @@ figures above are already final.}
 \section{Conclusion and Future Work}
 \TODO{Person C, Day 5.}
 
-\subsection*{Limitations}
+\subsection*{Limitations}\label{sec:limitations}
 Three, stated plainly rather than left for a reviewer to find.
 
 First, this is a \emph{simulation study}. No physical stack was operated, and the plant
