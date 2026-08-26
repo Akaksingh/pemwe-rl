@@ -102,11 +102,26 @@ The sweep is now 13 w₂ values × 5 seeds × 2 algorithms = **130 runs** at 2M 
 | PPO | 3.4 min | 221 min | 4 concurrent (128 cores ÷ 32 envs) | **~55 min** |
 | SAC | 5.1 min | 332 min | 4 concurrent (4 GPUs) | **~83 min** |
 
-PPO and SAC use **different resources**, so run them at the same time: total wall-clock is
-set by the slower arm, **≈83 min**, and the GPU cost is **≈5.5 GPU-h** of the 90 GPU-h
-weekly quota.
+### They do NOT use fully independent resources
 
-Even at 3× the original experiment count, this is a fraction of one week's quota.
+This file originally said PPO and SAC could run concurrently because one is on CPU and the
+other on GPU. **That is wrong.** Both are bound by *environment stepping*, which is CPU work
+in either case; only the gradient computation differs. Running the arms together makes them
+compete for the same cores.
+
+Measured with the PPO sweep running at `nice 15`:
+
+```
+SAC cuda n_envs=32, box otherwise busy      2,451 steps/s
+SAC cuda n_envs=32, short benchmark         6,520 steps/s
+```
+
+Part of that gap is the replay-buffer effect noted above and part is CPU starvation from
+the concurrent PPO arm; they have not been separated. **Plan the two arms in sequence, not
+in parallel**, unless the box is otherwise idle.
+
+At 2,451 steps/s the 65-run SAC arm at 2M steps is ~15 h on one GPU, ~7 h on two, ~4 h on
+four. PPO's arm is ~1.8 h on CPU at four concurrent runs.
 
 ## The consequence that matters for the paper
 
