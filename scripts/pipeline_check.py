@@ -46,7 +46,11 @@ def main():
     ap.add_argument("--algo", default="sac", choices=["sac", "ppo"])
     ap.add_argument("--steps", type=int, default=20000)
     ap.add_argument("--n-envs", type=int, default=4)
-    ap.add_argument("--w2", type=float, nargs="+", default=[0.1, 3.16, 100.0])
+    # Endpoints and a mid-active point of the CURRENT sweep range (0.1-20). The old
+    # default topped out at 100, which is past the w2 ~= 20.2 crossover where idling
+    # outscores running -- so the check would have trained a shut-down policy and
+    # reported its flatness as a spread failure. See DECISIONS.md 8.
+    ap.add_argument("--w2", type=float, nargs="+", default=[0.1, 5.32, 20.0])
     ap.add_argument("--eval-days", type=int, default=10)
     ap.add_argument("--train-days", type=int, default=32)
     ap.add_argument("--device", default="cpu")
