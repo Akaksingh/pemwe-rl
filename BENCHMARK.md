@@ -49,29 +49,24 @@ dynamics**, and here the GPU is genuinely worth it: 2.7× over CPU.
 
 **SAC runs on GPU, under `gpurun -g 1`.** 2M steps = 5.1 min per seed.
 
-### CORRECTION: these SAC numbers are warm-up, not steady-state
+### Sustained vs warm-up: an open question, and a retracted claim
 
-`bench_sac.py` runs only 6,000 steps per configuration, so the replay buffer never exceeds
-~6.5k entries. Sampling a batch from a nearly-empty buffer is fast and cache-resident;
-sampling from a **filled 1M-entry buffer** is not. Measured on a real 2M-step run with
-`buffer_size=1_000_000`:
+An earlier revision of this file claimed the SAC benchmark was 4.1x optimistic, on the
+basis of a 2M-step run that sustained 1,578 steps/s. **That claim was wrong and is
+retracted.** The run in question had `--device cpu` forced by `scripts/pipeline_check.py`,
+so it exercised the CPU path (benchmarked at 2,450 steps/s, lower here under contention on
+a shared box) and said nothing about the GPU rate.
 
-```
-SAC cuda n_envs=32  (benchmark, 6k steps)     6,520 steps/s
-SAC cuda n_envs=32  (real run, 2M steps)      1,578 steps/s   <-- 4.1x slower
-```
+The underlying concern is still legitimate and remains **unverified**: `bench_sac.py` runs
+only 6,000 steps, so the replay buffer never exceeds ~6.5k entries, while a real run fills
+`buffer_size=1_000_000`. Sampling a batch from a filled buffer is slower than from a
+nearly-empty one, so the benchmark may still overstate sustained throughput. How much is
+not yet measured.
 
-Some of the gap is server contention (the box is shared, 28 users), but the buffer effect
-is the larger part and it is systematic: throughput degrades as the buffer fills, so a
-short benchmark cannot see it.
-
-**Plan against 1,578 steps/s, not 6,520.** The 65-run SAC arm at 2M steps is ~23 h on one
-GPU, ~11 h on two, ~6 h on four -- not the ~83 min this file originally projected. PPO's
-CPU numbers are unaffected: PPO is on-policy and has no replay buffer, so its short
-benchmark is representative.
-
-The lesson generalises: benchmark an off-policy algorithm for long enough to fill its
-buffer, or the number measures the wrong regime.
+**Do not plan the SAC arm against either number until a full-length run on an actual GPU
+has been timed.** PPO is unaffected either way -- it is on-policy with no replay buffer,
+and its measured sweep rate (~4,950 steps/s per run at `n_envs=32`, four concurrent) is
+consistent with its benchmark.
 
 ### The 13,889 steps/s row is a trap
 
