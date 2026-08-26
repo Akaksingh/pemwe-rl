@@ -249,6 +249,16 @@ def main(argv=None):
 
         path = MODELS / f"{run_id}.zip"
         model.save(path)
+        # Sidecar carrying the reward weights this checkpoint was TRAINED with.
+        # evaluate.py otherwise records whatever the ambient config says, which is the
+        # default -- so a checkpoint trained at w2=20 was written out as w2=1.0. Since
+        # fig_pareto groups by weights.w2, that silently collapses the entire frontier
+        # onto one point. Metadata that can drift from the artefact it describes will.
+        path.with_suffix(".json").write_text(json.dumps({
+            "run_id": run_id, "algo": args.algo, "seed": args.seed,
+            "weights": {k: cfg["reward"][k] for k in ("w1", "w2", "w3")},
+            "total_timesteps": steps, "n_envs": n_envs, "device": device,
+        }, indent=2))
     finally:
         venv.close()
 

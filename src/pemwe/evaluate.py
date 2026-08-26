@@ -155,7 +155,7 @@ def evaluate(cfg, policy, policy_name, run_id, seed=0, split="test",
         "run_id": run_id,
         "policy": policy_name,
         "seed": seed,
-        "weights": {k: cfg["reward"][k] for k in ("w1", "w2", "w3")},
+        "weights": _weights_for(run_id, cfg),
         "profile_set": profile_set,
         "episodes": episodes,
         "aggregate": {
@@ -213,6 +213,25 @@ def validate(result, reference=None) -> list[str]:
             if missing:
                 problems.append(f"vs fake_results episodes: MISSING {sorted(missing)}")
     return problems
+
+
+def _weights_for(run_id, cfg):
+    """Reward weights this run was TRAINED with, from the checkpoint sidecar if present.
+
+    Falling back to the ambient config is how a checkpoint trained at w2=20 got recorded
+    as w2=1.0: evaluate.py loads the default config, not the one training used. Since
+    fig_pareto groups by weights.w2, that collapses the frontier onto a single point --
+    a silent, plausible-looking wrong figure. Trust the artefact, not the environment.
+    """
+    side = MODELS / f"{run_id}.json"
+    if side.exists():
+        try:
+            w = json.loads(side.read_text()).get("weights")
+            if w and {"w1", "w2", "w3"} <= set(w):
+                return {k: w[k] for k in ("w1", "w2", "w3")}
+        except Exception:
+            pass
+    return {k: cfg["reward"][k] for k in ("w1", "w2", "w3")}
 
 
 def _reference():
