@@ -113,11 +113,24 @@ def test_basis_is_exactly_linear_in_the_coefficients(deg):
 
 # --- the brief's item 4: full power degrades faster than mid power -----------------
 
-def test_full_power_degrades_faster_than_mid_power(cfg):
-    hi = rollout(cfg, Const(1.0), seed=1)
-    mid = rollout(cfg, Const(0.35), seed=1)
-    assert hi["dv"] > mid["dv"], (
-        f"full power {hi['dv']:.1f} uV vs mid power {mid['dv']:.1f} uV")
+def test_full_power_degrades_faster_than_mid_power(cfg, deg):
+    """The high-current-density stress term must actually bite.
+
+    Tested on the degradation model directly rather than through a policy. Since the
+    action became a fraction of AVAILABLE power, a constant action no longer means a
+    constant current density: Const(0.35) tracks 35 % of a fluctuating resource, so it
+    crosses the ON threshold constantly and its degradation is dominated by CYCLING, not
+    by current density. It legitimately degrades more than full tracking. Comparing two
+    such policies confounds the term under test with the cycling term.
+    """
+    j_rated = cfg["stack"]["j_rated_a_cm2"]
+    common = dict(j_rated=j_rated, dt_min=1.0, is_on=True, was_on=True)
+    hi, _ = deg.step_uv(j=j_rated, j_prev=j_rated, **common)
+    mid, _ = deg.step_uv(j=0.35 * j_rated, j_prev=0.35 * j_rated, **common)
+    assert hi > mid, f"high-j {hi:.4f} uV/step vs mid-j {mid:.4f} uV/step"
+    # and the excess must come from the stress term specifically, not the base rate
+    _, parts_hi = deg.step_uv(j=j_rated, j_prev=j_rated, **common)
+    assert parts_hi["stress"] > 0.0, "stress term is inactive at rated current density"
 
 
 def test_high_current_stress_term_only_bites_above_the_threshold(deg, stack):

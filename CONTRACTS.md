@@ -29,9 +29,26 @@ Standard Gymnasium API. `reset(seed, options) -> (obs, info)`, `step(action) -> 
 | 6 | `tod_sin` | sin(2π · hour/24) |
 | 7 | `tod_cos` | cos(2π · hour/24) |
 
-**Action** — `Box(low=-1, high=1, shape=(1,))`. Rescaled internally to the power fraction
-`[0, 1]`, then hard-clipped to the available renewable power (decision #3). SB3 wants
-symmetric bounded actions; do the rescaling inside the env, not in the agent.
+**Action** — `Box(low=-1, high=1, shape=(1,))`, rescaled internally to `u in [0, 1]` and
+applied as a **fraction of the power currently AVAILABLE**:
+
+```
+p_set = min(u * p_renew, p_rated)
+```
+
+Not a fraction of rated. That version is degenerate: the resource averages ~0.31 of rated,
+so every action above ~0.31 gives an identical setpoint and ~69% of the action range is a
+flat plateau with no gradient. Trained against it, PPO saturated at maximum power and
+returned byte-identical policies across all 13 w2 values *and* all 5 seeds -- no frontier.
+
+As a fraction of what is available, every action has a distinct effect whenever the
+resource is non-zero, and deliberate curtailment is directly expressible. The
+renewable-only hard cap (decision #3) then holds by construction, since `u <= 1`.
+
+Scripted controllers are still written in terms of a target power fraction *of rated* --
+which is how the literature states them -- and convert at the end; see
+`baselines._to_action`. Both baselines reproduce byte-identical behaviour across the
+change, which is what confirmed it was a reparameterisation and not a different plant.
 
 **`info` dict — every key required at every step.** Person C's analysis reads only this:
 

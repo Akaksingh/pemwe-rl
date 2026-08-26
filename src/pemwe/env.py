@@ -96,10 +96,22 @@ class PEMWEEnv(gym.Env):
 
     def step(self, action):
         a = float(np.clip(action, -1.0, 1.0)[0])
-        p_frac = 0.5 * (a + 1.0)                       # [-1,1] -> [0,1]
-        p_cmd = p_frac * self.p_rated
+        u = 0.5 * (a + 1.0)                            # [-1,1] -> [0,1]
         p_renew = float(self.profile[self.t])
-        p_set = min(p_cmd, p_renew)                    # DECISION 3: renewable-only hard cap
+        # ACTION = FRACTION OF AVAILABLE POWER, not of rated.
+        #
+        # The obvious parameterisation, p_set = min(u * P_rated, P_renew), is degenerate
+        # here: the resource sits at ~0.31 of rated on average, so every action above
+        # ~0.31 produces an IDENTICAL setpoint and ~69% of the action range is a flat
+        # plateau with no gradient. Trained against it, PPO saturated at maximum power and
+        # produced byte-identical policies across the whole w2 sweep AND across seeds --
+        # no frontier at all, because the agent could not express curtailment cheaply.
+        #
+        # As a fraction of what is available, every action has a distinct effect whenever
+        # the resource is non-zero, and deliberate curtailment is directly expressible.
+        # The renewable-only hard cap of DECISIONS.md 3 still holds by construction:
+        # u <= 1 means p_set <= p_renew, always.
+        p_set = min(u * p_renew, self.p_rated)
 
         dv_v = self.dv_deg_uv * 1e-6
         j = self.stack.j_from_power(p_set, dv_v)
