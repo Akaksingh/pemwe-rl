@@ -20,6 +20,12 @@
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{siunitx}
+% \day and \year are NOT defined by siunitx v2, and their availability has moved across
+% v3 releases. A missing unit is a hard error, not a warning, so declare them explicitly:
+% the build then does not depend on which siunitx the host TeX distribution ships.
+% Redeclaring one that already exists is harmless.
+\DeclareSIUnit{\day}{d}
+\DeclareSIUnit{\year}{yr}
 \usepackage[hidelinks]{hyperref}
 \usepackage{xcolor}
 
