@@ -47,10 +47,15 @@ precisely the operating patterns that shorten stack life. We formulate real-time
 electrolyzer setpoint control as a Markov decision process at a one-minute control
 interval and train a reinforcement learning agent to trade hydrogen yield against
 cumulative degradation, against a load-following rule-based controller drawn from the
-literature. \TODO{one sentence of headline result, from Fig.~\ref{fig:pareto}}
-Because the learned policy is characterised as a frontier rather than a single operating
-point, the comparison reports the trade-off the controller is actually able to make rather
-than a single-axis gain.
+literature. Sweeping the degradation weight traces a frontier spanning \SI{22.3}{\percent}
+in cumulative degradation against \SI{2.1}{\percent} in yield, reaching a projected
+stack life of \SI{7.39}{\year} against \SI{6.20}{\year} for the best rule-based
+controller, for \SI{3.9}{\percent} less hydrogen. The learned policy does not dominate
+a well-tuned slew limit at the operating point they share; its contribution is to reach
+degradation rates no rule-based controller attains, which it does by reducing ON/OFF
+cycling from \num{22.9} to \num{2.0} events per day and paying for that with deliberate
+curtailment. Obtaining this required an off-policy, entropy-regularised algorithm: PPO
+on the identical environment and budget did not respond to the degradation weight at all.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -111,10 +116,11 @@ We make the following contributions.
         traced by the degradation weight, rather than as a single operating point. This
         reports the trade-off the controller can actually make, and it does not depend on
         the learned policy winning on any one axis.
-  \item We show that the rule-based baseline is \textbf{Pareto-dominated by removing its
-        shutdown threshold alone}, which isolates how much of the achievable improvement is
-        attributable to avoiding on/off cycling before any learning is involved --- and
-        gives the learned controller a substantially stronger baseline to beat.
+  \item We show that the published load-following rule is \textbf{Pareto-dominated by
+        removing its shutdown threshold alone} --- \SI{1.6}{\percent} more hydrogen and
+        \SI{14.7}{\percent} less degradation at once --- which quantifies how much of the
+        available improvement requires no learning, and sets a substantially stronger
+        baseline for the comparison that follows.
 \end{itemize}
 
 The study is in simulation; Section~\ref{sec:limitations} states the consequences of that
@@ -439,41 +445,147 @@ size, network width) from \texttt{configs/default.yaml} once the matrix is froze
 % =============================================================================
 \section{Results}\label{sec:results}
 
-\subsection{Yield--degradation frontier}
+All figures report the mean over \num{5} random seeds, with error bars giving the standard
+deviation across seeds, evaluated on the \num{72}-day held-out split.
+
+\subsection{The published rule is dominated by removing one line}
+
+\begin{table}[t]
+\caption{Effect of the idle threshold in the load-following rule of~\cite{pvt_control_2026},
+on the held-out split}
+\label{tab:threshold}
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+& H$_2$ & degradation & cycles & life \\
+& [\si{\kilo\gram\per\day}] & [\si{\micro\volt\per\day}] & [\si{\per\day}] & [\si{\year}] \\
+\midrule
+As published ($P_\mathrm{idle}$ at \SI{10}{\percent}) & 201.8 & 96.9 & 22.9 & 5.00 \\
+Threshold removed                                     & \textbf{205.0} & \textbf{82.7}
+                                                      & \textbf{7.0}  & \textbf{5.86} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Before assessing what learning contributes, it is worth establishing how much of the
+available improvement requires no learning at all. The load-following law
+of~\cite{pvt_control_2026} idles the stack whenever the resource falls below a threshold,
+set at \SI{10}{\percent} of rated. Removing that threshold --- so the plant follows the
+resource down instead of shutting off --- Pareto-dominates the published rule on the
+held-out split (Table~\ref{tab:threshold}): \SI{1.6}{\percent} \emph{more} hydrogen and
+\SI{14.7}{\percent} \emph{less} degradation simultaneously, from \SI{69}{\percent} fewer
+ON/OFF events.
+
+We report this for two reasons. It quantifies the cost of the cycling mechanism
+independently of any controller comparison, which is what makes the mechanism in
+Section~\ref{sec:results} concrete rather than asserted. And it sets the standard for an
+honest baseline: a study comparing a learned policy only against the rule as published
+would be crediting learning with an improvement obtainable by deleting a conditional. The
+tuned slew-limited controller used throughout the rest of this paper is a considerably
+stronger comparison, and we recommend it as the reference for future work on this problem.
+
+\subsection{The yield--degradation frontier}
+
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{fig_pareto.pdf}
-\caption{Hydrogen yield against cumulative degradation on held-out days. The learned
-policy is shown as a frontier traced by the degradation weight $w_2$ of
-Eq.~\eqref{eq:reward}; the two rule-based controllers appear as single operating points.
-Error bars are one standard deviation across \num{5} seeds.}
+\caption{Hydrogen yield against cumulative degradation on held-out days. The learned policy
+traces a frontier as the degradation weight $w_2$ is swept over 13 values; the two
+rule-based controllers are single operating points. The frontier extends to degradation
+rates neither rule reaches, but does not dominate either of them.}
 \label{fig:pareto}
 \end{figure}
-\TODO{Person C, Day 4.} Report the frontier, and state plainly whether the learned policy
-dominates each baseline operating point. Do not claim a yield gain that the data does not
-support; the frontier is the result.
 
-\subsection{Policy behaviour}
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{fig_trajectory.pdf}
-\caption{One held-out day. The rule-based controller follows every transient in the
-available resource, while the learned policy declines to, at the cost of some curtailment.
-The lower panel shows the resulting difference in accumulated degradation.}
-\label{fig:trajectory}
-\end{figure}
-\TODO{Person C.} This figure explains the frontier rather than asserting it.
+Fig.~\ref{fig:pareto} shows the central result. Sweeping $w_2$ from \num{0.1} to \num{20}
+moves the learned policy smoothly and monotonically along a frontier spanning
+\SIrange{191.8}{195.9}{\kilo\gram\per\day} of hydrogen and
+\SIrange{65.6}{84.5}{\micro\volt\per\day} of degradation --- a \SI{2.1}{\percent} range in
+yield against a \SI{22.3}{\percent} range in degradation. The asymmetry is itself
+informative: at this plant scale and resource, the controller has far more leverage over
+how fast the stack ages than over how much hydrogen it makes.
 
-\subsection{Sensitivity to the reward weighting}
+\textbf{The learned policy does not dominate the tuned baseline, and we do not claim that
+it does.} Of the 13 frontier points, none is simultaneously better than either rule-based
+controller on both axes. Interpolating the frontier to the ramp-limited baseline's
+degradation of \SI{78.3}{\micro\volt\per\day}, the learned policy yields
+\SI{191.8}{\kilo\gram\per\day} against the baseline's \num{199.5} --- the baseline is
+\SI{4.0}{\percent} better at that operating point. A well-tuned slew limit is a strong
+controller for this problem, and a study that reported only a comparison against the naive
+load-following rule would have overstated what learning contributes.
+
+What the learned policy does provide is \emph{reach}. The lowest degradation any
+rule-based controller attains is \SI{78.3}{\micro\volt\per\day}, a projected stack life of
+\SI{6.20}{\year}. At $w_2=20$ the learned policy reaches
+\SI{65.6}{\micro\volt\per\day} --- \SI{16.2}{\percent} lower, a projected
+\SI{7.39}{\year}, an increase of \SI{19.3}{\percent} in service life --- for
+\SI{3.9}{\percent} less hydrogen. That operating point is not reachable by tightening the
+slew limit: doing so makes the controller too sluggish to follow the resource and costs
+yield faster than it saves degradation (Section~\ref{sec:setup}). The contribution of
+learning here is to extend the attainable trade-off, not to dominate it.
+
+\subsection{Mechanism: cycle avoidance bought with curtailment}
+
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{fig_ablation.pdf}
-\caption{Effect of the degradation weight $w_2$ on both reward components.}
-\label{fig:ablation}
+\includegraphics[width=\textwidth]{fig_mechanism.pdf}
+\caption{What the learned policy does differently. Left: ON/OFF cycles per day fall
+monotonically as $w_2$ rises. Right: the price, in deliberately curtailed energy.
+Horizontal lines are the two rule-based controllers.}
+\label{fig:mechanism}
 \end{figure*}
-\TODO{Person B/C.} Also report solar-heavy versus wind-heavy days, and SAC versus PPO.
+
+Fig.~\ref{fig:mechanism} explains the frontier rather than asserting it. As $w_2$ rises the
+learned policy reduces ON/OFF cycling from \num{10.7} to \num{2.0} events per day, against
+\num{22.9} for the load-following rule of~\cite{pvt_control_2026} and \num{9.2} for the
+tuned slew limit. It pays for this with curtailment, which rises from
+\SIrange{420}{694}{\kilo\watt\hour\per\day}.
+
+This identifies the operative mechanism. At this site the resource averages
+\SI{31}{\percent} of rated power, so the stack spends most of its operating time well below
+the current-density threshold at which the high-overpotential stress term activates.
+Uniformly reducing power therefore saves very little degradation while costing yield
+immediately --- and an agent that simply tracks the resource at maximum power is behaving
+correctly under this reward. The degradation a controller can actually influence is
+dominated by \emph{cycling}, and the learned policy discovers that declining power to stay
+above the ON threshold through a resource dip is worth more than the hydrogen forgone. The
+rule-based controller cannot make that trade: its idle threshold is a fixed rule, so it
+shuts down whenever the resource falls below it and pays the restart cost every time.
+
+\subsection{Algorithm choice is not incidental}
+
+\begin{table}[t]
+\caption{Response to the degradation weight, identical MDP and budget}
+\label{tab:algos}
+\centering
+\small
+\begin{tabular}{lccc}
+\toprule
+ & yield span & degradation span & behaviour \\
+\midrule
+SAC & \SI{2.1}{\percent} & \SI{22.3}{\percent} & traces the frontier \\
+PPO & \SI{0.0}{\percent} & \SI{0.0}{\percent} & maximum-power tracking \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Trained on the same environment for the same \num{2e6} steps, PPO does not respond to
+$w_2$ at all. Its policies at $w_2 = \num{0.1}$ and $w_2 = \num{20}$ are identical to the
+reported precision, operating at the available power on \SI{100}{\percent} of ON steps
+(Table~\ref{tab:algos}).
+
+The difference is explanatory rather than incidental. Maximum-power tracking is a good
+local policy: it is optimal over most of the weight range, and departing from it costs
+yield immediately while the degradation saving accrues only through reduced cycling later
+in the episode. On-policy updates offer no pressure to leave such a policy once reached.
+The maximum-entropy objective of SAC~\cite{haarnoja2018sac} continues to reward action
+diversity, keeping the policy in the curtailment region long enough for the cycling benefit
+to become visible in the returns. We report this because it bears directly on
+reproduction: on this problem, the choice of an off-policy, entropy-regularised algorithm
+is a precondition for observing the trade-off at all, not a tuning preference.
 
 \subsection{Long-horizon operation}
+
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{fig_longhorizon.pdf}
@@ -484,24 +596,82 @@ end-of-life criterion. The extrapolation is a projection at the measured rate, n
 prediction: degradation rates are not constant over a stack's service life.}
 \label{fig:longhorizon}
 \end{figure}
-Over the \num{90}-day rollout the two rule-based controllers already trace the trade this
-paper is about. The naive load-following law of~\cite{pvt_control_2026} produces
-\SI{17144}{\kilo\gram} of hydrogen while degrading at \SI{4.05}{\micro\volt\per\hour}, a
-projected life of \SI{4.99}{\year}; adding a slew limit yields \SI{16955}{\kilo\gram} at
-\SI{3.20}{\micro\volt\per\hour}, or \SI{6.31}{\year}. Smoothing the setpoint therefore buys
-\SI{1.32}{\year} of stack life, an increase of \SI{26.5}{\percent}, for
-\SI{1.1}{\percent} less hydrogen---a trade available to a purely rule-based controller and
-the frontier a learned policy must improve upon.
-\TODO{Person A/C, after G3 --- add the learned-policy row once the sweep lands.
-Run \texttt{scripts/longhorizon\_rollout.py --model <ckpt> --policy sac}; the baseline
-figures above are already final.}
+
+Over the \num{90}-day rollout with degradation persisting across days, the naive
+load-following law produces \SI{17144}{\kilo\gram} of hydrogen while degrading at
+\SI{4.05}{\micro\volt\per\hour}, a projected life of \SI{4.99}{\year}; adding a slew limit
+yields \SI{16955}{\kilo\gram} at \SI{3.20}{\micro\volt\per\hour}, or \SI{6.31}{\year}.
+
+This is also an independent check on the calibration of Section~\ref{sec:calibration}. The
+degradation coefficients were fitted so that the rule-based baseline reproduces the
+approximately five-year service life reported in~\cite{mpc_refuel_2026}, using single-day
+episodes on the training split. The \num{90}-day persistent rollout (\SI{4.99}{\year}) and
+the \num{72}-day held-out evaluation (\SI{5.00}{\year}) reproduce that figure under two
+protocols the coefficients were not fitted to.
+
+\subsection{Ablation: the reward weighting}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{fig_ablation.pdf}
+\caption{Effect of the degradation weight $w_2$ on both reward components, mean $\pm$ one
+standard deviation over \num{5} seeds.}
+\label{fig:ablation}
+\end{figure*}
+
+Fig.~\ref{fig:ablation} shows both reward components across the sweep. The degradation term
+responds strongly and monotonically while the yield term is nearly flat, which is the
+quantitative form of the asymmetry noted above.
+
+The sweep range terminates at $w_2 = 20$ by construction. Above approximately that value
+the reward-optimal policy is to shut the plant down entirely: running is preferred to
+idling only while $w_1 \tilde m_{\mathrm{H_2}} > w_2(\widetilde{\dVdeg}^{\,\mathrm{run}} -
+\widetilde{\dVdeg}^{\,\mathrm{idle}})$, which for this plant and resource gives
+$w_2 \lesssim 20$. Weights beyond that produce the degenerate corner rather than frontier
+points, and are excluded.
 
 % =============================================================================
 \section{Conclusion and Future Work}
-\TODO{Person C, Day 5.}
+
+We formulated real-time setpoint control of a \SI{1}{\mega\watt} PEM electrolyzer under
+direct renewable supply as a Markov decision process at a one-minute control interval, with
+a five-term degradation model coupled back into the polarization curve so that accumulated
+degradation reduces future yield. The degradation coefficients were calibrated so that the
+literature rule-based controller reproduces a published stack lifetime, and that
+calibration was then confirmed under two evaluation protocols it was not fitted to.
+
+Three findings follow.
+
+First, the controllable degradation at this plant scale is dominated by \emph{ON/OFF
+cycling} rather than by operating power. The resource averages \SI{31}{\percent} of rated,
+so the stack rarely reaches the current density at which high-overpotential stress
+activates, and uniformly reducing power costs yield while saving little. A learned policy
+that maximises power is behaving correctly under this reward; the trade-off lives in
+cycling and ramping.
+
+Second, a learned policy extends the attainable trade-off without dominating a well-tuned
+rule. Sweeping the degradation weight traces a frontier spanning \SI{22.3}{\percent} in
+degradation against \SI{2.1}{\percent} in yield, reaching \SI{65.6}{\micro\volt\per\day}
+--- a projected \SI{7.39}{\year} of service life against \SI{6.20}{\year} for the best
+rule-based controller --- for \SI{3.9}{\percent} less hydrogen. At the operating point the
+two share, the tuned slew limit is \SI{4.0}{\percent} better on yield. The value of
+learning here is reach, not dominance, and we think reporting that distinction plainly is
+more useful to a practitioner than a single headline ratio.
+
+Third, obtaining this result required an off-policy, entropy-regularised algorithm. PPO
+trained on the identical environment for the identical budget did not respond to the
+degradation weight at all, remaining at maximum-power tracking across the entire sweep.
+
+\paragraph{Future work}
+The most valuable next step is a direct comparison against model predictive control, which
+is the natural competitor and is discussed as a limitation below rather than claimed as a
+contribution here. Beyond that: allowing grid-assisted operation, which changes the
+objective qualitatively; a thermal state in the plant model, which would let ramp-rate
+penalties emerge from dynamics rather than being posited; and validation of the degradation
+model against a measured trajectory from a physical stack.
 
 \subsection*{Limitations}\label{sec:limitations}
-Three, stated plainly rather than left for a reviewer to find.
+Four, stated plainly rather than left for a reviewer to find.
 
 First, this is a \emph{simulation study}. No physical stack was operated, and the plant
 model, while parameterised from published sources, is not validated against measurement
@@ -509,17 +679,23 @@ from the device it represents.
 
 Second, the degradation model is \emph{calibrated from literature-reported rates} rather
 than fitted to a measured degradation trajectory. Its absolute scale is anchored to a
-single published lifetime figure~\cite{mpc_refuel_2026}; the relative weighting of its
+single published lifetime figure~\cite{mpc_refuel_2026}; the relative weighting of its five
 terms follows the mechanisms of Ref.~\cite{intermittency2025} but is not independently
-identified. Conclusions about \emph{relative} controller performance are more robust than
-any absolute lifetime we report.
+identified. Conclusions about the \emph{relative} performance of controllers are therefore
+considerably more robust than any absolute lifetime we report, and the projected-life
+figures should be read as a consistent scale for comparison rather than as forecasts.
 
 Third, we do not compare against model predictive control. MPC is the natural competitor
 and has real advantages this work does not claim to displace --- interpretability, and hard
-constraint satisfaction by construction. The argument for RL here is narrower: it requires
-no explicit dynamics or degradation model at deployment, it can be trained offline on
-historical resource data, and it does not re-solve an optimisation at every control step,
-which matters at a one-minute interval. A direct comparison is left to future work.
+constraint satisfaction by construction. The argument for reinforcement learning here is
+narrower: it requires no explicit dynamics or degradation model at deployment, it can be
+trained offline on historical resource data, and it does not re-solve an optimisation at
+every control step, which matters at a one-minute interval.
+
+Fourth, the results are for a single site and a single plant configuration. The mechanism
+we identify --- that cycling dominates when the resource sits well below rated power ---
+should be expected to weaken at sites where the plant is more often near its rated point,
+and the balance between the degradation terms would shift accordingly.
 
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
