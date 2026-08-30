@@ -23,7 +23,10 @@
 \usepackage[hidelinks]{hyperref}
 \usepackage{xcolor}
 
-\graphicspath{{../results/figures/}}
+% figures/ is a COPY of results/figures/, kept so this directory is self-contained:
+% Overleaf (and any submission zip) has no parent directory, so `../` cannot resolve.
+% Refresh it with `python scripts/sync_paper_figures.py` after regenerating figures.
+\graphicspath{{figures/}{../results/figures/}}
 \newcommand{\TODO}[1]{\textcolor{red}{[\textbf{TODO:} #1]}}
 \newcommand{\dVdeg}{\Delta V_{\mathrm{deg}}}
 

@@ -1,0 +1,11 @@
+# LaTeX build artefacts. Keep .tex, .bib and figures/ only.
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.toc
+main.pdf
