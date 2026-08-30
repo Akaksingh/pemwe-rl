@@ -383,3 +383,66 @@ def build_all(results=None):
         if rl:
             outs.append(fig_trajectory(rl[0], bl[0] if bl else None))
     return outs
+
+
+# =============================================================================
+# 7. MECHANISM -- what the learned policy actually does differently
+# =============================================================================
+
+def fig_mechanism(results, name="fig_mechanism"):
+    """Why the frontier exists: the agent buys cycle avoidance with curtailment.
+
+    The Pareto figure shows THAT a trade-off is reachable; this shows WHAT the policy
+    does to reach it. Without this a reader has to take the frontier on trust, and the
+    single most useful sentence in the Results -- that on/off cycling, not power level,
+    is the degradation term a controller can actually influence -- has no evidence behind
+    it.
+
+    Two panels sharing the w2 axis rather than one with two y-scales: the quantities have
+    different units and a dual-axis chart would invite exactly the false visual
+    correlation this figure exists to establish honestly.
+    """
+    _rc()
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(COL2, 2.1), sharex=True)
+
+    by = {}
+    for r in results:
+        if r["policy"] == "sac":
+            by.setdefault(r["weights"]["w2"], []).append(r)
+    w = sorted(by)
+    if not w:
+        plt.close(fig)
+        return None
+
+    def ep_mean(runs, key):
+        v = [np.mean([e[key] for e in r["episodes"]]) for r in runs]
+        return float(np.mean(v)), float(np.std(v))
+
+    cyc = np.array([ep_mean(by[x], "n_cycles") for x in w])
+    cur = np.array([ep_mean(by[x], "curtailed_kwh") for x in w])
+
+    for ax, dat, lab, col in ((a1, cyc, "ON/OFF cycles per day", C_RL),
+                              (a2, cur, "Curtailed energy [kWh/day]", C_RAMP)):
+        ax.fill_between(w, dat[:, 0] - dat[:, 1], dat[:, 0] + dat[:, 1],
+                        color=col, alpha=0.18, lw=0)
+        ax.plot(w, dat[:, 0], color=col, marker="o", ms=3, lw=1.4,
+                markeredgecolor="white", markeredgewidth=0.5, label="SAC")
+        ax.set_xscale("log")
+        ax.set_xlabel(r"Degradation weight  $w_2$")
+        ax.set_ylabel(lab)
+
+    # baselines as reference lines on the cycling panel -- that is where they differ most
+    for pol, runs in (("baseline_naive", _agg(results, "baseline_naive")),
+                      ("baseline_ramplimited", _agg(results, "baseline_ramplimited"))):
+        if not runs:
+            continue
+        st = STYLE[pol]
+        y = float(np.mean([np.mean([e["n_cycles"] for e in r["episodes"]]) for r in runs]))
+        a1.axhline(y, color=st["color"], ls=st["ls"], lw=1.1, label=st["label"])
+        yc = float(np.mean([np.mean([e["curtailed_kwh"] for e in r["episodes"]])
+                            for r in runs]))
+        a2.axhline(yc, color=st["color"], ls=st["ls"], lw=1.1)
+
+    a1.legend(loc="upper right", handletextpad=0.5, borderpad=0.2, fontsize=6.5)
+    fig.tight_layout()
+    return _finish(fig, name)
