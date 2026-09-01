@@ -29,12 +29,19 @@ Each one is self-contained.
 ```
 
 All three Gate-G1 checks pass. The degradation model is calibrated so the literature
-baseline reproduces a 5.05-year stack life (ref #7's ~5 years), with a 4.38× separation
+baseline reproduces a 5.00-year stack life on held-out days (ref #7's ~5 years), with a
+4.38× separation
 between a jittery and a smooth policy — see [DECISIONS.md §5](DECISIONS.md).
 
 Calibrated on **real Kutch 2019 weather** (`data/processed/kutch_2019_1min.parquet`).
-Notably, the two rule-based baselines alone span 5.05 → 7.07 years, reproducing the
-5 → 7.5 years ref #7 reports for power smoothing — before RL is involved.
+On the held-out split the two rule-based baselines span 5.00 → 6.20 years, and the
+learned policy reaches 7.39 — see [paper/main.tex](paper/main.tex) §Results.
+
+The calibration was *fitted* on training days and then reproduced under two protocols
+it was not fitted to. That shows it is **stable**, not that the degradation physics is
+correct: all three protocols share the same equations, and no measurement of a real
+stack enters this work. Absolute lifetimes are pinned to one published figure;
+controller *comparisons* are far more robust than any absolute number.
 
 ---
 
