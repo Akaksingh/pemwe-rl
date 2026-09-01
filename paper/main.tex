@@ -618,6 +618,15 @@ episodes on the training split. The \num{90}-day persistent rollout (\SI{4.99}{\
 the \num{72}-day held-out evaluation (\SI{5.00}{\year}) reproduce that figure under two
 protocols the coefficients were not fitted to.
 
+We are precise about what this does and does not establish. All three protocols share
+the same degradation equations, so the agreement shows the calibration is \emph{stable}
+--- not an artifact of the particular days it was fitted on, nor of the single-day
+episode structure --- but it is not evidence that those equations describe a physical
+stack. No measurement of a real device enters this work at any point. The absolute
+lifetimes we report are pinned to a single published figure~\cite{mpc_refuel_2026}; if
+that figure is wrong, every absolute lifetime here scales with it, while the relative
+comparisons between controllers are unaffected because they would all shift together.
+
 \subsection{Ablation: the reward weighting}
 
 \begin{figure*}[t]
