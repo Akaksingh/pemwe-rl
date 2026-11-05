@@ -159,6 +159,8 @@ train:
     train_freq: 32           # batching updates across 32 envs at an unchanged 1:1
     gradient_steps: 32       # update-to-step ratio = 26x faster than SB3 defaults
     batch_size: 512
+    gamma: 0.999             # SAC discount. Default unchanged so legacy runs reproduce; made a
+                             # config key so it can be tested (audit/01_research_audit.md, C2).
 
 data:
   lat: 23.25
