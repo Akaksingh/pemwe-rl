@@ -136,6 +136,37 @@ def _make_callback_cls():
 # env construction
 # --------------------------------------------------------------------------------------
 
+def _make_progress_cls():
+    """Opt-in CSV log of (timesteps, wall-clock, gradient updates, training reward).
+
+    Gives convergence curves against BOTH env steps and wall-clock, and records the update count
+    SB3 actually performed, so the update-to-data ratio of every run can be read from its own log.
+    """
+    from stable_baselines3.common.callbacks import BaseCallback
+
+    class ProgressCSVCallback(BaseCallback):
+        def __init__(self, path, every=10_000):
+            super().__init__(0)
+            self.path, self.every, self._next, self._t0 = Path(path), every, every, None
+
+        def _on_training_start(self) -> None:
+            self._t0 = time.time()
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            self.path.write_text("timesteps,wall_s,n_updates,ep_rew_mean\n")
+
+        def _on_step(self) -> bool:
+            if self.num_timesteps >= self._next:
+                buf = getattr(self.model, "ep_info_buffer", [])
+                r = float(np.mean([e["r"] for e in buf])) if len(buf) else float("nan")
+                with open(self.path, "a") as f:
+                    f.write(f"{self.num_timesteps},{time.time() - self._t0:.1f},"
+                            f"{getattr(self.model, '_n_updates', 0)},{r:.2f}\n")
+                self._next += self.every
+            return True
+
+    return ProgressCSVCallback
+
+
 def train_profiles(cfg, n_days=None):
     """(n_days, 1440) array of TRAIN days. Never the test split."""
     df = profiles.load_profiles(cfg["data"]["profile_path"])
@@ -186,7 +217,7 @@ def build_model(algo, cfg, venv, seed, tb_dir, device_override=None):
                train_freq=s["train_freq"], gradient_steps=s["gradient_steps"],
                batch_size=s["batch_size"], learning_rate=3e-4,
                buffer_size=1_000_000, learning_starts=10_000,
-               gamma=0.999, tau=0.005, ent_coef="auto",
+               gamma=s.get("gamma", 0.999), tau=0.005, ent_coef="auto",
                policy_kwargs=dict(net_arch=[256, 256]),
                tensorboard_log=str(tb_dir))
 
@@ -207,6 +238,11 @@ def main(argv=None):
     ap.add_argument("--train-days", type=int, default=None)
     ap.add_argument("--no-subproc", action="store_true",
                     help="DummyVecEnv instead of SubprocVecEnv (debugging)")
+    ap.add_argument("--progress-csv", default=None,
+                    help="write timesteps,wall_s,n_updates,ep_rew_mean to this CSV (opt-in)")
+    ap.add_argument("--progress-every", type=int, default=10_000)
+    ap.add_argument("--ckpt-every", type=int, default=0,
+                    help="save a checkpoint every N env steps into models/ckpt/ (0 = off)")
     args = ap.parse_args(argv)
 
     cfg = load_config(overrides=args.override)
@@ -242,8 +278,16 @@ def main(argv=None):
         cb_cls = _make_callback_cls()
         cb = cb_cls((cfg["reward"]["w1"], cfg["reward"]["w2"], cfg["reward"]["w3"]))
 
+        callbacks = [cb]
+        if args.progress_csv:
+            callbacks.append(_make_progress_cls()(args.progress_csv, args.progress_every))
+        if args.ckpt_every:
+            from stable_baselines3.common.callbacks import CheckpointCallback
+            callbacks.append(CheckpointCallback(save_freq=max(args.ckpt_every // n_envs, 1),
+                                                save_path=str(MODELS / "ckpt"), name_prefix=run_id))
+
         t0 = time.time()
-        model.learn(total_timesteps=steps, callback=cb, tb_log_name="run",
+        model.learn(total_timesteps=steps, callback=callbacks, tb_log_name="run",
                     progress_bar=False)
         dt = time.time() - t0
 
@@ -269,6 +313,12 @@ def main(argv=None):
         "overrides": args.override,
         "degradation": cfg["degradation"],
         "train_days": len(prof),
+        # update-to-data ratio = gradient_steps / (train_freq * n_envs): SB3 counts train_freq in
+        # VECTORIZED steps. Logged so the ratio is read from the artefact, not assumed.
+        "sac_cfg": cfg["train"]["sac"] if args.algo == "sac" else None,
+        "utd": (cfg["train"]["sac"]["gradient_steps"]
+                / (cfg["train"]["sac"]["train_freq"] * n_envs)) if args.algo == "sac" else None,
+        "n_updates_performed": int(getattr(model, "_n_updates", 0)),
         "wall_s": round(dt, 1), "steps_per_s": round(steps / dt, 1),
         "model": str(path.relative_to(ROOT)),
         "tensorboard": str(tb_dir.relative_to(ROOT)),
