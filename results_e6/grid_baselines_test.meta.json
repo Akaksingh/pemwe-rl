@@ -1,0 +1,12 @@
+{
+  "units": 84,
+  "env_steps": 8709120,
+  "wall_s": 222.8,
+  "workers": 6,
+  "steps_per_s": 39089,
+  "sim_days_per_wall_s": 27.1,
+  "split": "test",
+  "grid": "both",
+  "models": [],
+  "note": "Values copied from the final lines of logs/e6_baselines.log on the server (this run predates the metadata writer). The machine was shared with four concurrent SAC training jobs while this ran."
+}

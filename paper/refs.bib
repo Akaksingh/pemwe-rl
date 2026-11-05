@@ -12,19 +12,28 @@
   doi     = {10.1016/j.jpowsour.2017.09.006}
 }
 
+% Verification status as of 2026-11-05 (web search / DOI resolution; full texts NOT read):
+%   bernhardt2026degradation  VERIFIED to exist (authors, journal, DOI).
+%   degmodels2025             VERIFIED to exist, but in J. Power Sources, not Electric Power Systems Research
+%                             (the earlier entry was wrong). The specific numbers attributed to it elsewhere
+%                             in this project (membrane thinning, 20% active-area loss) are NOT verified.
+%   intermittency2025         NOT FOUND by title search. Unverified; the 50 uV/h ceiling and the mechanism
+%                             attributions that depend on it are unsupported until the paper is supplied.
+%   awe_rl_2025               NOT FOUND by title search. Unverified.
 @article{bernhardt2026degradation,
-  author  = {Bernhardt, A. and Lange, K.},
+  author  = {Bernhardt, Annik and Lange, Katja and Ilse, Klemens},
   title   = {Degradation Mechanisms in {PEM} Water Electrolysis: Diagnosis and Impact},
   journal = {Advanced Materials Technologies},
-  pages   = {e02419}, year = {2026}
+  year    = {2026},
+  doi     = {10.1002/admt.202502419}
 }
 
 @article{degmodels2025,
+  author  = {Makhsoos and Kandidayeni and Pollet and Boulon},   % given names to confirm
   title   = {Proton exchange membrane water electrolyzers degradation models review:
              implications for power allocation and energy management},
-  journal = {Electric Power Systems Research},
-  year    = {2025},
-  note    = {Quantitative degradation rates used to parameterise the model in this work}
+  journal = {Journal of Power Sources},
+  volume  = {655}, pages = {238003}, year = {2025}
 }
 
 @article{intermittency2025,
@@ -32,8 +41,18 @@
              intermittency: mechanisms, diagnostics, and mitigation strategies},
   journal = {Renewable and Sustainable Energy Reviews},
   year    = {2025},
-  note    = {Source of the ON/OFF cycling and ramp-fatigue mechanisms, and of the
-             worst-case degradation ceiling used in calibration}
+  note    = {UNVERIFIED: not found by title search on 2026-11-05. Verified related review:
+             Sayed-Ahmed, Toldy and Santasalo-Aarnio, ``Dynamic operation of proton exchange membrane
+             electrolyzers---Critical review'', Renewable and Sustainable Energy Reviews 189 (2024),
+             doi 10.1016/j.rser.2023.113883}
+}
+
+@article{sayedahmed2024dynamic,
+  author  = {Sayed-Ahmed and Toldy and Santasalo-Aarnio},     % given names to confirm
+  title   = {Dynamic operation of proton exchange membrane electrolyzers---Critical review},
+  journal = {Renewable and Sustainable Energy Reviews},
+  volume  = {189}, year = {2024},
+  doi     = {10.1016/j.rser.2023.113883}
 }
 
 @article{yu2020iridium,
@@ -64,9 +83,15 @@
              degradation model is calibrated against}
 }
 
+% pvt_control_2026: DOI resolves (mdpi.com/2673-4141/7/2/68) and a search shows the full title below. The
+% only abstract text seen describes rule-based control with hysteresis thresholds on hydrogen-storage
+% state of charge; that it states the P_idle-threshold law used as our baseline is NOT verified.
+% mpc_refuel_2026: DOI resolves (mdpi.com/2673-4141/7/2/76) but the title was not found by search, and the
+% "5 -> 7.5 years" statement it is cited for is NOT verified. Both publisher pages return 403 to
+% automated fetches; full texts are needed from the authors.
 @article{pvt_control_2026,
   title   = {Dynamic Control of a {PV/T} Electrolysis System for Hydrogen and Hot-Water
-             Production},
+             Production: Multi-Regional Analysis with Machine Learning},
   journal = {Hydrogen},
   volume  = {7}, number = {2}, pages = {68}, year = {2026},
   doi     = {10.3390/hydrogen7020068},
@@ -74,11 +99,12 @@
 }
 
 @article{drl_scheduling_2026,
+  author  = {Li, Dongdong and Liu, Liang and Liao, Haiyu},     % from a mirror listing; confirm on publisher page
   title   = {Deep Reinforcement Learning-Based Scheduling for an Electric--Hydrogen
              Integrated Station Using a Data-Driven Electrolyzer Model},
   journal = {Applied Sciences},
-  year    = {2026},
-  doi     = {10.3390/16073605},
+  volume  = {16}, number = {7}, pages = {3605}, year = {2026},
+  doi     = {10.3390/app16073605},      % corrected 2026-11-05; resolves to mdpi.com/2076-3417/16/7/3605
   note    = {Nearest RL+PEM work, at scheduling rather than real-time control granularity}
 }
 
@@ -138,4 +164,46 @@
   title   = {Stable-Baselines3: Reliable Reinforcement Learning Implementations},
   journal = {Journal of Machine Learning Research},
   volume  = {22}, number = {268}, pages = {1--8}, year = {2021}
+}
+
+% ---- Added 2026-11-05 for the Track 2 (HPC) manuscript. Existence, venue and the claims they are
+% ---- cited for were checked by web search; fields marked "to confirm" were not in the sources seen.
+@article{haarnoja2018sacapps,
+  author  = {Haarnoja, Tuomas and others},     % full author list to confirm from arXiv listing
+  title   = {Soft Actor-Critic Algorithms and Applications},
+  journal = {arXiv preprint arXiv:1812.05905},
+  year    = {2018}
+}
+
+@inproceedings{fedus2020replay,
+  author    = {Fedus, William and Ramachandran, Prajit and Agarwal, Rishabh and Bengio, Yoshua
+               and Larochelle, Hugo and Rowland, Mark and Dabney, Will},
+  title     = {Revisiting Fundamentals of Experience Replay},
+  booktitle = {Proc. 37th International Conference on Machine Learning (ICML)},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {119}, pages = {3061--3071}, year = {2020}
+}
+
+@inproceedings{chen2021redq,
+  author    = {Chen, Xinyue and Wang, Che and Zhou, Zijian and Ross, Keith},  % given names to confirm
+  title     = {Randomized Ensembled Double {Q}-Learning: Learning Fast Without a Model},
+  booktitle = {Proc. International Conference on Learning Representations (ICLR)},
+  year      = {2021},
+  note      = {arXiv:2101.05982}
+}
+
+@inproceedings{doro2023replay,
+  author    = {D'Oro, Pierluca and Schwarzer, Max and Nikishin, Evgenii and Bacon, Pierre-Luc
+               and Bellemare, Marc G. and Courville, Aaron},
+  title     = {Sample-Efficient Reinforcement Learning by Breaking the Replay Ratio Barrier},
+  booktitle = {Proc. International Conference on Learning Representations (ICLR)},
+  year      = {2023}
+}
+
+@inproceedings{weng2022envpool,
+  author    = {Weng, Jiayi and others},       % full author list to confirm
+  title     = {{EnvPool}: A Highly Parallel Reinforcement Learning Environment Execution Engine},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS), Datasets and Benchmarks Track},
+  year      = {2022},
+  note      = {arXiv:2206.10558}
 }
