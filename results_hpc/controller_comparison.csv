@@ -1,0 +1,13 @@
+controller,reference,metric,mean_diff,ci_lo,ci_hi,pct_days_lower,days
+naive_as_published,naive_as_published,h2_kg_day,0.0,0.0,0.0,0.0,72
+naive_as_published,naive_as_published,dv_uv_day,0.0,0.0,0.0,0.0,72
+naive_as_published,naive_as_published,transitions_day,0.0,0.0,0.0,0.0,72
+naive_as_published,naive_as_published,curtailed_kwh_day,0.0,0.0,0.0,0.0,72
+no_threshold,naive_as_published,h2_kg_day,3.2299828436467544,2.4467467752848777,4.059684906466001,0.0,72
+no_threshold,naive_as_published,dv_uv_day,-14.232143824278435,-20.31501066324497,-8.311385805619826,61.111111111111114,72
+no_threshold,naive_as_published,transitions_day,-15.875,-21.555555555555557,-10.416666666666666,65.27777777777779,72
+no_threshold,naive_as_published,curtailed_kwh_day,-193.782463881017,-244.68806815544698,-147.17949201643978,75.0,72
+ramp_limited,naive_as_published,h2_kg_day,-2.303670771311557,-2.7169931898906685,-1.9280631856571004,100.0,72
+ramp_limited,naive_as_published,dv_uv_day,-18.690797734944724,-22.206407727220704,-15.288784665427928,100.0,72
+ramp_limited,naive_as_published,transitions_day,-13.708333333333334,-17.333333333333332,-10.430555555555555,73.61111111111111,72
+ramp_limited,naive_as_published,curtailed_kwh_day,112.78817421654361,93.4240493590722,134.82070827470866,0.0,72

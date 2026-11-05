@@ -1,0 +1,19 @@
+date: 2026-11-05T20:38:34+05:30
+host: iiitd-System-Product-Name
+Linux iiitd-System-Product-Name 5.15.0-139-generic #149~20.04.1-Ubuntu SMP Wed Apr 16 08:29:56 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+Ubuntu 20.04.6 LTS
+CPU(s):                               16
+Thread(s) per core:                   2
+Core(s) per socket:                   8
+Socket(s):                            1
+Model name:                           Intel(R) Core(TM) i9-9900KF CPU @ 3.60GHz
+CPU max MHz:                          5000.0000
+L2 cache:                             2 MiB
+L3 cache:                             16 MiB
+governor: powersave
+              total        used        free      shared  buff/cache   available
+Mem:           94Gi       3.5Gi        34Gi       2.0Mi        56Gi        89Gi
+name, driver_version, memory.total [MiB]
+NVIDIA RTX A5000, 535.230.02, 24564 MiB
+python 3.12.16 | torch 2.14.1+cu126 | cuda runtime 12.6 | numpy 2.5.4 | gymnasium 1.3.0 | sb3 2.9.0
+git HEAD: 7a4eff1c1db7ca5df316ff270d3fb84613cb99ec  (working tree has uncommitted edits: 2 tracked files)
