@@ -446,7 +446,8 @@ frontier experiment. At the cheap ratio the two weights give nearly the same pol
 low-weight plateau, whereas the full ratio gives \NumChkTwelveHighHydrogen{} and \NumChkTwentyHighHydrogen\,kg/day at
 \NumChkTwelveHighDeg{} and \NumChkTwentyHighDeg\,\si{\micro\volt}/day. The response to the degradation weight is learned only with
 enough updates, so the update-ratio pitfall has a real consequence: the earlier runs, at a ratio of $1/32$ and
-$\gamma=0.999$, would not be expected to have learned the high-weight end of the frontier. \TODO{curves of quality against updates and wall-clock at $w_2=20$, from the follow-up experiment}
+$\gamma=0.999$, would not be expected to have learned the high-weight end of the frontier. Which intermediate update ratio, between $1/32$ and $1$, is enough at the high weights was not determined: a follow-up
+across ratios was stopped before it finished.
 Caveats: two seeds, in-sample days, and wall-clock times measured with
 four runs sharing one GPU, so they are comparable across these runs but are not single-run speeds.
 
