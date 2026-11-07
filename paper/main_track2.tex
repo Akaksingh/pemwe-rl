@@ -28,6 +28,7 @@
 
 % ---- measured numbers: generated file first, then red fallbacks for anything missing ----
 \IfFileExists{numbers_track2.tex}{\input{numbers_track2}}{}
+\IfFileExists{numbers_fallback.tex}{\input{numbers_fallback}}{}
 \providecommand{\NumSimOne}{\TODO{sim 1-core steps/s}}
 \providecommand{\NumSimEight}{\TODO{sim 8-worker steps/s}}
 \providecommand{\NumSimSixteen}{\TODO{sim 16-worker steps/s}}
@@ -98,11 +99,15 @@ workers). Soft Actor-Critic (SAC) training at a correct update-to-data ratio is
 learner-bound at \NumGpuUps{} updates/s on the GPU and \NumCpuUpsFour{}--\NumCpuUpsEight{} on
 the CPU, independent of the number of environments. We also report a measurement pitfall: a
 vectorized SAC configuration documented as one gradient update per transition performed
-$0.032$, so speedups quoted in steps/s overstated learning throughput by about $30\times$. We
-therefore compare configurations by time to a stated quality at a stated update ratio.
-\TODO{one sentence on the learned-controller outcome once experiments E3--E5 are final} No
-physical stack was operated: the simulator is a pre-screening tool, and conclusions concern
-relative controller behaviour and computational performance, not absolute stack lifetime.
+$\NumUtdMeasuredLow$, so speedups quoted in steps/s overstated learning throughput by about $30\times$. At every
+update ratio from $1/32$ to $1$, however, SAC reached the same quality plateau, about
+\NumEThreeShortfallMin--\NumEThreeShortfallMax\,\% below a one-line rule on its training reward, within its
+first checkpoint, so the $\NumEThreeWallRatio\times$ extra learner time bought nothing; configurations
+should be compared by time to a stated quality. On held-out days the learned controller matches the best
+simple rule at moderate degradation reductions and, at low degradation, yields \NumAdvTwelvePct--\NumAdvTwentyPct\,\%
+more hydrogen than the best simple rule at the same degradation, with a projected life that depends on coefficients
+the model cannot pin down. No physical stack was operated: the simulator is a pre-screening tool, and
+conclusions concern relative controller behaviour and computational performance, not absolute stack lifetime.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -143,7 +148,11 @@ correction, not a new algorithm:
   \item \textbf{Parallel sensitivity analysis.} A parameterised renewable-variability generator and a
         process-parallel evaluation harness for controller comparison under uncertainty in
         both the resource and the degradation coefficients.
-  \item \textbf{An honest controller comparison.} \TODO{finalise after E3--E5}
+  \item \textbf{A fair controller comparison.} Learned policies are compared with grids of simple
+        rules (slew limits with and without the idle threshold, power caps) by the yield they achieve at
+        the \emph{same degradation}, and are re-evaluated under degradation-coefficient and
+        resource-variability shifts against rules matched to their degradation level. We report
+        where the learned policy does not help as well as where it does.
 \end{itemize}
 
 \emph{Scope.} This is a simulation study. No physical stack was operated, the degradation model
@@ -267,6 +276,19 @@ steps, i.e.\ $FN$ transitions, before $G$ gradient updates, so
 The configuration used in our earlier runs ($N=F=G=32$) was documented as a one-to-one
 ratio but has $\mathrm{UTD}=1/32$. A correct one-to-one ratio at $N=F=32$ needs $G=1024$.
 
+\subsection{Learning experiments}\label{sec:learn}
+Stable-Baselines3 SAC with two hidden layers of 256 units, learning rate $3\times10^{-4}$, batch 512,
+replay buffer $10^6$, learning starts after $10^4$ steps, soft-update coefficient $0.005$ and automatic
+entropy tuning; 32 environments, \num{300000} steps per run, $w_1=1$, $w_3=0.1$. Settings that differ
+between experiments are stated where they are used. The pilots (Table~\ref{tab:pilots}) and the
+update-ratio study use $w_2=0.1$ and are evaluated on \emph{training} days; the discount factor
+$\gamma=0.95$ used afterwards was chosen from those in-sample pilots, never from the held-out days. The
+frontier experiment trains at $w_2\in\{1.41,5.32,12.9,20\}$ with two seeds each and evaluates each policy
+once on the 72 held-out days; no setting was selected on them. Rule-based comparators are evaluated on the
+same days and environment: slew-limited load following with a limit $L$ (13 values from $0.0005$ to
+$0.06$ of rated power per minute, with and without the idle threshold) and a power cap (9 values from
+$0.15$ to $0.9$ of rated). Every grid point is reported; none is tuned on the evaluation days.
+
 \subsection{Scenario and sensitivity workload}\label{sec:scen}
 The resource generator re-creates the one-minute series from the shipped hourly means with the
 noise amplitude varied (hourly means unchanged to $10^{-10}$\,W; the default setting
@@ -349,8 +371,8 @@ is that the CPU learners take cores from the GPU processes' kernel-launch thread
 \subsection{The update-ratio pitfall}
 \begin{table}[t]
 \caption{Update-to-data ratio of vectorized SAC configurations (Eq.~\ref{eq:utd}).
-Measured: SB3 2.9.0, 40\,960 steps with the first configuration; counts are
-\texttt{model.\_n\_updates} divided by transitions after the learning-start threshold.}
+Measured: SB3 2.9.0; updates as counted by the library (\texttt{model.\_n\_updates}) over the
+300k-step runs of the update-ratio study, divided by the transitions after the $10^4$-step learning-start threshold.}
 \label{tab:utd}
 \centering
 \small
@@ -358,14 +380,14 @@ Measured: SB3 2.9.0, 40\,960 steps with the first configuration; counts are
 \toprule
 $N$ & $F$ & $G$ & documented & measured \\
 \midrule
-32 & 32 & 32   & 1     & 0.032 \\
-32 & 32 & 1024 & ---   & \TODO{rerun to log} \\
+32 & 32 & 32   & 1     & \NumUtdMeasuredLow \\
+32 & 32 & 1024 & ---   & \NumUtdMeasuredHigh \\
 \bottomrule
 \end{tabular}
 \end{table}
-A run with the repository configuration performed 992 updates for 30\,960 transitions
-(UTD $=0.032$), against a documented ratio of one (Table~\ref{tab:utd}); over $2\times10^6$ steps this is about
-\num{62500} updates instead of $\approx 2\times10^6$. An earlier benchmark reported a $26\times$
+In the update-ratio study the repository configuration performed \NumEThreeUpdLow{} updates in \num{300000} steps,
+a measured ratio of \NumUtdMeasuredLow{} against a documented ratio of one (Table~\ref{tab:utd}); over $2\times10^6$
+steps this is about \num{62500} updates instead of $\approx 2\times10^6$. An earlier benchmark reported a $26\times$
 speedup of this configuration over the library default at ``identical learning dynamics''
 (on different hardware; not reproduced here). That order of magnitude is what removing $31/32$ of the
 gradient work produces, so the speedup is largely less learning per step, not free
@@ -394,8 +416,65 @@ horizon making action differences hard for the critic to resolve; we did not tes
 After these corrections SAC still gives up hydrogen for lower degradation and fewer transitions than
 the reward at $w_2=0.1$ warrants, and it remains below both the constant-action rule and the tuned
 slew limit on every training day. We therefore make no claim that the learned controller improves on
-the rule-based ones at this weight. \TODO{E3 (update-ratio study) and E5 (frontier at higher weights,
-held-out days) results; text and figures are generated by scripts/analyze\_e3.py and analyze\_e5.py}
+the rule-based ones at this weight.
+
+\subsection{Update ratio and time to quality}
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.92\textwidth]{fig_e3_utd.pdf}
+\caption{Quality of SAC checkpoints at four update ratios: reward relative to the constant-action-$+1$
+controller on every fifth training day ($w_2=0.1$, $\gamma=0.95$, two seeds; bands: minimum to maximum over
+seeds). (a) Against environment steps, (b) against gradient updates, (c) against wall-clock time, measured
+with four runs sharing the GPU.}
+\label{fig:e3}
+\end{figure*}
+To separate what the update ratio buys from what it costs, we trained SAC at update ratios $1/32$,
+$1/8$, $1/2$ and $1$ (two seeds each, $\gamma=0.95$, $w_2=0.1$, \num{300000} steps) and evaluated
+checkpoints every 50k steps against the constant-action rule (Fig.~\ref{fig:e3}). Every configuration is
+at the same plateau, \NumEThreeShortfallMin--\NumEThreeShortfallMax\,\% below the rule, at its first
+checkpoint (update ratio $1/32$: \NumEThreeFirstShortfall\,\% after \NumEThreeFirstWallLow\,min), and
+further learning does not change it. By the end of training the smallest ratio had performed
+\NumEThreeUpdLow{} updates in \NumEThreeWallLow\,min and the largest \NumEThreeUpdHigh{} updates in
+\NumEThreeWallHigh\,min, a factor of \NumEThreeWallRatio. The plateau is therefore a property of the problem
+and the policy class and not of the training budget: at a discount factor of $0.95$ the extra learner time
+that the corrected ratio demands buys no quality, and the time to plateau, minutes here, is the figure to
+benchmark. Together with the pilots, this indicates that the earlier long runs were limited by the discount
+factor and not by their update ratio. Caveats: two seeds, in-sample days, and wall-clock times measured with
+four runs sharing one GPU, so they are comparable across these runs but are not single-run speeds.
+
+\subsection{What the policy learns}
+A probe of the update-ratio-1 checkpoint on twelve held-out days (every sixth) shows where the shortfall
+comes from. The policy commands on average \NumProbeEMeanU{} of the available power. With available power
+near the plant minimum ($3.5$--$5\,\%$ of rated) it stays off in \NumProbeEOffLow\,\% of steps, avoiding
+marginal start-ups, and at high availability it commands \NumProbeEUHigh{} of the available power. This soft
+curtailment at low power trades some hydrogen for fewer transitions; at $w_2=0.1$ the trade is not worth
+its price, which is the plateau. At $w_2=20$ the policy commands on average \NumProbeTwentyMeanU{} of the
+available power and is off in \NumProbeTwentyOff\,\% of the steps in which the resource would allow operation.
+This is a descriptive probe of a few checkpoints, not a statistic.
+
+\subsection{Frontier on held-out days}
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_frontier.pdf}
+\caption{Hydrogen against degradation on the 72 held-out days (lower degradation to the right).
+Grey dots: every point of the slew-limit and power-cap grids; dashed line: their non-dominated envelope.
+Blue: corrected SAC (mean of two seeds, faint dots are seeds), labelled with the degradation weight
+$w_2$. Green: the earlier SAC runs. Open markers: the three named rules.}
+\label{fig:frontier}
+\end{figure}
+Figure~\ref{fig:frontier} places the corrected policies against the rule grids. The envelope is the
+non-dominated set of all grid points and the three named rules. At the two lowest weights the learned
+policy is on or slightly below that envelope: at $w_2=1.41$ it makes \NumSacOneHydrogenKg\,kg/day at
+\NumSacOneDegradation\,\si{\micro\volt}/day against \NumRuleOneHydrogenKg\,kg/day for the envelope at the
+same degradation (\NumAdvOnePct\,\%), and at $w_2=5.32$ \NumSacFiveHydrogenKg{} against
+\NumRuleFiveHydrogenKg\,kg/day (\NumAdvFivePct\,\%); it does not improve on a slew limit there. At lower
+degradation the rules collapse and the policy does not. At $w_2=12.9$ it reaches
+\NumSacTwelveDegradation\,\si{\micro\volt}/day with \NumSacTwelveHydrogenKg\,kg/day, \NumAdvTwelvePct\,\%
+(\NumAdvTwelveKg\,kg/day) more than the envelope at that degradation; at $w_2=20$ it reaches
+\NumSacTwentyDegradation\,\si{\micro\volt}/day with \NumSacTwentyHydrogenKg\,kg/day, below the
+lowest-degradation rule point we evaluated (\NumRuleTwentyHydrogenKg\,kg/day there). The earlier runs stopped
+at \NumLegacyMinDv\,\si{\micro\volt}/day. The yield given up relative to the threshold-free rule is large at
+the top of the weight range, so this is a better trade-off at low degradation and not a free improvement.
 
 \subsection{Sensitivity to resource variability and degradation coefficients}
 \begin{figure*}[t]
@@ -438,8 +517,47 @@ gives the longest life when the cost per on/off transition is high, and the shor
 that cost or the base rate is low. A conclusion about which of these controllers is best for stack
 life therefore depends on coefficients the model cannot pin down. Resource variability matters
 as well: the published rule's projected life falls from \NumScenLifeMax{} years in the low-variability
-scenario to \NumScenLifeMin{} in the combined-high scenario. \TODO{add the learned policies to this
-comparison once a candidate is selected}
+scenario to \NumScenLifeMin{} in the combined-high scenario.
+
+\subsection{Robustness of the learned policies}
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.92\textwidth]{fig_sensitivity_sac.pdf}
+\caption{Projected life (calibrated scale) of the tuned slew limit and of the learned policies under the
+same coefficient and resource variations as Fig.~\ref{fig:sens}. Policies were trained once, at nominal
+coefficients on the original resource, and are evaluated unchanged. The tuned slew limit is one point on the
+rule frontier at higher degradation than the policies; the matched comparison is in the text.}
+\label{fig:senssac}
+\end{figure*}
+The learned policies were trained once, at nominal coefficients on the original resource, and are evaluated
+unchanged under every variation: a robustness test under shift, not retraining. Against the tuned slew
+limit they outlive the rule in \NumTunedTwelveCoefOut{} of \NumTunedTwelveCoefRows{} coefficient variants and
+\NumTunedTwelveScenOut{} of \NumTunedTwelveScenRows{} scenarios at $w_2=12.9$ (with \NumTunedTwelveCoefHydrogenPct\,\%
+less hydrogen), and in \NumTunedTwentyCoefOut{} of \NumTunedTwentyCoefRows{} and \NumTunedTwentyScenOut{} of
+\NumTunedTwentyScenRows{} at $w_2=20$ (Fig.~\ref{fig:senssac}). That is not the fair comparison, because the
+tuned limit sits at higher degradation than the policies. Against slew limits matched to the policy's own
+nominal degradation the picture is less one-sided. At $w_2=12.9$, against a limit of $0.0015$
+(\NumMatchTwelveRuleDv\,\si{\micro\volt}/day, \NumMatchTwelveRuleHydrogen\,kg/day) the policy makes
+\NumMatchTwelveCoefHydrogenPct\,\% more hydrogen and outlives the rule in \NumMatchTwelveCoefOut{} of
+\NumMatchTwelveCoefRows{} coefficient variants and \NumMatchTwelveScenOut{} of \NumMatchTwelveScenRows{}
+scenarios, with a median life ratio of \NumMatchTwelveCoefMedRatio{} and a worst case of
+\NumMatchTwelveCoefMinRatio. At $w_2=20$, against a limit of $0.0005$ (\NumMatchTwentyRuleDv\,\si{\micro\volt}/day,
+\NumMatchTwentyRuleHydrogen\,kg/day) it makes \NumMatchTwentyCoefHydrogenPct\,\% more hydrogen with a median life ratio of
+\NumMatchTwentyCoefMedRatio{}, outliving the rule in \NumMatchTwentyCoefOut{} of \NumMatchTwentyCoefRows{}
+coefficient variants and \NumMatchTwentyScenOut{} of \NumMatchTwentyScenRows{} scenarios (worst case
+\NumMatchTwentyCoefMinRatio). At matched degradation the learned policy therefore delivers more hydrogen for
+roughly the same projected life; the life itself varies with coefficients the model cannot pin down, and for
+some coefficient sets it is shorter than the rule's.
+
+\subsection{Where the compute goes}
+Training SAC to its plateau takes minutes. The remaining compute is evaluation. The \NumEvalSacUnits{}
+evaluation units that include the learned policies (\NumEvalSacSteps{} environment steps) ran at
+\NumEvalSacStepsPerSec{} steps/s on \NumEvalSacWorkers{} workers, \NumEvalSacSeconds\,s in all, against
+\NumEvalRuleStepsPerSec{} steps/s for rule-based controllers on the same workers, a factor of
+\NumEvalRatio. Running the policy network through the library's prediction call costs more per step than the
+plant simulation itself. A learned controller is therefore cheap to train for this problem but not cheap to
+evaluate at scale, and the sweeps over resource, coefficients and controllers are the embarrassingly
+parallel workload that benefits from additional cores.
 
 % =============================================================================
 \section{Limitations}\label{sec:limits}
@@ -455,12 +573,30 @@ exceeds the usual $4$\,vol\% flammability reference below about
 crossover is too high for a real stack or the low-load region is not operable. We have not
 changed the model. \emph{Scale.} All measurements are from one workstation with 8 physical
 cores and one GPU; we make no claim about larger systems. \emph{Statistics.} Repeats of a
-benchmark characterise one machine, not a population. \emph{Single site and year.}
+benchmark characterise one machine, not a population. \emph{Learning experiments.} Each learned setting
+has two seeds, which shows seed agreement but does not support significance claims; the pilots and the
+update-ratio study are in-sample on training days; the discount factor was chosen from them. The
+policies are trained at one set of coefficients on one resource and are only evaluated, not retrained,
+under shift. Only SAC was re-run at the corrected settings; we make no claim about PPO. The rule grids
+are one-dimensional families (slew limit, power cap); a richer rule or a model-predictive controller could
+close part of the gap at low degradation, and we did not test one. The degradation weights $w_2$ have no
+economic calibration here, so which point on the frontier is preferable is not decided by this study.
+\emph{Single site and year.}
 
 % =============================================================================
 \section{Conclusion}
-\TODO{write after E3--E6: three or four sentences, each tied to a measured result; state what the
-controller comparison does and does not show; hardware validation as future work.}
+We characterised the computational side of screening electrolyzer control strategies in simulation, on one
+workstation. The simulator runs at \NumSimOne{} steps/s on a core and \NumSimSixteen{} steps/s on 16
+workers, and its apparent parallel inefficiency is the processor's clock falling under multi-core load, not
+the decomposition. Learner throughput, not environment throughput, bounds SAC training, and a documented
+one-to-one update ratio was in fact \NumUtdMeasuredLow{}; yet for this problem SAC reaches its quality plateau within
+minutes at every ratio we tried, so the more useful benchmark is time to plateau. On held-out days the
+learned controller does not improve on simple slew limits at moderate degradation, but at low degradation
+it delivers substantially more hydrogen than any simple rule we evaluated, with a projected life that
+depends on degradation coefficients the model cannot identify. These are simulation results on a model
+calibrated to literature rates and a synthetic sub-hourly resource; hardware validation, measured
+high-frequency resource data, an economic calibration of the degradation weight and a model-predictive
+baseline are the necessary next steps.
 
 \bibliographystyle{IEEEtran}
 \bibliography{refs}

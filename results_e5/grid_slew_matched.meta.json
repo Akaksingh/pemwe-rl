@@ -1,0 +1,12 @@
+{
+  "units": 56,
+  "env_steps": 5806080,
+  "wall_s": 88.7,
+  "workers": 14,
+  "steps_per_s": 65485,
+  "sim_days_per_wall_s": 45.5,
+  "split": "test",
+  "grid": "both",
+  "models": [],
+  "note": "machine was shared with other jobs while this ran"
+}
