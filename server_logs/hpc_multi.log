@@ -1,0 +1,17 @@
+gpu_x1                 rep=0 procs=1 aggregate=  181.0 upd/s  per-proc= 181.0  start-skew=+0.0s
+gpu_x1                 rep=1 procs=1 aggregate=  179.0 upd/s  per-proc= 179.0  start-skew=+0.0s
+gpu_x2                 rep=0 procs=2 aggregate=  251.5 upd/s  per-proc= 125.9  start-skew=+0.0s
+gpu_x2                 rep=1 procs=2 aggregate=  258.7 upd/s  per-proc= 129.7  start-skew=+0.0s
+gpu_x4                 rep=0 procs=4 aggregate=  336.3 upd/s  per-proc=  84.4  start-skew=+0.0s
+gpu_x4                 rep=1 procs=4 aggregate=  323.3 upd/s  per-proc=  81.3  start-skew=+0.0s
+cpu4t_x1               rep=0 procs=1 aggregate=   98.0 upd/s  per-proc=  98.0  start-skew=+0.0s
+cpu4t_x1               rep=1 procs=1 aggregate=  102.3 upd/s  per-proc= 102.3  start-skew=+0.0s
+cpu4t_x2               rep=0 procs=2 aggregate=  168.5 upd/s  per-proc=  84.2  start-skew=+0.0s
+cpu4t_x2               rep=1 procs=2 aggregate=  164.2 upd/s  per-proc=  83.7  start-skew=+0.0s
+cpu4t_x4               rep=0 procs=4 aggregate=  179.2 upd/s  per-proc=  44.9  start-skew=+0.0s
+cpu4t_x4               rep=1 procs=4 aggregate=  181.3 upd/s  per-proc=  46.2  start-skew=+0.0s
+cpu2t_x8               rep=0 procs=8 aggregate=  158.8 upd/s  per-proc=  20.6  start-skew=+0.0s
+cpu2t_x8               rep=1 procs=8 aggregate=  163.7 upd/s  per-proc=  20.8  start-skew=+0.0s
+mixed_gpu2_cpu4t_x3    rep=0 procs=5 aggregate=  274.9 upd/s  per-proc=  71.1  start-skew=+0.0s
+mixed_gpu2_cpu4t_x3    rep=1 procs=5 aggregate=  269.8 upd/s  per-proc=  69.8  start-skew=+0.0s
+wrote /home/USER/pemwe-rl/results_hpc/hpc_multi.csv

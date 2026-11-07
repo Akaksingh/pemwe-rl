@@ -1,0 +1,5 @@
+11 units, 14 workers
+  10/11 units      48s      17861 env-steps/s aggregate
+  11/11 units      49s      18967 env-steps/s aggregate
+done: 11 units, 934,560 env-steps in 49.3s (18,944 steps/s; 13.2 simulated days per wall-second)
+wrote results_check/grid_check_train.csv

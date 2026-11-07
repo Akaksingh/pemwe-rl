@@ -17,3 +17,9 @@ paper/*.out
 paper/*.bbl
 paper/*.blg
 logs/
+
+# Regenerable in seconds (python scripts/make_scenarios.py, which self-checks against the shipped profile): ~200 MB of derived profiles
+data/scenarios/
+# Temporary extraction of a server snapshot
+_server_snapshot/
+_server_snapshot.tgz

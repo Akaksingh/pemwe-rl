@@ -1,0 +1,173 @@
+logical CPUs=16 physical cores=8 topology=[[0, 8], [1, 9], [2, 10], [3, 11], [4, 12], [5, 13], [6, 14], [7, 15]]
+strong unpinned  n= 1 rep=0   92160 steps   7.49s     12304 steps/s
+strong unpinned  n= 1 rep=1   92160 steps   7.51s     12277 steps/s
+strong unpinned  n= 1 rep=2   92160 steps   7.43s     12409 steps/s
+strong unpinned  n= 1 rep=3   92160 steps   7.59s     12134 steps/s
+strong unpinned  n= 1 rep=4   92160 steps   7.51s     12271 steps/s
+strong unpinned  n= 2 rep=0   92160 steps   3.63s     25397 steps/s
+strong unpinned  n= 2 rep=1   92160 steps   3.80s     24246 steps/s
+strong unpinned  n= 2 rep=2   92160 steps   3.68s     25016 steps/s
+strong unpinned  n= 2 rep=3   92160 steps   3.60s     25605 steps/s
+strong unpinned  n= 2 rep=4   92160 steps   3.82s     24130 steps/s
+strong unpinned  n= 4 rep=0   92160 steps   2.50s     36814 steps/s
+strong unpinned  n= 4 rep=1   92160 steps   2.56s     36030 steps/s
+strong unpinned  n= 4 rep=2   92160 steps   2.58s     35654 steps/s
+strong unpinned  n= 4 rep=3   92160 steps   2.63s     35028 steps/s
+strong unpinned  n= 4 rep=4   92160 steps   2.59s     35578 steps/s
+strong unpinned  n= 8 rep=0   92160 steps   1.32s     70031 steps/s
+strong unpinned  n= 8 rep=1   92160 steps   1.33s     69459 steps/s
+strong unpinned  n= 8 rep=2   92160 steps   1.32s     70019 steps/s
+strong unpinned  n= 8 rep=3   92160 steps   1.34s     68935 steps/s
+strong unpinned  n= 8 rep=4   92160 steps   1.31s     70543 steps/s
+strong unpinned  n=12 rep=0   92160 steps   1.37s     67272 steps/s
+strong unpinned  n=12 rep=1   92160 steps   1.56s     59051 steps/s
+strong unpinned  n=12 rep=2   92160 steps   1.44s     63935 steps/s
+strong unpinned  n=12 rep=3   92160 steps   1.35s     68335 steps/s
+strong unpinned  n=12 rep=4   92160 steps   1.42s     64849 steps/s
+strong unpinned  n=16 rep=0   92160 steps   1.23s     74783 steps/s
+strong unpinned  n=16 rep=1   92160 steps   1.22s     75773 steps/s
+strong unpinned  n=16 rep=2   92160 steps   1.21s     76005 steps/s
+strong unpinned  n=16 rep=3   92160 steps   1.22s     75749 steps/s
+strong unpinned  n=16 rep=4   92160 steps   1.20s     76760 steps/s
+strong physical  n= 1 rep=0   92160 steps   7.68s     11992 steps/s
+strong physical  n= 1 rep=1   92160 steps   7.66s     12037 steps/s
+strong physical  n= 1 rep=2   92160 steps   7.71s     11951 steps/s
+strong physical  n= 1 rep=3   92160 steps   7.64s     12057 steps/s
+strong physical  n= 1 rep=4   92160 steps   7.86s     11731 steps/s
+strong physical  n= 2 rep=0   92160 steps   3.73s     24700 steps/s
+strong physical  n= 2 rep=1   92160 steps   4.06s     22722 steps/s
+strong physical  n= 2 rep=2   92160 steps   3.69s     25000 steps/s
+strong physical  n= 2 rep=3   92160 steps   3.66s     25213 steps/s
+strong physical  n= 2 rep=4   92160 steps   4.00s     23028 steps/s
+strong physical  n= 4 rep=0   92160 steps   2.50s     36794 steps/s
+strong physical  n= 4 rep=1   92160 steps   2.57s     35824 steps/s
+strong physical  n= 4 rep=2   92160 steps   2.55s     36202 steps/s
+strong physical  n= 4 rep=3   92160 steps   2.55s     36207 steps/s
+strong physical  n= 4 rep=4   92160 steps   2.54s     36259 steps/s
+strong physical  n= 8 rep=0   92160 steps   1.32s     69689 steps/s
+strong physical  n= 8 rep=1   92160 steps   1.33s     69361 steps/s
+strong physical  n= 8 rep=2   92160 steps   1.32s     69615 steps/s
+strong physical  n= 8 rep=3   92160 steps   1.33s     69426 steps/s
+strong physical  n= 8 rep=4   92160 steps   1.32s     69627 steps/s
+strong smt_pairs n= 2 rep=0   92160 steps   6.65s     13849 steps/s
+strong smt_pairs n= 2 rep=1   92160 steps   6.65s     13852 steps/s
+strong smt_pairs n= 2 rep=2   92160 steps   6.62s     13916 steps/s
+strong smt_pairs n= 2 rep=3   92160 steps   6.69s     13779 steps/s
+strong smt_pairs n= 2 rep=4   92160 steps   6.59s     13981 steps/s
+strong smt_pairs n= 4 rep=0   92160 steps   3.69s     24982 steps/s
+strong smt_pairs n= 4 rep=1   92160 steps   3.40s     27126 steps/s
+strong smt_pairs n= 4 rep=2   92160 steps   3.34s     27560 steps/s
+strong smt_pairs n= 4 rep=3   92160 steps   3.48s     26462 steps/s
+strong smt_pairs n= 4 rep=4   92160 steps   3.62s     25450 steps/s
+strong smt_pairs n= 8 rep=0   92160 steps   2.35s     39188 steps/s
+strong smt_pairs n= 8 rep=1   92160 steps   2.35s     39158 steps/s
+strong smt_pairs n= 8 rep=2   92160 steps   2.34s     39332 steps/s
+strong smt_pairs n= 8 rep=3   92160 steps   2.34s     39356 steps/s
+strong smt_pairs n= 8 rep=4   92160 steps   2.35s     39151 steps/s
+strong smt_pairs n=16 rep=0   92160 steps   1.22s     75804 steps/s
+strong smt_pairs n=16 rep=1   92160 steps   1.23s     74978 steps/s
+strong smt_pairs n=16 rep=2   92160 steps   1.22s     75624 steps/s
+strong smt_pairs n=16 rep=3   92160 steps   1.23s     74961 steps/s
+strong smt_pairs n=16 rep=4   92160 steps   1.22s     75506 steps/s
+weak   unpinned  n= 1 rep=0   11520 steps   0.96s     12024 steps/s
+weak   unpinned  n= 1 rep=1   11520 steps   0.95s     12145 steps/s
+weak   unpinned  n= 1 rep=2   11520 steps   0.91s     12705 steps/s
+weak   unpinned  n= 1 rep=3   11520 steps   0.90s     12837 steps/s
+weak   unpinned  n= 1 rep=4   11520 steps   0.90s     12855 steps/s
+weak   unpinned  n= 2 rep=0   23040 steps   0.94s     24384 steps/s
+weak   unpinned  n= 2 rep=1   23040 steps   0.91s     25417 steps/s
+weak   unpinned  n= 2 rep=2   23040 steps   0.91s     25210 steps/s
+weak   unpinned  n= 2 rep=3   23040 steps   0.91s     25362 steps/s
+weak   unpinned  n= 2 rep=4   23040 steps   0.91s     25369 steps/s
+weak   unpinned  n= 4 rep=0   46080 steps   1.26s     36586 steps/s
+weak   unpinned  n= 4 rep=1   46080 steps   1.29s     35699 steps/s
+weak   unpinned  n= 4 rep=2   46080 steps   1.30s     35496 steps/s
+weak   unpinned  n= 4 rep=3   46080 steps   1.31s     35293 steps/s
+weak   unpinned  n= 4 rep=4   46080 steps   1.31s     35083 steps/s
+weak   unpinned  n= 8 rep=0   92160 steps   1.32s     70051 steps/s
+weak   unpinned  n= 8 rep=1   92160 steps   1.32s     69825 steps/s
+weak   unpinned  n= 8 rep=2   92160 steps   1.31s     70605 steps/s
+weak   unpinned  n= 8 rep=3   92160 steps   1.32s     69846 steps/s
+weak   unpinned  n= 8 rep=4   92160 steps   1.32s     69638 steps/s
+weak   unpinned  n=16 rep=0  184320 steps   2.54s     72459 steps/s
+weak   unpinned  n=16 rep=1  184320 steps   2.55s     72316 steps/s
+weak   unpinned  n=16 rep=2  184320 steps   2.42s     76305 steps/s
+weak   unpinned  n=16 rep=3  184320 steps   2.42s     76038 steps/s
+weak   unpinned  n=16 rep=4  184320 steps   2.44s     75448 steps/s
+weak   physical  n= 1 rep=0   11520 steps   0.94s     12301 steps/s
+weak   physical  n= 1 rep=1   11520 steps   1.00s     11571 steps/s
+weak   physical  n= 1 rep=2   11520 steps   0.92s     12461 steps/s
+weak   physical  n= 1 rep=3   11520 steps   0.95s     12097 steps/s
+weak   physical  n= 1 rep=4   11520 steps   0.92s     12514 steps/s
+weak   physical  n= 2 rep=0   23040 steps   0.92s     24993 steps/s
+weak   physical  n= 2 rep=1   23040 steps   0.92s     24941 steps/s
+weak   physical  n= 2 rep=2   23040 steps   0.92s     24948 steps/s
+weak   physical  n= 2 rep=3   23040 steps   0.93s     24892 steps/s
+weak   physical  n= 2 rep=4   23040 steps   0.92s     24911 steps/s
+weak   physical  n= 4 rep=0   46080 steps   1.24s     37103 steps/s
+weak   physical  n= 4 rep=1   46080 steps   1.25s     36811 steps/s
+weak   physical  n= 4 rep=2   46080 steps   1.29s     35604 steps/s
+weak   physical  n= 4 rep=3   46080 steps   1.26s     36508 steps/s
+weak   physical  n= 4 rep=4   46080 steps   1.25s     36834 steps/s
+weak   physical  n= 8 rep=0   92160 steps   1.33s     69220 steps/s
+weak   physical  n= 8 rep=1   92160 steps   1.33s     69112 steps/s
+weak   physical  n= 8 rep=2   92160 steps   1.33s     69086 steps/s
+weak   physical  n= 8 rep=3   92160 steps   1.33s     69444 steps/s
+weak   physical  n= 8 rep=4   92160 steps   1.33s     69327 steps/s
+== SB3 vector-env overhead, random actions, 24,000 transitions ==
+dummy    n_envs= 1 rep=0      8003 steps/s
+dummy    n_envs= 1 rep=1      8302 steps/s
+dummy    n_envs= 1 rep=2      8211 steps/s
+dummy    n_envs= 1 rep=3      8300 steps/s
+dummy    n_envs= 1 rep=4      8089 steps/s
+dummy    n_envs= 2 rep=0      9731 steps/s
+dummy    n_envs= 2 rep=1      9736 steps/s
+dummy    n_envs= 2 rep=2      9677 steps/s
+dummy    n_envs= 2 rep=3      9323 steps/s
+dummy    n_envs= 2 rep=4      9820 steps/s
+dummy    n_envs= 4 rep=0     10157 steps/s
+dummy    n_envs= 4 rep=1     10082 steps/s
+dummy    n_envs= 4 rep=2      9882 steps/s
+dummy    n_envs= 4 rep=3      9790 steps/s
+dummy    n_envs= 4 rep=4     10022 steps/s
+dummy    n_envs= 8 rep=0     10726 steps/s
+dummy    n_envs= 8 rep=1     10736 steps/s
+dummy    n_envs= 8 rep=2     10737 steps/s
+dummy    n_envs= 8 rep=3     10262 steps/s
+dummy    n_envs= 8 rep=4     10588 steps/s
+dummy    n_envs=16 rep=0     11188 steps/s
+dummy    n_envs=16 rep=1     11224 steps/s
+dummy    n_envs=16 rep=2     11199 steps/s
+dummy    n_envs=16 rep=3     10604 steps/s
+dummy    n_envs=16 rep=4     11114 steps/s
+dummy    n_envs=32 rep=0     10709 steps/s
+dummy    n_envs=32 rep=1     10701 steps/s
+dummy    n_envs=32 rep=2     10716 steps/s
+dummy    n_envs=32 rep=3     10418 steps/s
+dummy    n_envs=32 rep=4     10734 steps/s
+subproc  n_envs= 2 rep=0      6617 steps/s
+subproc  n_envs= 2 rep=1      6615 steps/s
+subproc  n_envs= 2 rep=2      6269 steps/s
+subproc  n_envs= 2 rep=3      6914 steps/s
+subproc  n_envs= 2 rep=4      6391 steps/s
+subproc  n_envs= 4 rep=0      8265 steps/s
+subproc  n_envs= 4 rep=1      8677 steps/s
+subproc  n_envs= 4 rep=2      8845 steps/s
+subproc  n_envs= 4 rep=3      8703 steps/s
+subproc  n_envs= 4 rep=4      8599 steps/s
+subproc  n_envs= 8 rep=0     12613 steps/s
+subproc  n_envs= 8 rep=1     12759 steps/s
+subproc  n_envs= 8 rep=2     12769 steps/s
+subproc  n_envs= 8 rep=3     12706 steps/s
+subproc  n_envs= 8 rep=4     12629 steps/s
+subproc  n_envs=16 rep=0     17682 steps/s
+subproc  n_envs=16 rep=1     16839 steps/s
+subproc  n_envs=16 rep=2     18010 steps/s
+subproc  n_envs=16 rep=3     17206 steps/s
+subproc  n_envs=16 rep=4     17837 steps/s
+subproc  n_envs=32 rep=0     19150 steps/s
+subproc  n_envs=32 rep=1     18464 steps/s
+subproc  n_envs=32 rep=2     18207 steps/s
+subproc  n_envs=32 rep=3     18416 steps/s
+subproc  n_envs=32 rep=4     19138 steps/s
+wrote /home/USER/pemwe-rl/results_hpc/hpc_env.csv 170 rows

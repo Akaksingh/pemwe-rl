@@ -1,0 +1,3 @@
+[pilot_utd1_g0.95_seed0] SAC seed=0 device=cuda n_envs=32 steps=300,000 w=(1.0, 0.1, 0.1) train_days=293
+[pilot_utd1_g0.95_seed0] done in 39.2 min (128 steps/s) -> /home/USER/pemwe-rl/models/pilot_utd1_g0.95_seed0.zip
+[pilot_utd1_g0.95_seed0] evaluate with:  python -m pemwe.evaluate --model /home/USER/pemwe-rl/models/pilot_utd1_g0.95_seed0.zip --policy sac --run-id pilot_utd1_g0.95_seed0

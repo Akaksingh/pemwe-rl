@@ -1,0 +1,12 @@
+84 units, 6 workers
+  10/84 units      31s      33109 env-steps/s aggregate
+  20/84 units      60s      34483 env-steps/s aggregate
+  30/84 units      80s      39005 env-steps/s aggregate
+  40/84 units     106s      39034 env-steps/s aggregate
+  50/84 units     137s      37810 env-steps/s aggregate
+  60/84 units     161s      38717 env-steps/s aggregate
+  70/84 units     185s      39133 env-steps/s aggregate
+  80/84 units     214s      38691 env-steps/s aggregate
+  84/84 units     223s      39093 env-steps/s aggregate
+done: 84 units, 8,709,120 env-steps in 222.8s (39,089 steps/s; 27.1 simulated days per wall-second)
+wrote results_e6/grid_baselines_test.csv

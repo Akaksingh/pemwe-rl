@@ -1,0 +1,3 @@
+[chk_utd32_w2-20.0_s1] SAC seed=1 device=cuda n_envs=32 steps=300,000 w=(1.0, 20.0, 0.1) train_days=293
+[chk_utd32_w2-20.0_s1] done in 2.9 min (1,751 steps/s) -> /home/USER/pemwe-rl/models/chk_utd32_w2-20.0_s1.zip
+[chk_utd32_w2-20.0_s1] evaluate with:  python -m pemwe.evaluate --model /home/USER/pemwe-rl/models/chk_utd32_w2-20.0_s1.zip --policy sac --run-id chk_utd32_w2-20.0_s1

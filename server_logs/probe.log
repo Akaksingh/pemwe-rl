@@ -1,0 +1,51 @@
+
+constant +1 (reference)  (12 days)   steps with resource above plant minimum: 15239
+  mean commanded fraction u = 1.000;  share of steps with u < 0.95: 0.000;  plant OFF although resource available: 0.000
+     available power    steps   mean u   u<0.95     OFF
+  0.035-0.05 of rated      142    1.000    0.000   0.000
+  0.050-0.10 of rated     1023    1.000    0.000   0.000
+  0.100-0.20 of rated     2909    1.000    0.000   0.000
+  0.200-0.40 of rated     3572    1.000    0.000   0.000
+  0.400-0.70 of rated     3427    1.000    0.000   0.000
+  0.700-1.00 of rated     4166    1.000    0.000   0.000
+
+e3_utd1_s0  (12 days)   steps with resource above plant minimum: 15239
+  mean commanded fraction u = 0.944;  share of steps with u < 0.95: 0.392;  plant OFF although resource available: 0.012
+     available power    steps   mean u   u<0.95     OFF
+  0.035-0.05 of rated      142    0.504    1.000   0.951
+  0.050-0.10 of rated     1023    0.849    1.000   0.046
+  0.100-0.20 of rated     2909    0.909    0.993   0.000
+  0.200-0.40 of rated     3572    0.948    0.525   0.000
+  0.400-0.70 of rated     3427    0.973    0.011   0.000
+  0.700-1.00 of rated     4166    0.981    0.000   0.000
+
+e5_w2-5.32_s0  (12 days)   steps with resource above plant minimum: 15239
+  mean commanded fraction u = 0.916;  share of steps with u < 0.95: 0.514;  plant OFF although resource available: 0.030
+     available power    steps   mean u   u<0.95     OFF
+  0.035-0.05 of rated      142    0.526    0.951   0.754
+  0.050-0.10 of rated     1023    0.746    0.992   0.191
+  0.100-0.20 of rated     2909    0.852    0.992   0.054
+  0.200-0.40 of rated     3572    0.926    0.761   0.000
+  0.400-0.70 of rated     3427    0.960    0.232   0.000
+  0.700-1.00 of rated     4166    0.972    0.069   0.000
+
+e5_w2-12.9_s0  (12 days)   steps with resource above plant minimum: 15239
+  mean commanded fraction u = 0.785;  share of steps with u < 0.95: 0.691;  plant OFF although resource available: 0.168
+     available power    steps   mean u   u<0.95     OFF
+  0.035-0.05 of rated      142    0.402    0.986   0.880
+  0.050-0.10 of rated     1023    0.414    0.997   0.637
+  0.100-0.20 of rated     2909    0.521    0.994   0.453
+  0.200-0.40 of rated     3572    0.797    0.789   0.128
+  0.400-0.70 of rated     3427    0.937    0.491   0.000
+  0.700-1.00 of rated     4166    0.940    0.475   0.000
+
+e5_w2-20.0_s0  (12 days)   steps with resource above plant minimum: 15239
+  mean commanded fraction u = 0.698;  share of steps with u < 0.95: 0.874;  plant OFF although resource available: 0.240
+     available power    steps   mean u   u<0.95     OFF
+  0.035-0.05 of rated      142    0.395    0.972   0.880
+  0.050-0.10 of rated     1023    0.418    0.995   0.637
+  0.100-0.20 of rated     2909    0.504    0.993   0.455
+  0.200-0.40 of rated     3572    0.618    0.915   0.321
+  0.400-0.70 of rated     3427    0.811    0.641   0.120
+  0.700-1.00 of rated     4166    0.888    0.915   0.000
+wrote /home/USER/pemwe-rl/results_hpc/policy_probe.csv

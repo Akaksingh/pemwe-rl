@@ -1,0 +1,17 @@
+governor: powersave | driver: intel_pstate | no_turbo: 0 | max MHz: 5000.0
+mode             n  mean worker steps/s  slow/fast time  mean MHz
+different_work   1                12155           1.000      4721
+different_work   2                12490           1.032      4554
+different_work   3                11583           1.104      4705
+different_work   4                 9428           1.077      3654
+different_work   5                 9304           1.129      3600
+different_work   6                 9355           1.155      3600
+different_work   8                 9010           1.235      3600
+same_work        1                12546           1.000      4996
+same_work        2                12545           1.011      4892
+same_work        3                11495           1.018      4435
+same_work        4                 9213           1.020      4051
+same_work        5                 9159           1.022      3642
+same_work        6                 9208           1.024      3846
+same_work        8                 9105           1.028      3704
+wrote /home/USER/pemwe-rl/results_hpc/hpc_diag.csv

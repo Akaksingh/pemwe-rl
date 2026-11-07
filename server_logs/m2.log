@@ -1,0 +1,6 @@
+28 units, 14 workers
+  10/28 units      25s      42109 env-steps/s aggregate
+  20/28 units      43s      48021 env-steps/s aggregate
+  28/28 units      46s      63590 env-steps/s aggregate
+done: 28 units, 2,903,040 env-steps in 45.7s (63,561 steps/s; 44.1 simulated days per wall-second)
+wrote results_e5/grid_slew_matched2.csv

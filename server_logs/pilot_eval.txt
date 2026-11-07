@@ -1,0 +1,37 @@
+=== EVAL on TRAIN split (in-sample, all train days), w2=0.1 ===
+note: no reference results found; run scripts/fake_results.py to enable the cross-check against C's schema
+run_id                          H2 kg/day     uV/h  life yr  cycles   split
+---------------------------------------------------------------------------
+pilot_utd1_w2-0.1_seed0             204.3     3.96     5.11    14.1   train
+---------------------------------------------------------------------------
+wrote 1 result files to results_pilot
+schema check vs CONTRACTS.md 3: PASS
+note: no reference results found; run scripts/fake_results.py to enable the cross-check against C's schema
+run_id                          H2 kg/day     uV/h  life yr  cycles   split
+---------------------------------------------------------------------------
+pilot_utd1_w2-0.1_seed1             201.0     3.80     5.31    12.0   train
+---------------------------------------------------------------------------
+wrote 1 result files to results_pilot
+schema check vs CONTRACTS.md 3: PASS
+--- hand-written controllers, same days
+note: no reference results found; run scripts/fake_results.py to enable the cross-check against C's schema
+run_id                          H2 kg/day     uV/h  life yr  cycles   split
+---------------------------------------------------------------------------
+naive_as_published                  217.2     3.95     5.12    17.1   train
+---------------------------------------------------------------------------
+wrote 1 result files to results_pilot
+schema check vs CONTRACTS.md 3: PASS
+note: no reference results found; run scripts/fake_results.py to enable the cross-check against C's schema
+run_id                          H2 kg/day     uV/h  life yr  cycles   split
+---------------------------------------------------------------------------
+no_threshold_const_plus1            219.6     3.54     5.71     6.0   train
+---------------------------------------------------------------------------
+wrote 1 result files to results_pilot
+schema check vs CONTRACTS.md 3: PASS
+note: no reference results found; run scripts/fake_results.py to enable the cross-check against C's schema
+run_id                          H2 kg/day     uV/h  life yr  cycles   split
+---------------------------------------------------------------------------
+ramplimited                         214.7     3.33     6.07     7.5   train
+---------------------------------------------------------------------------
+wrote 1 result files to results_pilot
+schema check vs CONTRACTS.md 3: PASS

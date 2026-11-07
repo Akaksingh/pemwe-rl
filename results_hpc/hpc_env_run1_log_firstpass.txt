@@ -1,0 +1,160 @@
+cpu_count=16
+== strong scaling: fixed 64 episodes (92,160 steps) split across n worker processes ==
+n= 1 rep=0 92160 steps   7.24s     12734 steps/s
+n= 1 rep=1 92160 steps   7.23s     12738 steps/s
+n= 1 rep=2 92160 steps   7.20s     12794 steps/s
+n= 2 rep=0 92160 steps   3.70s     24909 steps/s
+n= 2 rep=1 92160 steps   3.87s     23838 steps/s
+n= 2 rep=2 92160 steps   3.69s     25009 steps/s
+n= 4 rep=0 92160 steps   2.56s     36061 steps/s
+n= 4 rep=1 92160 steps   2.56s     36022 steps/s
+n= 4 rep=2 92160 steps   2.61s     35353 steps/s
+n= 8 rep=0 92160 steps   1.33s     69454 steps/s
+n= 8 rep=1 92160 steps   1.32s     69929 steps/s
+n= 8 rep=2 92160 steps   1.34s     69017 steps/s
+n=12 rep=0 92160 steps   1.35s     68227 steps/s
+n=12 rep=1 92160 steps   1.49s     61804 steps/s
+n=12 rep=2 92160 steps   1.35s     68220 steps/s
+n=16 rep=0 92160 steps   1.21s     76104 steps/s
+n=16 rep=1 92160 steps   1.20s     76907 steps/s
+n=16 rep=2 92160 steps   1.20s     76483 steps/s
+== SB3 vector-env overhead, random actions, 24,000 transitions ==
+dummy    n_envs= 1 rep=0      8292 steps/s
+dummy    n_envs= 1 rep=1      7991 steps/s
+dummy    n_envs= 1 rep=2      8221 steps/s
+dummy    n_envs= 2 rep=0      9796 steps/s
+dummy    n_envs= 2 rep=1      9806 steps/s
+dummy    n_envs= 2 rep=2      9464 steps/s
+dummy    n_envs= 4 rep=0     10040 steps/s
+dummy    n_envs= 4 rep=1     10000 steps/s
+dummy    n_envs= 4 rep=2      9942 steps/s
+dummy    n_envs= 8 rep=0     10502 steps/s
+dummy    n_envs= 8 rep=1     10029 steps/s
+dummy    n_envs= 8 rep=2     10735 steps/s
+dummy    n_envs=16 rep=0     11077 steps/s
+dummy    n_envs=16 rep=1     11248 steps/s
+dummy    n_envs=16 rep=2     11073 steps/s
+dummy    n_envs=32 rep=0     10666 steps/s
+dummy    n_envs=32 rep=1     10764 steps/s
+dummy    n_envs=32 rep=2     10767 steps/s
+cpu_count=16
+== strong scaling: fixed 64 episodes (92,160 steps) split across n worker processes ==
+n= 1 rep=0 92160 steps   7.32s     12588 steps/s
+n= 1 rep=1 92160 steps   7.16s     12871 steps/s
+n= 1 rep=2 92160 steps   7.24s     12722 steps/s
+n= 2 rep=0 92160 steps   3.68s     25023 steps/s
+n= 2 rep=1 92160 steps   3.97s     23220 steps/s
+n= 2 rep=2 92160 steps   3.64s     25285 steps/s
+n= 4 rep=0 92160 steps   2.65s     34843 steps/s
+n= 4 rep=1 92160 steps   2.60s     35463 steps/s
+n= 4 rep=2 92160 steps   2.61s     35284 steps/s
+n= 8 rep=0 92160 steps   1.34s     68807 steps/s
+n= 8 rep=1 92160 steps   1.33s     69529 steps/s
+n= 8 rep=2 92160 steps   1.33s     69446 steps/s
+n=12 rep=0 92160 steps   1.32s     69671 steps/s
+n=12 rep=1 92160 steps   1.35s     68176 steps/s
+n=12 rep=2 92160 steps   1.47s     62812 steps/s
+n=16 rep=0 92160 steps   1.25s     73906 steps/s
+n=16 rep=1 92160 steps   1.24s     74055 steps/s
+n=16 rep=2 92160 steps   1.20s     76787 steps/s
+== SB3 vector-env overhead, random actions, 24,000 transitions ==
+dummy    n_envs= 1 rep=0      8233 steps/s
+dummy    n_envs= 1 rep=1      8207 steps/s
+dummy    n_envs= 1 rep=2      8245 steps/s
+dummy    n_envs= 2 rep=0      9798 steps/s
+dummy    n_envs= 2 rep=1      9787 steps/s
+dummy    n_envs= 2 rep=2      9770 steps/s
+dummy    n_envs= 4 rep=0      9759 steps/s
+dummy    n_envs= 4 rep=1      9885 steps/s
+dummy    n_envs= 4 rep=2      9842 steps/s
+dummy    n_envs= 8 rep=0     10552 steps/s
+dummy    n_envs= 8 rep=1     10550 steps/s
+dummy    n_envs= 8 rep=2     10569 steps/s
+dummy    n_envs=16 rep=0     10996 steps/s
+dummy    n_envs=16 rep=1     10972 steps/s
+dummy    n_envs=16 rep=2     10358 steps/s
+dummy    n_envs=32 rep=0     10713 steps/s
+dummy    n_envs=32 rep=1     10731 steps/s
+dummy    n_envs=32 rep=2     10767 steps/s
+Traceback (most recent call last):
+  File "/home/USER/pemwe-rl/.venv/lib/python3.12/multiprocessing/forkserver.py", line 276, in main
+    code = _serve_one(child_r, fds,
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/USER/pemwe-rl/.venv/lib/python3.12/multiprocessing/forkserver.py", line 315, in _serve_one
+    code = spawn._main(child_r, parent_sentinel)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/USER/pemwe-rl/.venv/lib/python3.12/multiprocessing/spawn.py", line 131, in _main
+    prepare(preparation_data)
+  File "/home/USER/pemwe-rl/.venv/lib/python3.12/multiprocessing/spawn.py", line 246, in prepare
+    _fixup_main_from_path(data['init_main_from_path'])
+  File "/home/USER/pemwe-rl/.venv/lib/python3.12/multiprocessing/spawn.py", line 297, in _fixup_main_from_path
+    main_content = runpy.run_path(main_path,
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/USER/pemwe-rl/.bench_env.py", line 46, in <module>
+    venv = T.make_vec_env(cfg, prof, n, seed=0, subproc=(backend == "subproc"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/USER/pemwe-rl/src/pemwe/train.py", line 159, in make_vec_env
+    venv = cls([factory(i) for i in range(n_envs)])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/USER/pemwe-rl/.venv/lib/python3.12/site-packages/stable_baselines3/common/vec_env/subproc_vec_env.py", line 122, in __init__
+    process.start()
+  File "/home/USER/pemwe-rl/.venv/lib/python3.12/multiprocessing/process.py", line 121, in start
+    self._popen = self._Popen(self)
+                  ^^^^^^^^^^^^^^^^^
+  File "/home/USER/pemwe-rl/.venv/lib/python3.12/multiprocessing/context.py", line 301, in _Popen
+    return Popen(process_obj)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/USER/pemwe-rl/.venv/lib/python3.12/multiprocessing/popen_forkserver.py", line 35, in __init__
+    super().__init__(process_obj)
+  File "/home/USER/pemwe-rl/.venv/lib/python3.12/multiprocessing/popen_fork.py", line 19, in __init__
+    self._launch(process_obj)
+  File "/home/USER/pemwe-rl/.venv/lib/python3.12/multiprocessing/popen_forkserver.py", line 42, in _launch
+    prep_data = spawn.get_preparation_data(process_obj._name)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/USER/pemwe-rl/.venv/lib/python3.12/multiprocessing/spawn.py", line 164, in get_preparation_data
+    _check_not_importing_main()
+  File "/home/USER/pemwe-rl/.venv/lib/python3.12/multiprocessing/spawn.py", line 140, in _check_not_importing_main
+    raise RuntimeError('''
+RuntimeError: 
+        An attempt has been made to start a new process before the
+        current process has finished its bootstrapping phase.
+
+        This probably means that you are not using fork to start your
+        child processes and you have forgotten to use the proper idiom
+        in the main module:
+
+            if __name__ == '__main__':
+                freeze_support()
+                ...
+
+        The "freeze_support()" line can be omitted if the program
+        is not going to be frozen to produce an executable.
+
+        To fix this issue, refer to the "Safe importing of main module"
+        section in https://docs.python.org/3/library/multiprocessing.html
+        
+Traceback (most recent call last):
+  File "/home/USER/pemwe-rl/.bench_env.py", line 46, in <module>
+    venv = T.make_vec_env(cfg, prof, n, seed=0, subproc=(backend == "subproc"))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/USER/pemwe-rl/src/pemwe/train.py", line 159, in make_vec_env
+    venv = cls([factory(i) for i in range(n_envs)])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/USER/pemwe-rl/.venv/lib/python3.12/site-packages/stable_baselines3/common/vec_env/subproc_vec_env.py", line 122, in __init__
+    process.start()
+  File "/home/USER/pemwe-rl/.venv/lib/python3.12/multiprocessing/process.py", line 121, in start
+    self._popen = self._Popen(self)
+                  ^^^^^^^^^^^^^^^^^
+  File "/home/USER/pemwe-rl/.venv/lib/python3.12/multiprocessing/context.py", line 301, in _Popen
+    return Popen(process_obj)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/USER/pemwe-rl/.venv/lib/python3.12/multiprocessing/popen_forkserver.py", line 35, in __init__
+    super().__init__(process_obj)
+  File "/home/USER/pemwe-rl/.venv/lib/python3.12/multiprocessing/popen_fork.py", line 19, in __init__
+    self._launch(process_obj)
+  File "/home/USER/pemwe-rl/.venv/lib/python3.12/multiprocessing/popen_forkserver.py", line 58, in _launch
+    f.write(buf.getbuffer())
+BrokenPipeError: [Errno 32] Broken pipe
