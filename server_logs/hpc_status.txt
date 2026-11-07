@@ -1,0 +1,27 @@
+start 2026-11-05 20:38:33
+load:  20:38:33 up 28 days, 12:25,  0 users,  load average: 0.10, 0.14, 0.09
+gpu procs: 
+env bench done 20:42:01
+learner bench done 20:45:43
+pilots done 21:25:46
+eval done 21:39:16
+HPC_DONE
+phase2 start 2026-11-05 21:39:17  load:  21:39:17 up 28 days, 13:26,  0 users,  load average: 3.84, 3.99, 3.28
+env bench v2 done 21:53:41
+multi bench done 22:16:58
+PHASE2_DONE
+phase3 start 22:17:02
+diag done 22:19:35
+round2 train start 22:19:35
+round2 train done 23:22:38
+round2 eval done 23:26:34
+PHASE3_DONE
+E5 start gamma=0.95 23:27:39
+E3 start gamma=0.95 23:27:46
+E3 train done 00:24:11
+E3 eval done 00:28:07
+E3_DONE
+E5 start gamma=0.95 00:28:24
+E5 train done 02:30:53
+E5 eval done 02:53:27
+E5_DONE

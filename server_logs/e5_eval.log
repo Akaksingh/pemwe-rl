@@ -1,0 +1,34 @@
+308 units, 14 workers
+  10/308 units      81s      12878 env-steps/s aggregate
+  20/308 units     103s      20224 env-steps/s aggregate
+  30/308 units     163s      19093 env-steps/s aggregate
+  40/308 units     196s      21179 env-steps/s aggregate
+  50/308 units     243s      21363 env-steps/s aggregate
+  60/308 units     277s      22442 env-steps/s aggregate
+  70/308 units     329s      22070 env-steps/s aggregate
+  80/308 units     359s      23125 env-steps/s aggregate
+  90/308 units     413s      22600 env-steps/s aggregate
+  100/308 units     448s      23119 env-steps/s aggregate
+  110/308 units     509s      22419 env-steps/s aggregate
+  120/308 units     543s      22925 env-steps/s aggregate
+  130/308 units     586s      23013 env-steps/s aggregate
+  140/308 units     625s      23225 env-steps/s aggregate
+  150/308 units     671s      23187 env-steps/s aggregate
+  160/308 units     713s      23277 env-steps/s aggregate
+  170/308 units     766s      23021 env-steps/s aggregate
+  180/308 units     801s      23292 env-steps/s aggregate
+  190/308 units     849s      23216 env-steps/s aggregate
+  200/308 units     897s      23116 env-steps/s aggregate
+  210/308 units     937s      23227 env-steps/s aggregate
+  220/308 units     980s      23267 env-steps/s aggregate
+  230/308 units    1023s      23307 env-steps/s aggregate
+  240/308 units    1068s      23305 env-steps/s aggregate
+  250/308 units    1109s      23365 env-steps/s aggregate
+  260/308 units    1151s      23412 env-steps/s aggregate
+  270/308 units    1196s      23414 env-steps/s aggregate
+  280/308 units    1236s      23496 env-steps/s aggregate
+  290/308 units    1285s      23406 env-steps/s aggregate
+  300/308 units    1322s      23525 env-steps/s aggregate
+  308/308 units    1353s      23598 env-steps/s aggregate
+done: 308 units, 31,933,440 env-steps in 1353.4s (23,595 steps/s; 16.4 simulated days per wall-second)
+wrote results_e5/grid_e5_test.csv

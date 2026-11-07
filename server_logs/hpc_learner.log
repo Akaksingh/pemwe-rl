@@ -1,0 +1,19 @@
+cuda batch= 256 rep=0     173 updates/s
+cuda batch= 512 rep=0     171 updates/s
+cuda batch=1024 rep=0     167 updates/s
+cuda batch=2048 rep=0     169 updates/s
+cuda batch= 256 rep=1     173 updates/s
+cuda batch= 512 rep=1     171 updates/s
+cuda batch=1024 rep=1     166 updates/s
+cuda batch=2048 rep=1     167 updates/s
+cuda batch= 256 rep=2     175 updates/s
+cuda batch= 512 rep=2     170 updates/s
+cuda batch=1024 rep=2     168 updates/s
+cuda batch=2048 rep=2     166 updates/s
+cpu threads= 4 batch=512 rep=0    97.2 updates/s
+cpu threads= 4 batch=512 rep=1    98.2 updates/s
+cpu threads= 8 batch=512 rep=0   109.1 updates/s
+cpu threads= 8 batch=512 rep=1   110.3 updates/s
+cpu threads=16 batch=512 rep=0    95.0 updates/s
+cpu threads=16 batch=512 rep=1    89.7 updates/s
+appended results_hpc/hpc_scaling.csv

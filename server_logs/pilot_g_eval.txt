@@ -1,0 +1,18 @@
+note: no reference results found; run scripts/fake_results.py to enable the cross-check against C's schema
+run_id                          H2 kg/day     uV/h  life yr  cycles   split
+---------------------------------------------------------------------------
+pilot_utd1_g0.99_seed0              210.0     3.54     5.71     7.1   train
+---------------------------------------------------------------------------
+wrote 1 result files to results_pilot
+schema check vs CONTRACTS.md 3: PASS
+note: no reference results found; run scripts/fake_results.py to enable the cross-check against C's schema
+run_id                          H2 kg/day     uV/h  life yr  cycles   split
+---------------------------------------------------------------------------
+pilot_utd1_g0.95_seed0              212.6     3.38     5.98     3.8   train
+---------------------------------------------------------------------------
+wrote 1 result files to results_pilot
+schema check vs CONTRACTS.md 3: PASS
+reference constant +1 (train days): H2 219.6 kg/d, dV 84.9 uV/d
+pilot_utd1_w2-0.1_seed0    H2  204.3  dV   94.9  cycles  14.1  curt   774 kWh | vs const+1: dReward   -1539/day, SAC better on 0% of 293 days
+pilot_utd1_g0.99_seed0     H2  210.0  dV   85.0  cycles   7.1  curt   493 kWh | vs const+1: dReward    -954/day, SAC better on 0% of 293 days
+pilot_utd1_g0.95_seed0     H2  212.6  dV   81.1  cycles   3.8  curt   373 kWh | vs const+1: dReward    -699/day, SAC better on 0% of 293 days

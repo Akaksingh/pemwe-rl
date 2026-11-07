@@ -1,0 +1,9 @@
+51 units, 14 workers
+  10/51 units      69s      12393 env-steps/s aggregate
+  20/51 units     116s      14597 env-steps/s aggregate
+  30/51 units     159s      16070 env-steps/s aggregate
+  40/51 units     198s      17198 env-steps/s aggregate
+  50/51 units     234s      18126 env-steps/s aggregate
+  51/51 units     235s      18421 env-steps/s aggregate
+done: 51 units, 4,332,960 env-steps in 235.3s (18,412 steps/s; 12.8 simulated days per wall-second)
+wrote results_pilot/e3_grid.csv

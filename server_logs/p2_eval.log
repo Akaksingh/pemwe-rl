@@ -1,0 +1,18 @@
+11 units, 12 workers
+  10/11 units     231s      18290 env-steps/s aggregate
+  11/11 units     233s      19892 env-steps/s aggregate
+done: 11 units, 4,641,120 env-steps in 233.4s (19,887 steps/s; 13.8 simulated days per wall-second)
+wrote results_pilot/grid_round2.csv
+w=(1.0,0.1,0.1); reference = no_threshold; split/days as in the CSV
+             controller  days  h2_kg  dv_uv_day  transitions  curtailed_kwh  d_reward   ci_lo   ci_hi  pct_days_better
+           no_threshold   293  219.6       84.9          6.0           21.8       0.0     0.0     0.0              0.0
+     naive_as_published   293  217.2       94.7         17.1          162.4    -243.3  -277.7  -209.7              0.0
+           ramp_limited   293  214.7       80.0          7.5          287.3    -481.0  -511.7  -450.9              0.0
+         pilot2_g0.8_s0   293  212.9       80.1          3.1          357.6    -665.4  -677.6  -652.4              0.0
+         pilot2_g0.9_s0   293  212.9       80.9          3.7          357.4    -667.2  -680.0  -653.7              0.0
+ pilot_utd1_g0.95_seed0   293  212.6       81.1          3.8          373.3    -698.5  -712.0  -683.8              0.0
+        pilot2_g0.95_s1   293  212.5       80.9          4.2          376.9    -705.9  -720.2  -691.1              0.0
+   pilot2_g0.95_rs10_s0   293  212.5       80.8          3.6          377.0    -708.2  -720.6  -695.1              0.0
+ pilot_utd1_g0.99_seed0   293  210.0       85.0          7.1          493.4    -953.9  -974.5  -931.4              0.0
+pilot_utd1_w2-0.1_seed0   293  204.3       94.9         14.1          773.8   -1539.2 -1598.8 -1481.5              0.0
+pilot_utd1_w2-0.1_seed1   293  201.0       91.3         12.0          917.5   -1861.7 -1927.4 -1793.6              0.0

@@ -1,0 +1,3 @@
+[e5_w2-1.41_s1] SAC seed=1 device=cuda n_envs=32 steps=300,000 w=(1.0, 1.41, 0.1) train_days=293
+[e5_w2-1.41_s1] done in 59.8 min (84 steps/s) -> /home/USER/pemwe-rl/models/e5_w2-1.41_s1.zip
+[e5_w2-1.41_s1] evaluate with:  python -m pemwe.evaluate --model /home/USER/pemwe-rl/models/e5_w2-1.41_s1.zip --policy sac --run-id e5_w2-1.41_s1
