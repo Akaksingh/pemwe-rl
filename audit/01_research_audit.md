@@ -196,6 +196,35 @@ variants; hydrogen ordering never changes. The grid also reproduces the paper's 
 (201.8/96.9, 205.0/82.7, 199.5/78.3 kg and µV per day), which validates the new harness against the old
 evaluation code.
 
+**E3 — update-ratio study (2026-11-07, [RAN], gamma 0.95, w2 = 0.1, 2 seeds, 300k steps, every 5th train
+day, checkpoints every 50k steps).** UTD 1/32, 1/8, 1/2 and 1 all sit on the same plateau, 3.0–3.3% below the
+constant-action rule, from the *first* checkpoint onward (UTD 1/32: 3.2% after 0.4 min and ~1.2k updates).
+Final wall-clock (four runs sharing the GPU): 2.7 min / ~9k updates at UTD 1/32 against 55 min / ~290k updates
+at UTD 1, a factor of 20, for no quality difference. So the update-ratio error (C1) is real but did **not**
+cause the poor legacy SAC results; the discount factor did. The corrected-ratio runs are a 20x waste of learner
+time for this problem.
+
+**What the policy learns ([RAN] probe, 12 test days):** the UTD-1 policy commands on average 94% of available
+power, stays off 95% of the time when the resource is only 3.5–5% of rated (avoiding marginal start-ups), and
+commands 98% at high availability. At w2 = 20 it commands 70% on average and is off in 24% of steps where the
+resource would allow operation.
+
+**E5 — frontier on the held-out test days (2026-11-07, [RAN], gamma 0.95, UTD 1, 300k steps, 2 seeds per w2,
+test split used once).** Rule grids (slew limit with/without the idle threshold, power cap, 35 points) give a
+non-dominated envelope. SAC at w2 = 1.41 and 5.32 sits on or slightly below it (−1.1% and −0.3% hydrogen at the
+same degradation); SAC at w2 = 12.9 makes 181 kg/day at 56.3 µV/day, 24% (35 kg) more than the envelope at that
+degradation; w2 = 20 gives 166 kg/day at 49.0 µV/day against 89 kg/day for the lowest-degradation rule point.
+The earlier SAC runs stopped at 65.6 µV/day. Matched comparison under coefficient/resource shifts (policies
+not retrained): against a slew limit matched to the policy's degradation, SAC makes 14% (w2 = 12.9) to 86%
+(w2 = 20) more hydrogen with a median life ratio of ~1.0; it outlives the matched rule in 10 of 13 coefficient
+variants and 5 of 5 scenarios (w2 = 12.9) but not in all (worst life ratio 0.85). **Defensible claim:** more
+hydrogen at the same degradation in the low-degradation regime, lifetime roughly a tie that depends on the
+coefficients; **not** a longer life.
+
+**Open limits of this evidence:** two seeds per setting; gamma chosen from in-sample pilots; one-dimensional
+rule families only (a richer rule or MPC may close part of the gap); w2 has no economic calibration; PPO not
+re-run, so the old PPO claim is withdrawn.
+
 #### C3. Lifetime claims rest on a linear extrapolation of reset-to-zero days
 
 - Training and evaluation episodes reset `dv_deg_uv` to 0 (`persist_degradation: false`).

@@ -1,0 +1,13 @@
+{
+  "units": 51,
+  "env_steps": 4332960,
+  "wall_s": 235.3,
+  "workers": 14,
+  "steps_per_s": 18412,
+  "sim_days_per_wall_s": 12.8,
+  "split": "train",
+  "grid": "nominal",
+  "day_stride": 5,
+  "models": ["48 E3 checkpoints (4 update ratios x 2 seeds x 6 checkpoints)"],
+  "note": "Values copied from the final lines of logs/e3_eval.log on the server (this run predates the metadata writer). 59 training days (every 5th); the machine was otherwise idle."
+}

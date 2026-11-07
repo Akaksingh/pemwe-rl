@@ -1,0 +1,12 @@
+{
+  "units": 308,
+  "env_steps": 31933440,
+  "wall_s": 1353.4,
+  "workers": 14,
+  "steps_per_s": 23595,
+  "sim_days_per_wall_s": 16.4,
+  "split": "test",
+  "grid": "both",
+  "models": ["8 SAC checkpoints (e5_w2-{1.41,5.32,12.9,20.0}_s{0,1})"],
+  "note": "Values copied from the final lines of logs/e5_eval.log on the server (this run predates the metadata writer). Includes the three rule-based controllers and 8 learned policies; the machine was otherwise idle."
+}
