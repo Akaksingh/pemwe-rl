@@ -82,6 +82,115 @@ def main():
         M["NumGridWorkers"] = str(j["workers"])
         M["NumGridDaysPerSec"] = sig(j["sim_days_per_wall_s"], 2)
 
+    def neg(x, n=2):                      # a real minus sign for LaTeX text mode
+        return sig(x, n).replace("-", "$-$")
+
+    # ---- evaluation-harness throughput: rules only vs rules + learned policies (same 14 workers)
+    for meta, pre in ((ROOT / "results_e5" / "grid_slew_matched.meta.json", "NumEvalRule"),
+                      (ROOT / "results_e5" / "grid_e5_test.meta.json", "NumEvalSac")):
+        if meta.exists():
+            j2 = json.loads(meta.read_text())
+            M[pre + "StepsPerSec"] = num(j2["steps_per_s"], 3)
+            M[pre + "Units"] = str(j2["units"])
+            M[pre + "Steps"] = r"\num{" + str(j2["env_steps"]) + "}"
+            M[pre + "Seconds"] = sig(j2["wall_s"], 4)
+            M[pre + "Workers"] = str(j2["workers"])
+
+    # ---- E3: update-ratio study
+    e3 = d / "e3_quality.csv"
+    if e3.exists():
+        q = pd.read_csv(e3)
+        fin = q[q.steps >= q.steps.max() - 1000].groupby("utd").agg(gap=("gap_pct", "mean"), wall=("wall_min", "mean"),
+                                                                    upd=("updates", "mean"))
+        first = q[q.steps == q.steps.min()].groupby("utd").agg(gap=("gap_pct", "mean"), wall=("wall_min", "mean"))
+        lo_k, hi_k = fin.index.astype(float).argmin(), fin.index.astype(float).argmax()
+        lo, hi = fin.index[lo_k], fin.index[hi_k]
+        M["NumEThreeShortfallMin"] = sig(abs(fin.gap).min(), 2)
+        M["NumEThreeShortfallMax"] = sig(abs(fin.gap).max(), 2)
+        M["NumEThreeFirstShortfall"] = sig(abs(first.loc[lo, "gap"]), 2)
+        M["NumEThreeFirstWallLow"] = sig(first.loc[lo, "wall"], 2)
+        M["NumEThreeWallLow"] = sig(fin.loc[lo, "wall"], 2)
+        M["NumEThreeWallHigh"] = sig(fin.loc[hi, "wall"], 2)
+        M["NumEThreeWallRatio"] = sig(fin.loc[hi, "wall"] / fin.loc[lo, "wall"], 2)
+        M["NumEThreeUpdLow"] = num(fin.loc[lo, "upd"], 3)
+        M["NumEThreeUpdHigh"] = num(fin.loc[hi, "upd"], 3)
+
+    # ---- measured update-to-data ratios, from the update counts the library itself logged
+    def measured_utd(tag):
+        rs = []
+        for s_ in (0, 1):
+            f_ = ROOT / "results_e3" / f"e3_utd{tag}_s{s_}.csv"
+            if f_.exists():
+                last = pd.read_csv(f_).iloc[-1]
+                rs.append(last.n_updates / (last.timesteps - 10_000))      # learning_starts = 10,000 steps
+        return float(np.mean(rs)) if rs else None
+    lowr, highr = measured_utd("0.03125"), measured_utd("1")
+    if lowr is not None:
+        M["NumUtdMeasuredLow"] = sig(lowr, 2)
+    if highr is not None:
+        M["NumUtdMeasuredHigh"] = sig(highr, 2)
+
+    # ---- E5: corrected SAC against the best simple rule at the same degradation
+    vp = d / "e5_vs_rules.csv"
+    if vp.exists():
+        v = pd.read_csv(vp).set_index("w2")
+        for w, tag in ((1.41, "One"), (5.32, "Five"), (12.9, "Twelve"), (20.0, "Twenty")):
+            if w in v.index:
+                r_ = v.loc[w]
+                M[f"NumSac{tag}HydrogenKg"] = sig(r_.sac_h2, 3)
+                M[f"NumSac{tag}Degradation"] = sig(r_.sac_dv, 3)
+                M[f"NumRule{tag}HydrogenKg"] = sig(r_.rule_h2_at_same_dv, 3)
+                M[f"NumAdv{tag}Kg"] = neg(r_.advantage_kg, 2) if r_.advantage_kg < 0 else sig(r_.advantage_kg, 2)
+                M[f"NumAdv{tag}Pct"] = neg(r_.advantage_pct, 2) if r_.advantage_pct < 0 else sig(r_.advantage_pct, 2)
+
+    # ---- robustness: tuned slew limit and matched slew limits
+    sm = d / "sac_sensitivity_summary.csv"
+    if sm.exists():
+        t = pd.read_csv(sm)
+        for w, tag in ((12.9, "Twelve"), (20.0, "Twenty")):
+            for kind, k in (("coefficient variant", "Coef"), ("resource scenario", "Scen")):
+                r_ = t[(t.series == f"SAC w2={w:g}") & (t.kind == kind)]
+                if len(r_):
+                    r_ = r_.iloc[0]
+                    M[f"NumTuned{tag}{k}Out"] = str(int(r_.sac_outlives_rule))
+                    M[f"NumTuned{tag}{k}Rows"] = str(int(r_.rows))
+                    M[f"NumTuned{tag}{k}MinRatio"] = sig(r_.life_ratio_min, 2)
+                    M[f"NumTuned{tag}{k}HydrogenPct"] = sig(abs(r_.h2_vs_rule_pct_mean), 2)
+    mm = d / "sac_matched_summary.csv"
+    if mm.exists():
+        t = pd.read_csv(mm)
+        for (w, rule), tag in (((12.9, "slew_0.0015"), "Twelve"), ((20.0, "slew_0.0005"), "Twenty")):
+            for kind, k in (("coefficient variant", "Coef"), ("resource scenario", "Scen")):
+                r_ = t[(t.sac == f"SAC w2={w:g}") & (t.rule == rule) & (t.kind == kind)]
+                if len(r_):
+                    r_ = r_.iloc[0]
+                    M[f"NumMatch{tag}{k}Out"] = str(int(r_.sac_outlives))
+                    M[f"NumMatch{tag}{k}Rows"] = str(int(r_.rows))
+                    M[f"NumMatch{tag}{k}MinRatio"] = sig(r_.life_ratio_min, 2)
+                    M[f"NumMatch{tag}{k}MedRatio"] = sig(r_.life_ratio_median, 2)
+                    M[f"NumMatch{tag}{k}HydrogenPct"] = sig(r_.h2_vs_rule_pct, 2)
+                    M[f"NumMatch{tag}RuleDv"] = sig(r_.nominal_rule_dv, 3)
+                    M[f"NumMatch{tag}RuleHydrogen"] = sig(r_.nominal_rule_h2, 3)
+
+    # ---- what the policies do (probe on a day subset)
+    pp = d / "policy_probe.csv"
+    if pp.exists():
+        pr = pd.read_csv(pp)
+        def row(pol, lo, hi):
+            x = pr[(pr.policy == pol) & (abs(pr.bin_lo - lo) < 1e-9) & (abs(pr.bin_hi - hi) < 1e-9)]
+            return x.iloc[0] if len(x) else None
+        for pol, tag in (("e3_utd1_s0", "E"), ("e5_w2-20.0_s0", "Twenty")):
+            a0 = row(pol, 0.035, 1.0)
+            if a0 is not None:
+                M[f"NumProbe{tag}MeanU"] = sig(a0.mean_u, 2)
+                M[f"NumProbe{tag}Off"] = sig(a0.share_off * 100, 2)
+        lo_ = row("e3_utd1_s0", 0.035, 0.05)
+        hi_ = row("e3_utd1_s0", 0.7, 1.0)
+        if lo_ is not None:
+            M["NumProbeEOffLow"] = sig(lo_.share_off * 100, 2)
+        if hi_ is not None:
+            M["NumProbeEUHigh"] = sig(hi_.mean_u, 3)
+
     sp2 = d / "degradation_sensitivity.csv"
     if sp2.exists():
         s = pd.read_csv(sp2)
@@ -140,13 +249,41 @@ def main():
             M["NumMultiBest"] = num(agg.max(), 3)
             M["NumMultiBestCase"] = r"\texttt{" + agg.idxmax().replace("_", r"\_") + "}"
 
+    # ---- derived: learned-policy evaluation slowdown, and where the earlier SAC runs stopped
+    if "NumEvalRuleStepsPerSec" in M:
+        jr = json.loads((ROOT / "results_e5" / "grid_slew_matched.meta.json").read_text())["steps_per_s"]
+        js = json.loads((ROOT / "results_e5" / "grid_e5_test.meta.json").read_text())["steps_per_s"]
+        M["NumEvalRatio"] = sig(jr / js, 2)
+    import glob as _glob
+    import re as _re
+    legacy = {}
+    for f in _glob.glob(str(ROOT / "results" / "sac_w2-*_seed*.json")):
+        w = float(_re.search(r"w2-([\d.]+)_seed", f).group(1))
+        legacy.setdefault(w, []).append(json.load(open(f))["aggregate"]["dv_deg_uv_mean"])
+    if legacy:
+        M["NumLegacyMinDv"] = sig(min(float(np.mean(v)) for v in legacy.values()), 3)
+
     lines = ["% GENERATED by scripts/make_paper_numbers.py -- do not edit by hand."]
     for k, v in M.items():
         lines.append(rf"\newcommand{{\{k}}}{{{v}}}")
     Path(a.out).write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"wrote {a.out}: {len(M)} macros")
-    for k, v in M.items():
-        print(f"  {k:24s} {v}")
+
+    # ---- fallbacks: any \Num... macro the manuscript uses but the data did not supply shows as a red TODO
+    tex_path = ROOT / "paper" / "main_track2.tex"
+    if tex_path.exists():
+        tex = tex_path.read_text(encoding="utf-8")
+        bad = sorted(set(_re.findall(r"\\(Num[A-Za-z]*\d[A-Za-z0-9]*)", tex)))
+        if bad:
+            print("!! macro names containing digits (LaTeX cannot parse these):", bad)
+        used = set(_re.findall(r"\\(Num[A-Za-z]+)", tex))
+        missing = sorted(used - set(M))
+        fb = ["% GENERATED by scripts/make_paper_numbers.py: red-TODO fallbacks for macros used in the text but not generated."]
+        fb += [rf"\providecommand{{\{k}}}{{\TODO{{{k}}}}}" for k in missing]
+        (ROOT / "paper" / "numbers_fallback.tex").write_text("\n".join(fb) + "\n", encoding="utf-8")
+        print(f"fallbacks written for {len(missing)} macro(s) not yet generated: {missing[:10]}")
+        unused = sorted(set(M) - used)
+        print(f"generated but unused in the text: {len(unused)}")
 
 
 if __name__ == "__main__":
