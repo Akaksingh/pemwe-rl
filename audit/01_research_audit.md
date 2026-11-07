@@ -207,8 +207,9 @@ frontier weights. At UTD 1/32 the policies for w2 = 12.9 and w2 = 20 are nearly 
 76.5 / 76.1 µV/day) and sit at the low-weight plateau, i.e. they have not learned the weight's effect; at UTD 1 the
 same weights give 200.8 / 185.6 kg/day at 59.0 / 50.9 µV/day. The update-ratio error (C1) therefore has a real
 consequence: the legacy runs (UTD 1/32, gamma 0.999) could not be expected to have learned the high-weight end of
-the frontier. A follow-up (w2 = 20, UTD 1/8, 1/4, 1/2, 1, checkpoints) is running to find where the response
-appears; the earlier 'a 20x waste' wording is withdrawn.
+the frontier. A follow-up (w2 = 20, UTD 1/8, 1/4, 1/2, 1, checkpoints) was started and then **stopped on request before any run
+finished**, so the update ratio at which the response appears is **not determined** (partial logs only, see
+`results_e3b/README_PARTIAL.md`); the earlier 'a 20x waste' wording is withdrawn.
 
 **What the policy learns ([RAN] probe, 12 test days):** the UTD-1 policy commands on average 94% of available
 power, stays off 95% of the time when the resource is only 3.5–5% of rated (avoiding marginal start-ups), and
