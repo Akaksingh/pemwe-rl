@@ -1,18 +1,20 @@
-"""Yield-degradation frontier: corrected SAC (E5) against the legacy SAC runs and the rule-based baselines.
+"""Yield-degradation frontier: corrected SAC (E5) against the earlier SAC runs and the rule-based families.
 
-    python scripts/analyze_e5.py [--e5 results_e5/grid_e5_test.csv] [--base results_hpc/degradation_sensitivity.csv]
-                                 [--legacy-dir results] [--png]
+    python scripts/analyze_e5.py [--png]
 
-All three sources are evaluated on the same 72 held-out test days with the same environment:
-  baselines  rows of degradation_sensitivity.csv (variant = nominal, original profile) from run_scenario_grid.py
+All sources are evaluated on the same 72 held-out test days with the same environment:
+  rules      baseline_frontier.csv: slew-limit grids (with and without the idle threshold) and power-cap
+             grid, plus the three named baselines from degradation_sensitivity.csv (nominal)
   legacy     results/sac_w2-*_seed*.json: the earlier SAC runs (update-to-data ratio 0.032, gamma 0.999,
-             2M steps), evaluated by pemwe.evaluate (same env, same days)
-  corrected  E5 runs (update-to-data ratio 1, gamma from the pilots, 300k steps) from the grid CSV
+             2M steps), evaluated by pemwe.evaluate
+  corrected  E5 runs (update-to-data ratio 1, gamma 0.95, 300k steps) from the grid CSV
 
-The test split is used here once, for the final evaluation of policies whose settings were chosen
-from in-sample training-day pilots. Axes: lower degradation (x) and higher hydrogen (y) are better.
-Each corrected point is the mean over seeds; the faint dots are individual seeds. A point is reported as
-"dominated" when some other controller has at least as much hydrogen AND no more degradation.
+The test split is used here once, for the final evaluation of policies whose settings were chosen from
+in-sample training-day pilots. The rule grids are not tuned on these days: every grid point is shown.
+"Best simple rule" is the non-dominated envelope of all rule points (hydrogen higher AND degradation
+lower is better). For each corrected SAC point the envelope's hydrogen at the same degradation is found
+by linear interpolation along the envelope; points below the envelope's lowest-degradation point are
+reported against that point and flagged.
 """
 from __future__ import annotations
 
@@ -48,13 +50,25 @@ def legacy_points(d: Path) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def envelope(points: pd.DataFrame) -> pd.DataFrame:
+    """Non-dominated set: no other point has >= hydrogen and <= degradation (one strictly)."""
+    keep = []
+    for i, r in points.iterrows():
+        dom = ((points.h2 >= r.h2) & (points.dv <= r.dv) & ((points.h2 > r.h2) | (points.dv < r.dv))).any()
+        if not dom:
+            keep.append(i)
+    return points.loc[keep].sort_values("dv")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--e5", default=str(ROOT / "results_e5" / "grid_e5_test.csv"))
     ap.add_argument("--base", default=str(ROOT / "results_hpc" / "degradation_sensitivity.csv"))
+    ap.add_argument("--families", default=str(ROOT / "results_hpc" / "baseline_frontier.csv"))
     ap.add_argument("--legacy-dir", default=str(ROOT / "results"))
     ap.add_argument("--fig-dir", default=str(ROOT / "results" / "figures"))
     ap.add_argument("--out-csv", default=str(ROOT / "results_hpc" / "e5_frontier.csv"))
+    ap.add_argument("--vs-csv", default=str(ROOT / "results_hpc" / "e5_vs_rules.csv"))
     ap.add_argument("--png", action="store_true")
     a = ap.parse_args()
     H.PNG = a.png
@@ -62,6 +76,7 @@ def main():
 
     b = pd.read_csv(a.base)
     b = b[(b.variant == "nominal") & (b.scenario == "original") & (b.realisation == 0)].set_index("controller")
+    fam = pd.read_csv(a.families)
     leg = legacy_points(Path(a.legacy_dir))
 
     new = pd.DataFrame()
@@ -76,44 +91,62 @@ def main():
                                  transitions=d.n_cycles.mean(), curtailed=d.curtailed_kwh.mean()))
         new = pd.DataFrame(rows)
 
-    fig, ax = plt.subplots(figsize=(3.5, 3.0))
-    # legacy SAC: mean over seeds per w2, a line
+    rules = pd.concat([
+        pd.DataFrame({"name": [f"{r.family} {r.param:g}" for r in fam.itertuples()], "h2": fam.h2_kg_day, "dv": fam.dv_uv_day}),
+        pd.DataFrame({"name": [f"named {c}" for c in b.index], "h2": b.h2_kg_day.values, "dv": b.dv_uv_day.values})],
+        ignore_index=True)
+    env = envelope(rules)
+
+    fig, ax = plt.subplots(figsize=(3.5, 3.1))
+    ax.scatter(rules.dv, rules.h2, s=7, color=H.BASE, linewidths=0, zorder=2)
+    ax.plot(env.dv, env.h2, color=H.INK2, lw=1.1, ls=(0, (4, 2)), zorder=3, label="best simple rule (envelope)")
     lm = leg.groupby("w2").agg(h2=("h2", "mean"), dv=("dv", "mean")).reset_index().sort_values("w2")
-    ax.plot(lm.dv, lm.h2, color=H.AQUA, marker="o", ms=4, lw=1.3, mec=H.SURFACE, mew=0.6, zorder=3,
+    ax.plot(lm.dv, lm.h2, color=H.AQUA, marker="o", ms=3.5, lw=1.2, mec=H.SURFACE, mew=0.6, zorder=4,
             label="SAC, earlier runs (UTD 0.03, 2M steps)")
     if len(new):
         nm = new.groupby("w2").agg(h2=("h2", "mean"), dv=("dv", "mean")).reset_index().sort_values("w2")
-        ax.scatter(new.dv, new.h2, s=10, color=H.BLUE, alpha=0.35, linewidths=0, zorder=3)
-        ax.plot(nm.dv, nm.h2, color=H.BLUE, marker="D", ms=5, lw=1.5, mec=H.SURFACE, mew=0.8, zorder=4,
+        ax.scatter(new.dv, new.h2, s=9, color=H.BLUE, alpha=0.35, linewidths=0, zorder=4)
+        ax.plot(nm.dv, nm.h2, color=H.BLUE, marker="D", ms=5, lw=1.5, mec=H.SURFACE, mew=0.8, zorder=5,
                 label="SAC, corrected (UTD 1, 300k steps)")
         for r in nm.itertuples():
-            ax.annotate(f"{r.w2:g}", (r.dv, r.h2), textcoords="offset points", xytext=(4, -9), fontsize=6.3, color=H.INK2)
+            ax.annotate(f"{r.w2:g}", (r.dv, r.h2), textcoords="offset points", xytext=(-3, 6), fontsize=6.3,
+                        color=H.INK2, ha="center")
+    label_at = {"naive_as_published": (97.0, 178.0), "ramp_limited": (89.0, 162.0), "no_threshold": (85.0, 208.5)}
     for c, (mk, lab) in BASE_STYLE.items():
         if c in b.index:
-            ax.plot(b.loc[c, "dv_uv_day"], b.loc[c, "h2_kg_day"], marker=mk, ms=7, mfc=H.SURFACE, mec=H.INK, mew=1.3,
-                    ls="", zorder=5)
-            ax.annotate(lab, (b.loc[c, "dv_uv_day"], b.loc[c, "h2_kg_day"]), textcoords="offset points",
-                        xytext=(5, 3), fontsize=6.8, color=H.INK)
+            ax.plot(b.loc[c, "dv_uv_day"], b.loc[c, "h2_kg_day"], marker=mk, ms=6.5, mfc=H.SURFACE, mec=H.INK, mew=1.2,
+                    ls="", zorder=6)
+            ax.annotate(lab, (b.loc[c, "dv_uv_day"], b.loc[c, "h2_kg_day"]), xytext=label_at[c], textcoords="data",
+                        fontsize=6.5, color=H.INK, ha="left", va="center",
+                        arrowprops=dict(arrowstyle="-", color=H.MUTED, lw=0.7, shrinkA=1, shrinkB=4))
     ax.set_xlabel("degradation (µV / day, lower is better)")
     ax.set_ylabel("hydrogen (kg / day)")
-    ax.invert_xaxis()
+    ax.set_xlim(100, 44)
+    ax.set_ylim(60, 212)
     ax.grid(axis="x", visible=True)
-    ax.legend(frameon=False, loc="lower left", fontsize=6.6, handlelength=1.8)
+    ax.legend(frameon=False, loc="lower left", fontsize=6.3, handlelength=2.0)
     fig.tight_layout()
     out = Path(a.fig_dir) / "fig_frontier.pdf"
     H._save(fig, out)
 
-    # ---- dominance report
-    allc = [(f"baseline:{c}", b.loc[c, "dv_uv_day"], b.loc[c, "h2_kg_day"]) for c in b.index]
-    allc += [(f"legacy w2={r.w2:g}", r.dv, r.h2) for r in lm.itertuples()]
+    # ---- advantage over the best simple rule at the same degradation
+    vs = []
     if len(new):
-        allc += [(f"corrected w2={r.w2:g}", r.dv, r.h2) for r in nm.itertuples()]
-    print(f"{'point':26s}{'H2 kg/d':>9}{'dV uV/d':>9}   dominated by")
-    for n, dv, h2 in allc:
-        dom = [m for m, dv2, h22 in allc if m != n and h22 >= h2 and dv2 <= dv and (h22 > h2 or dv2 < dv)]
-        print(f"{n:26s}{h2:9.1f}{dv:9.1f}   {', '.join(dom[:3]) + (' ...' if len(dom) > 3 else '') if dom else '-'}")
-    if len(new):
+        for r in nm.itertuples():
+            below = r.dv < env.dv.min()
+            rule_h2 = float(np.interp(r.dv, env.dv.to_numpy(), env.h2.to_numpy())) if not below else float(env.h2.iloc[0])
+            vs.append(dict(w2=r.w2, sac_h2=r.h2, sac_dv=r.dv, rule_h2_at_same_dv=rule_h2,
+                           advantage_kg=r.h2 - rule_h2, advantage_pct=100 * (r.h2 - rule_h2) / rule_h2,
+                           below_envelope_range=bool(below), n_seeds=int((new.w2 == r.w2).sum())))
+        v = pd.DataFrame(vs)
+        v.to_csv(a.vs_csv, index=False)
         new.to_csv(a.out_csv, index=False)
+        pd.set_option("display.width", 200)
+        print("best-simple-rule envelope:")
+        print(env.round(1).to_string(index=False))
+        print("\nSAC (corrected, mean of seeds) against the envelope at the same degradation:")
+        print(v.round(2).to_string(index=False))
+        print("\nper seed:")
         print(new.sort_values(["w2", "seed"]).round(2).to_string(index=False))
     print("wrote", out)
 

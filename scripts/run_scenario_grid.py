@@ -93,6 +93,10 @@ def run_unit(unit):
         pol = BASELINES["baseline_naive"](cfg)
     elif ctrl == "ramp_limited":
         pol = BASELINES["baseline_ramplimited"](cfg)
+    elif ctrl.startswith("slew_"):                     # slew-limited rule with an explicit limit, e.g. slew_0.0015
+        lim = float(ctrl[len("slew_"):])
+        pol = BASELINES["baseline_ramplimited"](load_config(
+            overrides=overrides + [f"baseline.ramp_limit_frac_per_min={lim}"]))
     else:
         raise ValueError(ctrl)
 
@@ -115,12 +119,16 @@ def main():
     ap.add_argument("--grid", default="both", choices=["both", "coefs", "scenarios", "nominal"],
                     help="nominal = original profile, nominal coefficients only (quick comparisons)")
     ap.add_argument("--out", default=str(ROOT / "results_hpc" / "controller_grid_days.csv"))
+    ap.add_argument("--extra-slew", nargs="*", type=float, default=[],
+                    help="add slew-limited rules with these limits (controller names slew_<limit>)")
+    ap.add_argument("--no-base", action="store_true", help="skip the three standard rule-based controllers")
     ap.add_argument("--limit-days", type=int, default=0, help="smoke test: use fewer days")
     ap.add_argument("--day-stride", type=int, default=1,
                     help="use every k-th day of the (date-sorted) split: a cheap subset that still spans the year")
     a = ap.parse_args()
 
-    ctrls = [("naive_as_published", None), ("no_threshold", None), ("ramp_limited", None)]
+    ctrls = [] if a.no_base else [("naive_as_published", None), ("no_threshold", None), ("ramp_limited", None)]
+    ctrls += [(f"slew_{lim:g}", None) for lim in a.extra_slew]
     ctrls += [(Path(m).stem, m) for m in a.models]
 
     units = []
