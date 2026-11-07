@@ -200,9 +200,15 @@ evaluation code.
 day, checkpoints every 50k steps).** UTD 1/32, 1/8, 1/2 and 1 all sit on the same plateau, 3.0–3.3% below the
 constant-action rule, from the *first* checkpoint onward (UTD 1/32: 3.2% after 0.4 min and ~1.2k updates).
 Final wall-clock (four runs sharing the GPU): 2.7 min / ~9k updates at UTD 1/32 against 55 min / ~290k updates
-at UTD 1, a factor of 20, for no quality difference. So the update-ratio error (C1) is real but did **not**
-cause the poor legacy SAC results; the discount factor did. The corrected-ratio runs are a 20x waste of learner
-time for this problem.
+at UTD 1, a factor of 20, for no quality difference **at w2 = 0.1**.
+
+**CORRECTION (2026-11-07 check, [RAN], train days, 2 seeds, gamma 0.95, 300k steps):** this does NOT hold at the
+frontier weights. At UTD 1/32 the policies for w2 = 12.9 and w2 = 20 are nearly identical (213.7 / 212.2 kg/day at
+76.5 / 76.1 µV/day) and sit at the low-weight plateau, i.e. they have not learned the weight's effect; at UTD 1 the
+same weights give 200.8 / 185.6 kg/day at 59.0 / 50.9 µV/day. The update-ratio error (C1) therefore has a real
+consequence: the legacy runs (UTD 1/32, gamma 0.999) could not be expected to have learned the high-weight end of
+the frontier. A follow-up (w2 = 20, UTD 1/8, 1/4, 1/2, 1, checkpoints) is running to find where the response
+appears; the earlier 'a 20x waste' wording is withdrawn.
 
 **What the policy learns ([RAN] probe, 12 test days):** the UTD-1 policy commands on average 94% of available
 power, stays off 95% of the time when the resource is only 3.5–5% of rated (avoiding marginal start-ups), and

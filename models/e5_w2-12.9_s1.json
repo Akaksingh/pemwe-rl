@@ -1,0 +1,43 @@
+{
+  "run_id": "e5_w2-12.9_s1",
+  "algo": "sac",
+  "seed": 1,
+  "device": "cuda",
+  "n_envs": 32,
+  "total_timesteps": 300000,
+  "weights": {
+    "w1": 1.0,
+    "w2": 12.9,
+    "w3": 0.1
+  },
+  "overrides": [
+    "reward.w2=12.9",
+    "train.sac.train_freq=32",
+    "train.sac.gradient_steps=1024",
+    "train.sac.gamma=0.95"
+  ],
+  "degradation": {
+    "r_base_uv_per_h": 1.75,
+    "k_j_uv_per_h": 20.0,
+    "j_stress_threshold": 0.6,
+    "j_stress_exponent": 2.0,
+    "k_ramp_uv_per_h": 31.0,
+    "dv_cycle_uv": 1.0,
+    "r_idle_uv_per_h": 0.75,
+    "dv_eol_uv": 177000.0
+  },
+  "train_days": 293,
+  "sac_cfg": {
+    "device": "cuda",
+    "train_freq": 32,
+    "gradient_steps": 1024,
+    "batch_size": 512,
+    "gamma": 0.95
+  },
+  "utd": 1.0,
+  "n_updates_performed": 290816,
+  "wall_s": 3583.7,
+  "steps_per_s": 83.7,
+  "model": "models/e5_w2-12.9_s1.zip",
+  "tensorboard": "results/tb/e5_w2-12.9_s1"
+}

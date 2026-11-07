@@ -1,18 +1,19 @@
 .venv/
 __pycache__/
 *.pyc
-data/raw/
-results/*.json
-# ...except the 90-day rollout: these ARE paper numbers (projected stack life),
-# they are small, and regenerating them costs a long CPU run. CONTRACTS.md 6 says
-# figures only; this is a deliberate, narrow exception.
-!results/*_longhorizon.json
+.pytest_cache/
+
+# Tracked on purpose (2026-11): the raw ERA5 cache (0.4 MB, so the profiles can be rebuilt offline), the
+# per-run evaluation JSONs behind the earlier SAC frontier, and the model checkpoints (about 230 MB).
+# Pipeline smoke-test outputs are NOT results and stay out.
+results/pipe_*.json
+results/smoke_*.json
+results/pipeline_check/
 results/tb/
-models/
+
 paper/*.aux
 paper/*.log
 paper/*.out
 paper/*.bbl
 paper/*.blg
 logs/
-results/pipeline_check/
