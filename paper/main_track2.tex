@@ -99,11 +99,13 @@ workers). Soft Actor-Critic (SAC) training at a correct update-to-data ratio is
 learner-bound at \NumGpuUps{} updates/s on the GPU and \NumCpuUpsFour{}--\NumCpuUpsEight{} on
 the CPU, independent of the number of environments. We also report a measurement pitfall: a
 vectorized SAC configuration documented as one gradient update per transition performed
-$\NumUtdMeasuredLow$, so speedups quoted in steps/s overstated learning throughput by about $30\times$. At every
-update ratio from $1/32$ to $1$, however, SAC reached the same quality plateau, about
-\NumEThreeShortfallMin--\NumEThreeShortfallMax\,\% below a one-line rule on its training reward, within its
-first checkpoint, so the $\NumEThreeWallRatio\times$ extra learner time bought nothing; configurations
-should be compared by time to a stated quality. On held-out days the learned controller matches the best
+$\NumUtdMeasuredLow$, so speedups quoted in steps/s overstated learning throughput by about $30\times$. The
+update ratio matters only where the policy has something to learn. At a low degradation weight SAC reached the
+same plateau at every ratio from $1/32$ to $1$, about \NumEThreeShortfallMin--\NumEThreeShortfallMax\,\% below a one-line
+rule on its training reward, within its first checkpoint; at the high weights that define the frontier the cheap ratio
+did not learn the weight's effect at all (\NumChkTwentyLowDeg\,\si{\micro\volt}/day at $w_2=20$ against
+\NumChkTwentyHighDeg{} at the full ratio, on training days). Configurations should therefore be compared by time to a
+stated quality at the weight of interest, not by steps per second. On held-out days the learned controller matches the best
 simple rule at moderate degradation reductions and, at low degradation, yields \NumAdvTwelvePct--\NumAdvTwentyPct\,\%
 more hydrogen than the best simple rule at the same degradation, with a projected life that depends on coefficients
 the model cannot pin down. No physical stack was operated: the simulator is a pre-screening tool, and
@@ -435,11 +437,17 @@ at the same plateau, \NumEThreeShortfallMin--\NumEThreeShortfallMax\,\% below th
 checkpoint (update ratio $1/32$: \NumEThreeFirstShortfall\,\% after \NumEThreeFirstWallLow\,min), and
 further learning does not change it. By the end of training the smallest ratio had performed
 \NumEThreeUpdLow{} updates in \NumEThreeWallLow\,min and the largest \NumEThreeUpdHigh{} updates in
-\NumEThreeWallHigh\,min, a factor of \NumEThreeWallRatio. The plateau is therefore a property of the problem
-and the policy class and not of the training budget: at a discount factor of $0.95$ the extra learner time
-that the corrected ratio demands buys no quality, and the time to plateau, minutes here, is the figure to
-benchmark. Together with the pilots, this indicates that the earlier long runs were limited by the discount
-factor and not by their update ratio. Caveats: two seeds, in-sample days, and wall-clock times measured with
+\NumEThreeWallHigh\,min, a factor of \NumEThreeWallRatio. At this weight the plateau is a property of the problem
+and the policy class and not of the training budget, and the extra learner time of the full ratio buys no
+quality. This does not carry over to higher weights. We repeated the comparison at $w_2=12.9$ and $w_2=20$
+(two seeds, $\gamma=0.95$, 300k steps, every fifth training day) against the full-ratio policies of the
+frontier experiment. At the cheap ratio the two weights give nearly the same policy (\NumChkTwelveLowHydrogen{} and
+\NumChkTwentyLowHydrogen\,kg/day at \NumChkTwelveLowDeg{} and \NumChkTwentyLowDeg\,\si{\micro\volt}/day), close to the
+low-weight plateau, whereas the full ratio gives \NumChkTwelveHighHydrogen{} and \NumChkTwentyHighHydrogen\,kg/day at
+\NumChkTwelveHighDeg{} and \NumChkTwentyHighDeg\,\si{\micro\volt}/day. The response to the degradation weight is learned only with
+enough updates, so the update-ratio pitfall has a real consequence: the earlier runs, at a ratio of $1/32$ and
+$\gamma=0.999$, would not be expected to have learned the high-weight end of the frontier. \TODO{curves of quality against updates and wall-clock at $w_2=20$, from the follow-up experiment}
+Caveats: two seeds, in-sample days, and wall-clock times measured with
 four runs sharing one GPU, so they are comparable across these runs but are not single-run speeds.
 
 \subsection{What the policy learns}
@@ -550,13 +558,14 @@ roughly the same projected life; the life itself varies with coefficients the mo
 some coefficient sets it is shorter than the rule's.
 
 \subsection{Where the compute goes}
-Training SAC to its plateau takes minutes. The remaining compute is evaluation. The \NumEvalSacUnits{}
+At a low weight, training reaches its plateau in minutes; at the frontier weights the full update ratio is
+needed, and a run took about \NumEFiveWallMin\,min with four runs sharing the GPU. The remaining compute is
+evaluation. The \NumEvalSacUnits{}
 evaluation units that include the learned policies (\NumEvalSacSteps{} environment steps) ran at
 \NumEvalSacStepsPerSec{} steps/s on \NumEvalSacWorkers{} workers, \NumEvalSacSeconds\,s in all, against
 \NumEvalRuleStepsPerSec{} steps/s for rule-based controllers on the same workers, a factor of
 \NumEvalRatio. Running the policy network through the library's prediction call costs more per step than the
-plant simulation itself. A learned controller is therefore cheap to train for this problem but not cheap to
-evaluate at scale, and the sweeps over resource, coefficients and controllers are the embarrassingly
+plant simulation itself. Evaluating learned policies at scale is therefore not cheap, and the sweeps over resource, coefficients and controllers are the embarrassingly
 parallel workload that benefits from additional cores.
 
 % =============================================================================
@@ -589,8 +598,9 @@ We characterised the computational side of screening electrolyzer control strate
 workstation. The simulator runs at \NumSimOne{} steps/s on a core and \NumSimSixteen{} steps/s on 16
 workers, and its apparent parallel inefficiency is the processor's clock falling under multi-core load, not
 the decomposition. Learner throughput, not environment throughput, bounds SAC training, and a documented
-one-to-one update ratio was in fact \NumUtdMeasuredLow{}; yet for this problem SAC reaches its quality plateau within
-minutes at every ratio we tried, so the more useful benchmark is time to plateau. On held-out days the
+one-to-one update ratio was in fact \NumUtdMeasuredLow{}. The ratio matters where the policy has something to
+learn: at a low degradation weight every ratio reaches the same plateau, but at high weights only the full ratio
+learns the weight's effect, so configurations should be compared by time to a stated quality at the weight of interest. On held-out days the
 learned controller does not improve on simple slew limits at moderate degradation, but at low degradation
 it delivers substantially more hydrogen than any simple rule we evaluated, with a projected life that
 depends on degradation coefficients the model cannot identify. These are simulation results on a model

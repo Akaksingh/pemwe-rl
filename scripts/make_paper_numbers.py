@@ -130,6 +130,26 @@ def main():
     if highr is not None:
         M["NumUtdMeasuredHigh"] = sig(highr, 2)
 
+    # ---- does the cheap update ratio still reach the frontier policies at high weights? (training days)
+    ck = ROOT / "results_check" / "grid_check_train.csv"
+    if ck.exists():
+        g_ = pd.read_csv(ck)
+        g_ = g_[(g_.scenario == "original") & (g_.variant == "nominal")]
+        per = g_.groupby("controller").agg(h2=("h2_kg", "mean"), dv=("dv_deg_uv", "mean"))
+        for w_, tag in (("12.9", "Twelve"), ("20.0", "Twenty")):
+            for pre, lab in ((f"chk_utd32_w2-{w_}", "Low"), (f"e5_w2-{w_}", "High")):
+                s_ = per[per.index.str.startswith(pre)]
+                if len(s_):
+                    M[f"NumChk{tag}{lab}Hydrogen"] = sig(s_.h2.mean(), 3)
+                    M[f"NumChk{tag}{lab}Deg"] = sig(s_.dv.mean(), 3)
+
+    # ---- wall-clock of the full-ratio frontier runs (four runs shared the GPU)
+    walls = []
+    for f_ in (ROOT / "results_e5").glob("e5_w2-*_s*.csv"):
+        walls.append(pd.read_csv(f_).iloc[-1].wall_s / 60.0)
+    if walls:
+        M["NumEFiveWallMin"] = sig(float(np.mean(walls)), 2)
+
     # ---- E5: corrected SAC against the best simple rule at the same degradation
     vp = d / "e5_vs_rules.csv"
     if vp.exists():
