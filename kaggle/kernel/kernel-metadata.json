@@ -1,0 +1,15 @@
+{
+  "id": "kk12kkk1234/pemwe-followup",
+  "title": "pemwe-followup",
+  "code_file": "kaggle_entry.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": true,
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}
