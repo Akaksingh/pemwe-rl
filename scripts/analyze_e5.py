@@ -95,6 +95,13 @@ def main():
         pd.DataFrame({"name": [f"{r.family} {r.param:g}" for r in fam.itertuples()], "h2": fam.h2_kg_day, "dv": fam.dv_uv_day}),
         pd.DataFrame({"name": [f"named {c}" for c in b.index], "h2": b.h2_kg_day.values, "dv": b.dv_uv_day.values})],
         ignore_index=True)
+    rf2 = ROOT / "results_hpc" / "rule_family_v2.csv"          # hysteresis + cap + slew rules (Kaggle run), optional
+    if rf2.exists():
+        v2 = pd.read_csv(rf2)
+        rules = pd.concat([rules, pd.DataFrame({
+            "name": [f"hyst p_on={r.p_on} k_up={r.k_up} k_down={r.k_down} slew={r.slew} cap={r.cap}" for r in v2.itertuples()],
+            "h2": v2.h2_kg_day, "dv": v2.dv_uv_day})], ignore_index=True)
+        print(f"including {len(v2)} hysteresis-rule grid points in the rule envelope")
     env = envelope(rules)
 
     fig, ax = plt.subplots(figsize=(3.5, 3.1))
