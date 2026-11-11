@@ -1,0 +1,11 @@
+date: 2026-11-10 15:45:09 UTC
+platform: Linux-6.18.55+-x86_64-with-glibc2.39
+python: 3.13.16
+torch: 2.11.0+cu130  cuda runtime: 13.0
+training device: cuda
+cpus: 4
+nvidia-smi: Tesla T4, 580.178.04, 15360 MiB
+Tesla T4, 580.178.04, 15360 MiB
+lscpu: CPU(s):                                  4;Model name:                              Intel(R) Xeon(R) CPU @ 2.00GHz;Thread(s) per core:                      2;Core(s) per socket:                      2;
+memory: total        used        free      shared  buff/cache   available Mem:              31           1          24           0           5          29
+repo commit: 1fb8e278dbcbbd6473d2f60d529135fc07152406

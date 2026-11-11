@@ -17,7 +17,9 @@ shutil.rmtree(REPO, ignore_errors=True)
 subprocess.run(["git", "clone", "--depth", "1", URL, str(REPO)], check=True)
 print("commit:", subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip(), flush=True)
 subprocess.run(["nvidia-smi"])
-extra = ["--smoke", "--utd", "0.125"] if MODE == "smoke" else ["--max-hours", "8"]
+# one training job at a time (each starts 32 worker processes; two at once was killed in the first full run).
+# The rule grid already finished in that run (its CSV is in results_kaggle/), so the full mode skips it.
+extra = ["--smoke", "--utd", "0.125"] if MODE == "smoke" else ["--max-hours", "8", "--skip-rules", "--parallel", "1"]
 rc = subprocess.run([sys.executable, str(REPO / "kaggle" / "run_experiments.py"), "--phase", "all", *extra]).returncode
 print("run_experiments exit code:", rc, flush=True)
 # keep the saved output small: results zip only (the zip already contains the new policies and CSVs)

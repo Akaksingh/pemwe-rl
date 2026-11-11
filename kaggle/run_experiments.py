@@ -119,17 +119,36 @@ def run_jobs(jobs, a, device):
 
     def one(j):
         name, w2, gs, seed = j
-        if time_left(a.max_hours) < 20 * 60:
-            log("time budget nearly used; skipping", name)
-            return None
-        train_job(name, w2, gs, seed, steps, device, a.dry_run)
-        return name
+        for attempt in (1, 2):                               # one retry: a killed job should not end the run
+            if time_left(a.max_hours) < 20 * 60:
+                log("time budget nearly used; skipping", name)
+                return None
+            try:
+                train_job(name, w2, gs, seed, steps, device, a.dry_run)
+                return name
+            except subprocess.CalledProcessError as e:
+                log(f"FAILED {name} (attempt {attempt}): {str(e)[-120:]}")
+                log("memory now:", sh_out(["bash", "-c", "free -m | sed -n 2p"]))
+                log("kernel log tail:", sh_out(["bash", "-c", "dmesg 2>/dev/null | tail -3"]))
+        return None
 
     with ThreadPoolExecutor(max_workers=a.parallel) as ex:
         for r in ex.map(one, jobs):
             if r:
                 done.append(r)
     return done
+
+
+def start_memory_monitor(every_s=120):
+    """Log free memory every `every_s` seconds so an out-of-memory kill is visible in the run log."""
+    import threading
+
+    def loop():
+        while True:
+            time.sleep(every_s)
+            log("memory (MB total/used/free/avail):", sh_out(["bash", "-c", "free -m | sed -n 2p | awk '{print $2, $3, $4, $7}'"]))
+
+    threading.Thread(target=loop, daemon=True).start()
 
 
 def grid_eval(models, split, stride, out_csv, a, limit_days=0):
@@ -238,14 +257,17 @@ def main():
     ap.add_argument("--smoke", action="store_true", help="tiny end-to-end check (12k-step runs, 3 evaluation days)")
     ap.add_argument("--dry-run", action="store_true", help="print the commands without running them")
     ap.add_argument("--utd", type=float, default=None, help="update ratio for the seeds phase (default: decided by `ratio`)")
-    ap.add_argument("--parallel", type=int, default=2, help="training jobs at once on the one GPU")
+    ap.add_argument("--parallel", type=int, default=1,
+                    help="training jobs at once (each starts 32 worker processes; 2 at once was killed on a 31 GB machine)")
+    ap.add_argument("--skip-rules", action="store_true", help="do not rerun the rule grid (already have its CSV)")
     ap.add_argument("--max-hours", type=float, default=8.0)
     a = ap.parse_args()
 
     device = setup(a)
+    start_memory_monitor()
     chosen = a.utd
     try:
-        if a.phase in ("all", "rules"):
+        if a.phase in ("all", "rules") and not a.skip_rules:
             phase_rules(a)
         if a.phase in ("all", "ratio"):
             decided = phase_ratio(a, device)

@@ -1,0 +1,121 @@
+Cloning into '/kaggle/working/repo'...
+Updating files:  17% (87/494)Updating files:  18% (89/494)Updating files:  19% (94/494)Updating files:  20% (99/494)Updating files:  21% (104/494)Updating files:  22% (109/494)Updating files:  23% (114/494)Updating files:  24% (119/494)Updating files:  25% (124/494)Updating files:  26% (129/494)Updating files:  27% (134/494)Updating files:  28% (139/494)Updating files:  29% (144/494)Updating files:  30% (149/494)Updating files:  31% (154/494)Updating files:  32% (159/494)Updating files:  33% (164/494)Updating files:  34% (168/494)Updating files:  35% (173/494)Updating files:  36% (178/494)Updating files:  37% (183/494)Updating files:  38% (188/494)Updating files:  39% (193/494)Updating files:  40% (198/494)Updating files:  41% (203/494)Updating files:  42% (208/494)Updating files:  43% (213/494)Updating files:  44% (218/494)Updating files:  45% (223/494)Updating files:  46% (228/494)Updating files:  47% (233/494)Updating files:  48% (238/494)Updating files:  49% (243/494)Updating files:  50% (247/494)Updating files:  51% (252/494)Updating files:  52% (257/494)Updating files:  53% (262/494)Updating files:  54% (267/494)Updating files:  55% (272/494)Updating files:  56% (277/494)Updating files:  57% (282/494)Updating files:  58% (287/494)Updating files:  59% (292/494)Updating files:  60% (297/494)Updating files:  61% (302/494)Updating files:  62% (307/494)Updating files:  63% (312/494)Updating files:  64% (317/494)Updating files:  65% (322/494)Updating files:  66% (327/494)Updating files:  67% (331/494)Updating files:  68% (336/494)Updating files:  69% (341/494)Updating files:  70% (346/494)Updating files:  71% (351/494)Updating files:  72% (356/494)Updating files:  73% (361/494)Updating files:  74% (366/494)Updating files:  75% (371/494)Updating files:  76% (376/494)Updating files:  77% (381/494)Updating files:  78% (386/494)Updating files:  79% (391/494)Updating files:  80% (396/494)Updating files:  81% (401/494)Updating files:  82% (406/494)Updating files:  83% (411/494)Updating files:  84% (415/494)Updating files:  85% (420/494)Updating files:  86% (425/494)Updating files:  87% (430/494)Updating files:  88% (435/494)Updating files:  89% (440/494)Updating files:  90% (445/494)Updating files:  91% (450/494)Updating files:  92% (455/494)Updating files:  93% (460/494)Updating files:  94% (465/494)Updating files:  95% (470/494)Updating files:  96% (475/494)Updating files:  97% (480/494)Updating files:  98% (485/494)Updating files:  99% (490/494)Updating files: 100% (494/494)Updating files: 100% (494/494), done.
+commit: 1fb8e278dbcbbd6473d2f60d529135fc07152406
+Tue Nov 10 15:44:47 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.178.04             Driver Version: 580.178.04     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  Tesla T4                       Off |   00000000:00:04.0 Off |                    0 |
+| N/A   50C    P8              9W /   70W |       0MiB /  15360MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+|   1  Tesla T4                       Off |   00000000:00:05.0 Off |                    0 |
+| N/A   54C    P8             10W /   70W |       0MiB /  15360MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+[   0.0 min] $ /usr/bin/python3 -m pip install -q stable-baselines3==2.9.0 gymnasium==1.3.0 pyarrow pyyaml tensorboard
+ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
+kaggle-environments 1.33.3 requires gymnasium==1.2.0, but you have gymnasium 1.3.0 which is incompatible.
+dopamine-rl 4.1.2 requires gym<=0.25.2, but you have gym 0.26.2 which is incompatible.
+[   0.4 min] hardware recorded; training device = cuda
+[   0.4 min] $ /usr/bin/python3 scripts/rule_family_v2.py --workers 4 --out /kaggle/working/out/rules/rule_family_v2.csv
+72 units in 713.5s
+lowest-degradation points:
+  dV   47.6  H2  115.7  trans  2.7  p_on=0.15 k_up=20 k_down=5 slew=0.001 cap=0.5
+  dV   47.6  H2  115.7  trans  2.7  p_on=0.15 k_up=20 k_down=20 slew=0.001 cap=0.5
+  dV   48.3  H2  120.2  trans  2.7  p_on=0.15 k_up=5 k_down=5 slew=0.001 cap=0.5
+  dV   48.3  H2  120.2  trans  2.7  p_on=0.15 k_up=5 k_down=20 slew=0.001 cap=0.5
+  dV   48.6  H2  143.5  trans  2.6  p_on=0.15 k_up=20 k_down=5 slew=0.003 cap=0.5
+  dV   48.6  H2  143.5  trans  2.6  p_on=0.15 k_up=20 k_down=20 slew=0.003 cap=0.5
+wrote /kaggle/working/out/rules/rule_family_v2.csv
+[  12.3 min] $ /usr/bin/python3 -m pemwe.train --algo sac --seed 0 --override reward.w2=20.0 --override train.sac.train_freq=32 --override train.sac.gradient_steps=128 --override train.sac.gamma=0.95 --device cuda --total-timesteps 300000 --progress-csv /kaggle/working/out/curves/kg_utd0.125_w2-20.0_s0.csv --progress-every 10000 --run-id kg_utd0.125_w2-20.0_s0
+[  12.3 min] $ /usr/bin/python3 -m pemwe.train --algo sac --seed 1 --override reward.w2=20.0 --override train.sac.train_freq=32 --override train.sac.gradient_steps=128 --override train.sac.gamma=0.95 --device cuda --total-timesteps 300000 --progress-csv /kaggle/working/out/curves/kg_utd0.125_w2-20.0_s1.csv --progress-every 10000 --run-id kg_utd0.125_w2-20.0_s1
+[kg_utd0.125_w2-20.0_s0] SAC seed=0 device=cuda n_envs=32 steps=300,000 w=(1.0, 20.0, 0.1) train_days=293
+[kg_utd0.125_w2-20.0_s1] SAC seed=1 device=cuda n_envs=32 steps=300,000 w=(1.0, 20.0, 0.1) train_days=293
+[  30.3 min] $ /usr/bin/python3 -m pemwe.train --algo sac --seed 0 --override reward.w2=20.0 --override train.sac.train_freq=32 --override train.sac.gradient_steps=256 --override train.sac.gamma=0.95 --device cuda --total-timesteps 300000 --progress-csv /kaggle/working/out/curves/kg_utd0.25_w2-20.0_s0.csv --progress-every 10000 --run-id kg_utd0.25_w2-20.0_s0
+[kg_utd0.25_w2-20.0_s0] SAC seed=0 device=cuda n_envs=32 steps=300,000 w=(1.0, 20.0, 0.1) train_days=293
+
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/multiprocessing/forkserver.py", line 298, in main
+    code = _serve_one(child_r, fds,
+                      unused_fds,
+                      old_handlers)
+  File "/usr/lib/python3.13/multiprocessing/forkserver.py", line 338, in _serve_one
+    code = spawn._main(child_r, parent_sentinel)
+  File "/usr/lib/python3.13/multiprocessing/spawn.py", line 132, in _main
+    self = reduction.pickle.load(from_parent)
+_pickle.UnpicklingError: pickle data was truncated
+[  42.1 min] $ /usr/bin/python3 -m pemwe.train --algo sac --seed 1 --override reward.w2=20.0 --override train.sac.train_freq=32 --override train.sac.gradient_steps=256 --override train.sac.gamma=0.95 --device cuda --total-timesteps 300000 --progress-csv /kaggle/working/out/curves/kg_utd0.25_w2-20.0_s1.csv --progress-every 10000 --run-id kg_utd0.25_w2-20.0_s1
+[kg_utd0.25_w2-20.0_s1] SAC seed=1 device=cuda n_envs=32 steps=300,000 w=(1.0, 20.0, 0.1) train_days=293
+
+
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/multiprocessing/forkserver.py", line 298, in main
+    code = _serve_one(child_r, fds,
+                      unused_fds,
+                      old_handlers)
+  File "/usr/lib/python3.13/multiprocessing/forkserver.py", line 338, in _serve_one
+    code = spawn._main(child_r, parent_sentinel)
+  File "/usr/lib/python3.13/multiprocessing/spawn.py", line 132, in _main
+    self = reduction.pickle.load(from_parent)
+_pickle.UnpicklingError: pickle data was truncated
+[kg_utd0.25_w2-20.0_s1] done in 13.1 min (382 steps/s) -> /kaggle/working/repo/models/kg_utd0.25_w2-20.0_s1.zip
+[kg_utd0.25_w2-20.0_s1] evaluate with:  python -m pemwe.evaluate --model /kaggle/working/repo/models/kg_utd0.25_w2-20.0_s1.zip --policy sac --run-id kg_utd0.25_w2-20.0_s1
+[  62.4 min] finished kg_utd0.25_w2-20.0_s1 in 20.3 min
+[  62.4 min] wrote /kaggle/working/kaggle_results.zip (2.5 MB). Download it from the notebook's Output tab.
+Traceback (most recent call last):
+  File "/kaggle/working/repo/kaggle/run_experiments.py", line 263, in <module>
+    main()
+    ~~~~^^
+  File "/kaggle/working/repo/kaggle/run_experiments.py", line 251, in main
+    decided = phase_ratio(a, device)
+  File "/kaggle/working/repo/kaggle/run_experiments.py", line 160, in phase_ratio
+    done = run_jobs(jobs, a, device)
+  File "/kaggle/working/repo/kaggle/run_experiments.py", line 129, in run_jobs
+    for r in ex.map(one, jobs):
+             ~~~~~~^^^^^^^^^^^
+  File "/usr/lib/python3.13/concurrent/futures/_base.py", line 625, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/usr/lib/python3.13/concurrent/futures/_base.py", line 318, in _result_or_cancel
+    return fut.result(timeout)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/usr/lib/python3.13/concurrent/futures/_base.py", line 460, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/concurrent/futures/_base.py", line 402, in __get_result
+    raise self._exception
+  File "/usr/lib/python3.13/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/kaggle/working/repo/kaggle/run_experiments.py", line 125, in one
+    train_job(name, w2, gs, seed, steps, device, a.dry_run)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/kaggle/working/repo/kaggle/run_experiments.py", line 111, in train_job
+    run(cmd, dry, cwd=REPO, env=env)
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/kaggle/working/repo/kaggle/run_experiments.py", line 55, in run
+    return subprocess.run([str(c) for c in cmd], cwd=cwd, env=env, check=check).returncode
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/usr/bin/python3', '-m', 'pemwe.train', '--algo', 'sac', '--seed', '0', '--override', 'reward.w2=20.0', '--override', 'train.sac.train_freq=32', '--override', 'train.sac.gradient_steps=128', '--override', 'train.sac.gamma=0.95', '--device', 'cuda', '--total-timesteps', '300000', '--progress-csv', '/kaggle/working/out/curves/kg_utd0.125_w2-20.0_s0.csv', '--progress-every', '10000', '--run-id', 'kg_utd0.125_w2-20.0_s0']' died with <Signals.SIGKILL: 9>.
+run_experiments exit code: 1
+/usr/local/lib/python3.13/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\|'
+  cells[i][c] = re.sub('\\\\\|', '|', cell)
+/usr/local/lib/python3.13/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\_'
+  text = re.sub(r'_', '\_', text) # Escape underscores in display text
+[NbConvertApp] Converting notebook __script__.ipynb to html
+[NbConvertApp] Writing 278331 bytes to __results__.html
