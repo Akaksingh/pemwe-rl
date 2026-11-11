@@ -95,6 +95,7 @@ def main():
         pd.DataFrame({"name": [f"{r.family} {r.param:g}" for r in fam.itertuples()], "h2": fam.h2_kg_day, "dv": fam.dv_uv_day}),
         pd.DataFrame({"name": [f"named {c}" for c in b.index], "h2": b.h2_kg_day.values, "dv": b.dv_uv_day.values})],
         ignore_index=True)
+    env0 = envelope(rules)                                     # slew-limit / power-cap rules only (earlier envelope)
     rf2 = ROOT / "results_hpc" / "rule_family_v2.csv"          # hysteresis + cap + slew rules (Kaggle run), optional
     if rf2.exists():
         v2 = pd.read_csv(rf2)
@@ -134,7 +135,11 @@ def main():
     ax.legend(frameon=False, loc="lower left", fontsize=6.3, handlelength=2.0)
     fig.tight_layout()
     out = Path(a.fig_dir) / "fig_frontier.pdf"
-    H._save(fig, out)
+    try:
+        H._save(fig, out)
+    except ImportError as e:        # e.g. a locked-down machine that blocks matplotlib's PDF backend
+        print(f"WARNING: figure NOT regenerated ({e}); the CSVs below are still written. "
+              "Rerun this script on a machine where matplotlib's PDF backend loads.")
 
     # ---- advantage over the best simple rule at the same degradation
     vs = []
@@ -142,8 +147,10 @@ def main():
         for r in nm.itertuples():
             below = r.dv < env.dv.min()
             rule_h2 = float(np.interp(r.dv, env.dv.to_numpy(), env.h2.to_numpy())) if not below else float(env.h2.iloc[0])
+            old_h2 = float(np.interp(r.dv, env0.dv.to_numpy(), env0.h2.to_numpy())) if r.dv >= env0.dv.min() else float(env0.h2.iloc[0])
             vs.append(dict(w2=r.w2, sac_h2=r.h2, sac_dv=r.dv, rule_h2_at_same_dv=rule_h2,
                            advantage_kg=r.h2 - rule_h2, advantage_pct=100 * (r.h2 - rule_h2) / rule_h2,
+                           advantage_pct_slewcap_only=100 * (r.h2 - old_h2) / old_h2,
                            below_envelope_range=bool(below), n_seeds=int((new.w2 == r.w2).sum())))
         v = pd.DataFrame(vs)
         v.to_csv(a.vs_csv, index=False)
