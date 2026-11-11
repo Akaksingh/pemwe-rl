@@ -106,9 +106,11 @@ rule on its training reward, within its first checkpoint; at the high weights th
 did not learn the weight's effect at all (\NumChkTwentyLowDeg\,\si{\micro\volt}/day at $w_2=20$ against
 \NumChkTwentyHighDeg{} at the full ratio, on training days). Configurations should therefore be compared by time to a
 stated quality at the weight of interest, not by steps per second. On held-out days the learned controller matches the best
-simple rule at moderate degradation reductions and, at low degradation, yields \NumAdvTwelvePct--\NumAdvTwentyPct\,\%
-more hydrogen than the best simple rule at the same degradation, with a projected life that depends on coefficients
-the model cannot pin down. No physical stack was operated: the simulator is a pre-screening tool, and
+simple rule at moderate degradation reductions. At low degradation the rule baseline matters: against slew-limit and
+power-cap rules the learned policy yields up to \NumAdvTwentyPctOldRules\,\% more hydrogen at the same degradation, but a
+grid of 72 hysteresis rules (start/stop confirmation, power cap, slew limit) closes most of that gap, leaving
+\NumAdvTwelvePct\,\% at $w_2=12.9$ and \NumAdvTwentyPct\,\% at $w_2=20$, with a projected life that depends on
+coefficients the model cannot pin down. No physical stack was operated: the simulator is a pre-screening tool, and
 conclusions concern relative controller behaviour and computational performance, not absolute stack lifetime.
 \end{abstract}
 
@@ -466,24 +468,34 @@ This is a descriptive probe of a few checkpoints, not a statistic.
 \centering
 \includegraphics[width=\columnwidth]{fig_frontier.pdf}
 \caption{Hydrogen against degradation on the 72 held-out days (lower degradation to the right).
-Grey dots: every point of the slew-limit and power-cap grids; dashed line: their non-dominated envelope.
+Grey dots: every point of the slew-limit, power-cap and hysteresis-rule grids; dashed line: their non-dominated envelope.
 Blue: corrected SAC (mean of two seeds, faint dots are seeds), labelled with the degradation weight
 $w_2$. Green: the earlier SAC runs. Open markers: the three named rules.}
 \label{fig:frontier}
 \end{figure}
 Figure~\ref{fig:frontier} places the corrected policies against the rule grids. The envelope is the
-non-dominated set of all grid points and the three named rules. At the two lowest weights the learned
+non-dominated set of all grid points and the three named rules. The grids are the one-dimensional slew-limit and
+power-cap families and a 72-point hysteresis family: a start is confirmed only after the resource has stayed above
+a threshold for 5 or 20 minutes, a stop only after it has stayed below one for 5 or 20 minutes, and the command is
+capped at 0.5, 0.7 or 1.0 of rated power and slew-limited. The grid was fixed in advance and every point is shown;
+the envelope is the best of them evaluated on the same held-out days, which favours the rules.
+At the two lowest weights the learned
 policy is on or slightly below that envelope: at $w_2=1.41$ it makes \NumSacOneHydrogenKg\,kg/day at
 \NumSacOneDegradation\,\si{\micro\volt}/day against \NumRuleOneHydrogenKg\,kg/day for the envelope at the
 same degradation (\NumAdvOnePct\,\%), and at $w_2=5.32$ \NumSacFiveHydrogenKg{} against
 \NumRuleFiveHydrogenKg\,kg/day (\NumAdvFivePct\,\%); it does not improve on a slew limit there. At lower
-degradation the rules collapse and the policy does not. At $w_2=12.9$ it reaches
+degradation the simple one-dimensional rules collapse and the policy does not, but the hysteresis rules do not
+collapse either, and they supply most of the envelope there. At $w_2=12.9$ the policy reaches
 \NumSacTwelveDegradation\,\si{\micro\volt}/day with \NumSacTwelveHydrogenKg\,kg/day, \NumAdvTwelvePct\,\%
-(\NumAdvTwelveKg\,kg/day) more than the envelope at that degradation; at $w_2=20$ it reaches
-\NumSacTwentyDegradation\,\si{\micro\volt}/day with \NumSacTwentyHydrogenKg\,kg/day, below the
-lowest-degradation rule point we evaluated (\NumRuleTwentyHydrogenKg\,kg/day there). The earlier runs stopped
+(\NumAdvTwelveKg\,kg/day) more than the envelope at that degradation, against \NumAdvTwelvePctOldRules\,\% before the
+hysteresis rules were added. At $w_2=20$ it reaches
+\NumSacTwentyDegradation\,\si{\micro\volt}/day with \NumSacTwentyHydrogenKg\,kg/day, \NumAdvTwentyPct\,\%
+(\NumAdvTwentyKg\,kg/day) more than the envelope (\NumRuleTwentyHydrogenKg\,kg/day there), against
+\NumAdvTwentyPctOldRules\,\% before. The envelope is sparse in this range (a few kilograms per day between
+neighbouring points), and each setting has two seeds, so we do not read a gap of a few percent as a result;
+the gap at $w_2=20$ is larger but a finer rule grid was not tried. The earlier runs stopped
 at \NumLegacyMinDv\,\si{\micro\volt}/day. The yield given up relative to the threshold-free rule is large at
-the top of the weight range, so this is a better trade-off at low degradation and not a free improvement.
+the top of the weight range, so this is a trade-off at low degradation and not a free improvement.
 
 \subsection{Sensitivity to resource variability and degradation coefficients}
 \begin{figure*}[t]
@@ -587,9 +599,10 @@ benchmark characterise one machine, not a population. \emph{Learning experiments
 has two seeds, which shows seed agreement but does not support significance claims; the pilots and the
 update-ratio study are in-sample on training days; the discount factor was chosen from them. The
 policies are trained at one set of coefficients on one resource and are only evaluated, not retrained,
-under shift. Only SAC was re-run at the corrected settings; we make no claim about PPO. The rule grids
-are one-dimensional families (slew limit, power cap); a richer rule or a model-predictive controller could
-close part of the gap at low degradation, and we did not test one. The degradation weights $w_2$ have no
+under shift. Only SAC was re-run at the corrected settings; we make no claim about PPO. The rule families
+are two one-dimensional grids (slew limit, power cap) and one 72-point hysteresis grid; the last closed most
+of the low-degradation gap, so a finer or richer rule, or a model-predictive controller, could close more, and we
+tried neither. The robustness comparison below is against slew limits only, not against the hysteresis rules. The degradation weights $w_2$ have no
 economic calibration here, so which point on the frontier is preferable is not decided by this study.
 \emph{Single site and year.}
 
@@ -602,8 +615,10 @@ the decomposition. Learner throughput, not environment throughput, bounds SAC tr
 one-to-one update ratio was in fact \NumUtdMeasuredLow{}. The ratio matters where the policy has something to
 learn: at a low degradation weight every ratio reaches the same plateau, but at high weights only the full ratio
 learns the weight's effect, so configurations should be compared by time to a stated quality at the weight of interest. On held-out days the
-learned controller does not improve on simple slew limits at moderate degradation, but at low degradation
-it delivers substantially more hydrogen than any simple rule we evaluated, with a projected life that
+learned controller does not improve on simple slew limits at moderate degradation. At low degradation it beats
+slew-limit and power-cap rules by a wide margin, but a hysteresis rule with start/stop confirmation closes
+most of that gap (\NumAdvTwelvePct\,\% and \NumAdvTwentyPct\,\% remain at the two highest weights), so the
+benefit of learning there is modest and the simple-rule baseline has to be chosen with care. The projected life
 depends on degradation coefficients the model cannot identify. These are simulation results on a model
 calibrated to literature rates and a synthetic sub-hourly resource; hardware validation, measured
 high-frequency resource data, an economic calibration of the degradation weight and a model-predictive

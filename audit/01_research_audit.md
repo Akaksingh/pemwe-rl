@@ -578,3 +578,16 @@ roughly 90–115 env-steps/s. So the previously planned 130-run, 2M-step SAC mat
 the order of 400 GPU-hours on this machine and is not feasible as designed; the budget has to be
 chosen in updates (not env steps) and the number of runs cut. The older "6,520 steps/s" figures
 were measured at 1/32 of the intended update work and must not be used for planning.
+
+---
+
+## Addendum (2026-11-11): the hysteresis-rule grid closes most of the low-degradation gap
+
+A 72-point hysteresis rule grid (start/stop confirmation of 5 or 20 minutes, power cap 0.5/0.7/1.0, slew limit
+0.001/0.003/0.01) was run on the 72 held-out days on Kaggle (`results_kaggle/rule_family_v2.csv`). It supplies 39 of the 49
+points of the new non-dominated envelope. Against that envelope, the corrected SAC advantage at equal degradation falls from
++24% to +2.7% (w2 = 12.9) and from +86% to +14% (w2 = 20); at w2 ≤ 5.32 it is unchanged (about −1%). The envelope is sparse
+in that range and the grid was not refined, each SAC setting has two seeds, and the rules are the best of 72 points evaluated
+on the same days, so the remaining gap is not a significant result. The earlier "substantially more hydrogen than any simple
+rule" statement was withdrawn from the paper. The matched-slew-limit robustness comparison (above) is against slew limits only
+and is not repeated against the hysteresis rules.

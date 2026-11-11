@@ -162,6 +162,8 @@ def main():
                 M[f"NumRule{tag}HydrogenKg"] = sig(r_.rule_h2_at_same_dv, 3)
                 M[f"NumAdv{tag}Kg"] = neg(r_.advantage_kg, 2) if r_.advantage_kg < 0 else sig(r_.advantage_kg, 2)
                 M[f"NumAdv{tag}Pct"] = neg(r_.advantage_pct, 2) if r_.advantage_pct < 0 else sig(r_.advantage_pct, 2)
+                if "advantage_pct_slewcap_only" in r_.index:       # advantage against slew-limit/power-cap rules only
+                    M[f"NumAdv{tag}PctOldRules"] = sig(r_.advantage_pct_slewcap_only, 2)
 
     # ---- robustness: tuned slew limit and matched slew limits
     sm = d / "sac_sensitivity_summary.csv"
