@@ -591,3 +591,22 @@ in that range and the grid was not refined, each SAC setting has two seeds, and 
 on the same days, so the remaining gap is not a significant result. The earlier "substantially more hydrogen than any simple
 rule" statement was withdrawn from the paper. The matched-slew-limit robustness comparison (above) is against slew limits only
 and is not repeated against the hysteresis rules.
+
+## Addendum (2026-11-11): Kaggle follow-up (intermediate update ratios and six extra seeds)
+
+Kernel `pemwe-followup` (Tesla T4, 4 CPUs, 31 GB; one job at a time; 271 minutes; raw data in `results_kaggle/run2/`). A first
+attempt ran two jobs at once and lost three of four (one SAC job uses about 22.5 GB of the 31 GB, so two do not fit); it is
+kept in `results_kaggle/run1_partial/` and is not used for any result.
+
+* **Update ratio at w2 = 20 (59 training days, two seeds each, gamma 0.95, 300k steps).** Degradation (uV/day) / hydrogen (kg/day):
+  1/32: 76.1 / 212; 1/8: 65.2 / 206; 1/4: 55.5 / 194; 1: 50.9 / 186. The rule fixed beforehand (degradation <= 1.10x and hydrogen >=
+  0.95x of the full ratio) selects 1/4 (1.09x and 1.05x, a marginal pass); 1/8 fails (1.28x). The effect of the weight is learned
+  gradually with the ratio.
+* **Six extra seeds (2 to 7) at ratio 1/4, once on the 72 held-out days.** w2 = 12.9: 186 kg/day at 60.1 uV/day (59.2 to 61.8),
+  +1.4% over the rule envelope (0.2 to 2.2%, 6 of 6 positive). w2 = 20: 181 kg/day at 56.4 uV/day (53.9 to 58.7), +2.6% (1.1 to
+  4.8%, 6 of 6 positive). The full-ratio policies at w2 = 20 (two seeds) reach 49.0 uV/day with +14%; the ratio-1/4 policies do not
+  reach that operating point, so on test days 1/4 recovers most but not all of the weight's effect (56.4 vs 49.0).
+* Reading: the learned controller's advantage over the best hysteresis rule is consistent in sign but small (a few percent) at the
+  ratio-1/4 operating points; the +14% at the full-ratio w2 = 20 point rests on two seeds at the end of a sparse envelope.
+* Caveats: the ratio-1/4 and 1/8 policies were trained on a different platform than the full-ratio ones; the comparison with the
+  full ratio is also a comparison of platforms. Timings from Kaggle are not used for any scaling claim.

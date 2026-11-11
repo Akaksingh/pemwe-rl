@@ -1,0 +1,28 @@
+{
+  "full_ratio_ref": {
+    "h2": 185.57586125320134,
+    "dv": 50.93454756330134,
+    "seeds": 2
+  },
+  "cheap_ratio_ref": {
+    "h2": 212.1700556072774,
+    "dv": 76.09911960143096,
+    "seeds": 2
+  },
+  "intermediate": {
+    "0.125": {
+      "h2": 205.52188664804913,
+      "dv": 65.22892587731202,
+      "seeds": 2,
+      "matches_full_ratio": false
+    },
+    "0.25": {
+      "h2": 194.40062679039792,
+      "dv": 55.45433685491216,
+      "seeds": 2,
+      "matches_full_ratio": true
+    }
+  },
+  "chosen_utd": 0.25,
+  "rule": "match = degradation <= 1.1 x full-ratio and hydrogen >= 0.95 x full-ratio (train days)"
+}

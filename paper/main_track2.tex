@@ -104,13 +104,15 @@ update ratio matters only where the policy has something to learn. At a low degr
 same plateau at every ratio from $1/32$ to $1$, about \NumEThreeShortfallMin--\NumEThreeShortfallMax\,\% below a one-line
 rule on its training reward, within its first checkpoint; at the high weights that define the frontier the cheap ratio
 did not learn the weight's effect at all (\NumChkTwentyLowDeg\,\si{\micro\volt}/day at $w_2=20$ against
-\NumChkTwentyHighDeg{} at the full ratio, on training days). Configurations should therefore be compared by time to a
+\NumChkTwentyHighDeg{} at the full ratio, on training days; a ratio of $1/4$ recovers most of the effect, at
+\NumRatioQuarterDeg). Configurations should therefore be compared by time to a
 stated quality at the weight of interest, not by steps per second. On held-out days the learned controller matches the best
 simple rule at moderate degradation reductions. At low degradation the rule baseline matters: against slew-limit and
 power-cap rules the learned policy yields up to \NumAdvTwentyPctOldRules\,\% more hydrogen at the same degradation, but a
-grid of 72 hysteresis rules (start/stop confirmation, power cap, slew limit) closes most of that gap, leaving
-\NumAdvTwelvePct\,\% at $w_2=12.9$ and \NumAdvTwentyPct\,\% at $w_2=20$, with a projected life that depends on
-coefficients the model cannot pin down. No physical stack was operated: the simulator is a pre-screening tool, and
+grid of 72 hysteresis rules (start/stop confirmation, power cap, slew limit) closes most of that gap. Over six further
+seeds the remaining advantage is \NumKgQuarterTwelveAdvMean\,\% at $w_2=12.9$ and \NumKgQuarterTwentyAdvMean\,\% at
+$w_2=20$ (positive for every seed), and \NumKgFullTwentyAdvMean\,\% for the two full-update-ratio policies at
+$w_2=20$, with a projected life that depends on coefficients the model cannot pin down. No physical stack was operated: the simulator is a pre-screening tool, and
 conclusions concern relative controller behaviour and computational performance, not absolute stack lifetime.
 \end{abstract}
 
@@ -288,10 +290,17 @@ between experiments are stated where they are used. The pilots (Table~\ref{tab:p
 update-ratio study use $w_2=0.1$ and are evaluated on \emph{training} days; the discount factor
 $\gamma=0.95$ used afterwards was chosen from those in-sample pilots, never from the held-out days. The
 frontier experiment trains at $w_2\in\{1.41,5.32,12.9,20\}$ with two seeds each and evaluates each policy
-once on the 72 held-out days; no setting was selected on them. Rule-based comparators are evaluated on the
+once on the 72 held-out days; no setting was selected on them. A follow-up on a different platform (a Kaggle
+notebook with one Tesla T4 and four CPU cores, one training job at a time) trained update ratios $1/8$ and $1/4$
+at $w_2=20$ (two seeds each, evaluated on training days against a decision rule fixed beforehand: degradation at most
+$1.10\times$ and hydrogen at least $0.95\times$ the full-ratio policies) and, for the ratio that passed, six further
+seeds (2--7) at $w_2=12.9$ and $20$, evaluated once on the held-out days. Rule-based comparators are evaluated on the
 same days and environment: slew-limited load following with a limit $L$ (13 values from $0.0005$ to
-$0.06$ of rated power per minute, with and without the idle threshold) and a power cap (9 values from
-$0.15$ to $0.9$ of rated). Every grid point is reported; none is tuned on the evaluation days.
+$0.06$ of rated power per minute, with and without the idle threshold), a power cap (9 values from
+$0.15$ to $0.9$ of rated) and a hysteresis rule with a power cap and a slew limit (72 values: a start is
+confirmed after the resource has been above $0.08$ or $0.15$ of rated for 5 or 20 minutes, a stop after
+5 or 20 minutes below $0.03$, cap $0.5$, $0.7$ or $1.0$, slew limit $0.001$, $0.003$ or $0.01$ per minute).
+Every grid point is reported; none is tuned on the evaluation days.
 
 \subsection{Scenario and sensitivity workload}\label{sec:scen}
 The resource generator re-creates the one-minute series from the shipped hourly means with the
@@ -448,10 +457,20 @@ frontier experiment. At the cheap ratio the two weights give nearly the same pol
 low-weight plateau, whereas the full ratio gives \NumChkTwelveHighHydrogen{} and \NumChkTwentyHighHydrogen\,kg/day at
 \NumChkTwelveHighDeg{} and \NumChkTwentyHighDeg\,\si{\micro\volt}/day. The response to the degradation weight is learned only with
 enough updates, so the update-ratio pitfall has a real consequence: the earlier runs, at a ratio of $1/32$ and
-$\gamma=0.999$, would not be expected to have learned the high-weight end of the frontier. Which intermediate update ratio, between $1/32$ and $1$, is enough at the high weights was not determined: a follow-up
-across ratios was stopped before it finished.
-Caveats: two seeds, in-sample days, and wall-clock times measured with
-four runs sharing one GPU, so they are comparable across these runs but are not single-run speeds.
+$\gamma=0.999$, would not be expected to have learned the high-weight end of the frontier.
+Intermediate ratios, tried at $w_2=20$ on a different platform (see Section~\ref{sec:learn}), fall in between.
+Degradation on the same training days is \NumChkTwentyLowDeg{}, \NumRatioEighthDeg{}, \NumRatioQuarterDeg{} and
+\NumChkTwentyHighDeg\,\si{\micro\volt}/day at ratios $1/32$, $1/8$, $1/4$ and $1$, with hydrogen of
+\NumChkTwentyLowHydrogen{}, \NumRatioEighthHydrogen{}, \NumRatioQuarterHydrogen{} and \NumChkTwentyHighHydrogen\,kg/day.
+Against the tolerance fixed beforehand, a ratio of $1/4$ passes (degradation \NumRatioQuarterDegRel$\times$ and
+hydrogen \NumRatioQuarterHydrogenRel$\times$ the full-ratio policies) and $1/8$ does not (\NumRatioEighthDegRel$\times$).
+The effect of the weight is therefore learned gradually and not at a threshold, and a quarter of the updates
+recovers most of it; the 300k-step runs took \NumKgWallQuarterMin{} min of training at $1/4$ against
+\NumKgWallEighthMin{} min at $1/8$ on that platform. The pass at $1/4$ is marginal (9\,\% above on degradation
+against a tolerance of 10\,\%), and on held-out days those policies stop short of the full-ratio policies' degradation
+(Section~\ref{sec:frontier}).
+Caveats: two seeds, in-sample days; the $1/8$ and $1/4$ policies were trained on Kaggle and the others on the
+workstation, where four runs shared one GPU, so wall-clock times are not comparable across platforms or to single-run speeds.
 
 \subsection{What the policy learns}
 A probe of the update-ratio-1 checkpoint on twelve held-out days (every sixth) shows where the shortfall
@@ -463,7 +482,7 @@ its price, which is the plateau. At $w_2=20$ the policy commands on average \Num
 available power and is off in \NumProbeTwentyOff\,\% of the steps in which the resource would allow operation.
 This is a descriptive probe of a few checkpoints, not a statistic.
 
-\subsection{Frontier on held-out days}
+\subsection{Frontier on held-out days}\label{sec:frontier}
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{fig_frontier.pdf}
@@ -492,10 +511,23 @@ hysteresis rules were added. At $w_2=20$ it reaches
 \NumSacTwentyDegradation\,\si{\micro\volt}/day with \NumSacTwentyHydrogenKg\,kg/day, \NumAdvTwentyPct\,\%
 (\NumAdvTwentyKg\,kg/day) more than the envelope (\NumRuleTwentyHydrogenKg\,kg/day there), against
 \NumAdvTwentyPctOldRules\,\% before. The envelope is sparse in this range (a few kilograms per day between
-neighbouring points), and each setting has two seeds, so we do not read a gap of a few percent as a result;
-the gap at $w_2=20$ is larger but a finer rule grid was not tried. The earlier runs stopped
+neighbouring points) and a finer rule grid was not tried. The earlier runs stopped
 at \NumLegacyMinDv\,\si{\micro\volt}/day. The yield given up relative to the threshold-free rule is large at
 the top of the weight range, so this is a trade-off at low degradation and not a free improvement.
+
+Six further seeds trained at an update ratio of $1/4$ (seeds 2--7, evaluated once on the held-out days) test whether
+the small gap is real. At $w_2=12.9$ they reach \NumKgQuarterTwelveDeg\,\si{\micro\volt}/day
+(\NumKgQuarterTwelveDegMin--\NumKgQuarterTwelveDegMax) and \NumKgQuarterTwelveHydrogenKg\,kg/day, which is
+\NumKgQuarterTwelveAdvMean\,\% above the envelope at each seed's own degradation (range
+\NumKgQuarterTwelveAdvMin--\NumKgQuarterTwelveAdvMax\,\%; positive for \NumKgQuarterTwelvePositive{} of
+\NumKgQuarterTwelveSeeds{} seeds). At $w_2=20$ they reach \NumKgQuarterTwentyDeg\,\si{\micro\volt}/day
+(\NumKgQuarterTwentyDegMin--\NumKgQuarterTwentyDegMax) and \NumKgQuarterTwentyHydrogenKg\,kg/day,
+\NumKgQuarterTwentyAdvMean\,\% above the envelope (range \NumKgQuarterTwentyAdvMin--\NumKgQuarterTwentyAdvMax\,\%;
+positive for \NumKgQuarterTwentyPositive{} of \NumKgQuarterTwentySeeds{}). The advantage over the best hysteresis rule is
+therefore consistent in sign but small, a few percent at most, at these operating points. The ratio-$1/4$ policies do not reach the lowest degradation of the full-ratio policies
+at $w_2=20$ (\NumKgQuarterTwentyDeg{} against \NumKgFullTwentyDeg\,\si{\micro\volt}/day), where the advantage over the
+envelope is larger (\NumKgFullTwentyAdvMean\,\%, two seeds). That point lies near the end of the rule envelope and has
+only one seed pair, so we regard it as an open question and not as an established advantage.
 
 \subsection{Sensitivity to resource variability and degradation coefficients}
 \begin{figure*}[t]
@@ -571,8 +603,8 @@ roughly the same projected life; the life itself varies with coefficients the mo
 some coefficient sets it is shorter than the rule's.
 
 \subsection{Where the compute goes}
-At a low weight, training reaches its plateau in minutes; at the frontier weights the full update ratio is
-needed, and a run took about \NumEFiveWallMin\,min with four runs sharing the GPU. The remaining compute is
+At a low weight, training reaches its plateau in minutes; at the frontier weights an update ratio of at least
+$1/4$ is needed, and a full-ratio run took about \NumEFiveWallMin\,min with four runs sharing the GPU. The remaining compute is
 evaluation. The \NumEvalSacUnits{}
 evaluation units that include the learned policies (\NumEvalSacSteps{} environment steps) ran at
 \NumEvalSacStepsPerSec{} steps/s on \NumEvalSacWorkers{} workers, \NumEvalSacSeconds\,s in all, against
@@ -594,15 +626,20 @@ exceeds the usual $4$\,vol\% flammability reference below about
 \SI{0.8}{\ampere\per\centi\meter\squared}, which includes the efficiency peak; either the
 crossover is too high for a real stack or the low-load region is not operable. We have not
 changed the model. \emph{Scale.} All measurements are from one workstation with 8 physical
-cores and one GPU; we make no claim about larger systems. \emph{Statistics.} Repeats of a
-benchmark characterise one machine, not a population. \emph{Learning experiments.} Each learned setting
-has two seeds, which shows seed agreement but does not support significance claims; the pilots and the
+cores and one GPU, except the intermediate-ratio runs and the six extra seeds, which were trained on a free
+Kaggle notebook (one Tesla T4, four CPU cores) and used only for learning results, not for any timing claim; we make no
+claim about larger systems. \emph{Statistics.} Repeats of a
+benchmark characterise one machine, not a population. \emph{Learning experiments.} Most learned settings
+have two seeds, which shows seed agreement but does not support significance claims; $w_2=12.9$ and $20$ have six
+more at ratio $1/4$, which supports a statement about the sign and rough size of the gap (all seeds on one side, a few
+percent) but not a significance test, and those policies differ from the full-ratio ones in both training platform and
+update ratio; the pilots and the
 update-ratio study are in-sample on training days; the discount factor was chosen from them. The
 policies are trained at one set of coefficients on one resource and are only evaluated, not retrained,
 under shift. Only SAC was re-run at the corrected settings; we make no claim about PPO. The rule families
 are two one-dimensional grids (slew limit, power cap) and one 72-point hysteresis grid; the last closed most
 of the low-degradation gap, so a finer or richer rule, or a model-predictive controller, could close more, and we
-tried neither. The robustness comparison below is against slew limits only, not against the hysteresis rules. The degradation weights $w_2$ have no
+tried neither. The robustness comparison in the sensitivity section is against slew limits only, not against the hysteresis rules. The degradation weights $w_2$ have no
 economic calibration here, so which point on the frontier is preferable is not decided by this study.
 \emph{Single site and year.}
 
@@ -613,12 +650,14 @@ workstation. The simulator runs at \NumSimOne{} steps/s on a core and \NumSimSix
 workers, and its apparent parallel inefficiency is the processor's clock falling under multi-core load, not
 the decomposition. Learner throughput, not environment throughput, bounds SAC training, and a documented
 one-to-one update ratio was in fact \NumUtdMeasuredLow{}. The ratio matters where the policy has something to
-learn: at a low degradation weight every ratio reaches the same plateau, but at high weights only the full ratio
-learns the weight's effect, so configurations should be compared by time to a stated quality at the weight of interest. On held-out days the
+learn: at a low degradation weight every ratio reaches the same plateau, but at high weights the cheap ratio does
+not learn the weight's effect and the effect appears gradually as the ratio rises, a quarter of the updates
+recovering most of it, so configurations should be compared by time to a stated quality at the weight of interest. On held-out days the
 learned controller does not improve on simple slew limits at moderate degradation. At low degradation it beats
 slew-limit and power-cap rules by a wide margin, but a hysteresis rule with start/stop confirmation closes
-most of that gap (\NumAdvTwelvePct\,\% and \NumAdvTwentyPct\,\% remain at the two highest weights), so the
-benefit of learning there is modest and the simple-rule baseline has to be chosen with care. The projected life
+most of that gap (over six further seeds, \NumKgQuarterTwelveAdvMean\,\% and \NumKgQuarterTwentyAdvMean\,\% remain at the
+two highest weights, positive for every seed), so the benefit of learning there is small and the simple-rule
+baseline has to be chosen with care. The projected life
 depends on degradation coefficients the model cannot identify. These are simulation results on a model
 calibrated to literature rates and a synthetic sub-hourly resource; hardware validation, measured
 high-frequency resource data, an economic calibration of the degradation weight and a model-predictive

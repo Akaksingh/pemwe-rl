@@ -9,6 +9,7 @@ keeps showing a red TODO for it instead of a stale or invented value.
 from __future__ import annotations
 
 import argparse
+import re
 from pathlib import Path
 
 import numpy as np
@@ -164,6 +165,45 @@ def main():
                 M[f"NumAdv{tag}Pct"] = neg(r_.advantage_pct, 2) if r_.advantage_pct < 0 else sig(r_.advantage_pct, 2)
                 if "advantage_pct_slewcap_only" in r_.index:       # advantage against slew-limit/power-cap rules only
                     M[f"NumAdv{tag}PctOldRules"] = sig(r_.advantage_pct_slewcap_only, 2)
+
+    # ---- Kaggle follow-up: intermediate update ratios (training days) and extra seeds at ratio 1/4 (test days)
+    kd = ROOT / "results_kaggle"
+    if (kd / "ratio_per_seed.csv").exists():
+        rr = pd.read_csv(kd / "ratio_per_seed.csv")
+        gg = rr.groupby("setting").agg(h2=("h2", "mean"), dv=("dv", "mean"))
+        full_ = gg.loc["utd 1 (e5)"]
+        for key, tag in (("kg_utd0.125", "Eighth"), ("kg_utd0.25", "Quarter")):
+            if key in gg.index:
+                M[f"NumRatio{tag}Hydrogen"] = sig(gg.loc[key, "h2"], 3)
+                M[f"NumRatio{tag}Deg"] = sig(gg.loc[key, "dv"], 3)
+                M[f"NumRatio{tag}DegRel"] = sig(gg.loc[key, "dv"] / full_.dv, 3)
+                M[f"NumRatio{tag}HydrogenRel"] = sig(gg.loc[key, "h2"] / full_.h2, 3)
+    if (kd / "seeds_summary.csv").exists():
+        ss = pd.read_csv(kd / "seeds_summary.csv")
+        for w, tag in ((12.9, "Twelve"), (20.0, "Twenty")):
+            for grp, g_ in (("utd 1/4", "Quarter"), ("utd 1 (", "Full")):
+                q = ss[(ss.w2 == w) & ss.group.str.startswith(grp)]
+                if not len(q):
+                    continue
+                q = q.iloc[0]
+                M[f"NumKg{g_}{tag}Seeds"] = str(int(q.n_seeds))
+                M[f"NumKg{g_}{tag}HydrogenKg"] = sig(q.h2_mean, 3)
+                M[f"NumKg{g_}{tag}Deg"] = sig(q.dv_mean, 3)
+                M[f"NumKg{g_}{tag}DegMin"] = sig(q.dv_min, 3)
+                M[f"NumKg{g_}{tag}DegMax"] = sig(q.dv_max, 3)
+                M[f"NumKg{g_}{tag}AdvMean"] = sig(q.adv_pct_mean, 2)
+                M[f"NumKg{g_}{tag}AdvMin"] = sig(q.adv_pct_min, 2)
+                M[f"NumKg{g_}{tag}AdvMax"] = sig(q.adv_pct_max, 2)
+                M[f"NumKg{g_}{tag}Positive"] = str(int(q.n_positive))
+    # training wall time of the Kaggle runs (one job at a time on a T4; a different platform from the workstation)
+    walls_k = {}
+    for f_ in (kd / "run2" / "curves").glob("kg_utd*_w2-20.0_s*.csv"):
+        m_ = re.match(r"kg_utd([\d.]+)_", f_.name)
+        if m_:
+            walls_k.setdefault(m_[1], []).append(pd.read_csv(f_).iloc[-1].wall_s / 60.0)
+    for key, tag in (("0.125", "Eighth"), ("0.25", "Quarter")):
+        if key in walls_k:
+            M[f"NumKgWall{tag}Min"] = sig(float(np.mean(walls_k[key])), 2)
 
     # ---- robustness: tuned slew limit and matched slew limits
     sm = d / "sac_sensitivity_summary.csv"

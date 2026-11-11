@@ -1,0 +1,29 @@
+{
+  "units": 19,
+  "env_steps": 1969920,
+  "wall_s": 549.5,
+  "workers": 4,
+  "steps_per_s": 3585,
+  "sim_days_per_wall_s": 2.5,
+  "split": "test",
+  "grid": "nominal",
+  "models": [
+    "models/kg_utd0.25_w2-12.9_s2.zip",
+    "models/kg_utd0.25_w2-12.9_s3.zip",
+    "models/kg_utd0.25_w2-12.9_s4.zip",
+    "models/kg_utd0.25_w2-12.9_s5.zip",
+    "models/kg_utd0.25_w2-12.9_s6.zip",
+    "models/kg_utd0.25_w2-12.9_s7.zip",
+    "models/kg_utd0.25_w2-20.0_s2.zip",
+    "models/kg_utd0.25_w2-20.0_s3.zip",
+    "models/kg_utd0.25_w2-20.0_s4.zip",
+    "models/kg_utd0.25_w2-20.0_s5.zip",
+    "models/kg_utd0.25_w2-20.0_s6.zip",
+    "models/kg_utd0.25_w2-20.0_s7.zip",
+    "models/e5_w2-12.9_s0.zip",
+    "models/e5_w2-12.9_s1.zip",
+    "models/e5_w2-20.0_s0.zip",
+    "models/e5_w2-20.0_s1.zip"
+  ],
+  "note": "machine was shared with other jobs while this ran"
+}
