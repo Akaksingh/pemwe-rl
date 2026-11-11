@@ -1,0 +1,109 @@
+"""Kaggle follow-up: update ratio 1/4 and 1/8 at w2 = 20 (training days) and 6 extra seeds at update ratio 1/4 (test days).
+
+    python scripts/analyze_kaggle.py
+
+Inputs : results_kaggle/run2/{ratio/grid_ratio_train.csv, seeds/grid_seeds_test.csv}, results_e5/grid_e5_test.csv,
+         the rule grids (same sources as analyze_e5.py).
+Outputs: results_kaggle/{ratio_per_seed.csv, seeds_per_seed.csv, seeds_summary.csv}
+
+For every seed the advantage over the best simple rule is computed at that seed's own degradation, against the
+non-dominated envelope of all rule grids (slew limit, power cap, hysteresis), exactly as in analyze_e5.py. The
+confidence interval is a percentile bootstrap over seeds (seeds are the resampling unit; n is small, so read it as a
+rough spread, not as a significance test).
+"""
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+ROOT = HERE.parent
+
+import numpy as np                                    # noqa: E402
+import pandas as pd                                   # noqa: E402
+
+import analyze_e5 as E                                # noqa: E402
+
+K = ROOT / "results_kaggle"
+R = ROOT / "results_hpc"
+
+
+def per_controller(csv, pattern):
+    g = pd.read_csv(csv).drop_duplicates(subset=["controller", "scenario", "realisation", "variant", "date"])
+    g = g[(g.scenario == "original") & (g.variant == "nominal") & (g.realisation == 0)]
+    rows = []
+    for c, d in g.groupby("controller"):
+        m = re.match(pattern, c)
+        if m:
+            rows.append(dict(controller=c, w2=float(m["w2"]), seed=int(m["seed"]), days=len(d),
+                             h2=d.h2_kg.mean(), dv=d.dv_deg_uv.mean(), transitions=d.n_cycles.mean(),
+                             curtailed=d.curtailed_kwh.mean()))
+    return pd.DataFrame(rows)
+
+
+def rule_envelope():
+    b = pd.read_csv(R / "degradation_sensitivity.csv")
+    b = b[(b.variant == "nominal") & (b.scenario == "original") & (b.realisation == 0)].set_index("controller")
+    fam = pd.read_csv(R / "baseline_frontier.csv")
+    base = pd.concat([pd.DataFrame({"h2": fam.h2_kg_day, "dv": fam.dv_uv_day}),
+                      pd.DataFrame({"h2": b.h2_kg_day.values, "dv": b.dv_uv_day.values})], ignore_index=True)
+    v2 = pd.read_csv(R / "rule_family_v2.csv")
+    allr = pd.concat([base, pd.DataFrame({"h2": v2.h2_kg_day, "dv": v2.dv_uv_day})], ignore_index=True)
+    return E.envelope(allr)
+
+
+def rule_h2_at(env, dv):
+    return float(np.interp(dv, env.dv.to_numpy(), env.h2.to_numpy())) if dv >= env.dv.min() else float(env.h2.iloc[0])
+
+
+def boot_ci(x, n=10000, seed=0):
+    x = np.asarray(x, float)
+    rng = np.random.default_rng(seed)
+    m = rng.choice(x, size=(n, len(x)), replace=True).mean(axis=1)
+    return float(np.percentile(m, 2.5)), float(np.percentile(m, 97.5))
+
+
+def main():
+    # ---- ratio study (training days, w2 = 20)
+    rat = per_controller(K / "run2" / "ratio" / "grid_ratio_train.csv",
+                         r"(?P<tag>kg_utd[\d.]+|e5|chk_utd32)_w2-(?P<w2>[\d.]+)_s(?P<seed>\d+)")
+    rat["setting"] = rat.controller.str.replace(r"_w2-.*", "", regex=True).replace(
+        {"e5": "utd 1 (e5)", "chk_utd32": "utd 1/32 (checkpoint)"})
+    rat.sort_values(["setting", "seed"]).to_csv(K / "ratio_per_seed.csv", index=False)
+    print("RATIO STUDY (training days, stride 5, w2 = 20), per seed:")
+    pd.set_option("display.width", 200)
+    print(rat.sort_values(["setting", "seed"])[["setting", "seed", "days", "h2", "dv", "transitions"]].round(2).to_string(index=False))
+    print(rat.groupby("setting").agg(h2=("h2", "mean"), dv=("dv", "mean"), n=("seed", "count")).round(2).to_string())
+
+    # ---- extra seeds (test days)
+    kg = per_controller(K / "run2" / "seeds" / "grid_seeds_test.csv", r"kg_utd0\.25_w2-(?P<w2>[\d.]+)_s(?P<seed>\d+)")
+    kg["group"] = "utd 1/4 (new seeds 2-7)"
+    full = per_controller(ROOT / "results_e5" / "grid_e5_test.csv", r"e5_w2-(?P<w2>[\d.]+)_s(?P<seed>\d+)")
+    full = full[full.w2.isin([12.9, 20.0])].copy()
+    full["group"] = "utd 1 (seeds 0-1)"
+    allp = pd.concat([kg, full], ignore_index=True)
+    env = rule_envelope()
+    allp["rule_h2_same_dv"] = [rule_h2_at(env, d) for d in allp.dv]
+    allp["advantage_pct"] = 100 * (allp.h2 - allp.rule_h2_same_dv) / allp.rule_h2_same_dv
+    allp.sort_values(["w2", "group", "seed"]).to_csv(K / "seeds_per_seed.csv", index=False)
+    print("\nTEST DAYS, per seed (72 days):")
+    print(allp.sort_values(["w2", "group", "seed"])[["w2", "group", "seed", "days", "h2", "dv", "advantage_pct"]].round(2).to_string(index=False))
+
+    rows = []
+    for (w, grp), d in allp.groupby(["w2", "group"]):
+        lo, hi = boot_ci(d.advantage_pct) if len(d) > 2 else (np.nan, np.nan)
+        rows.append(dict(w2=w, group=grp, n_seeds=len(d), h2_mean=d.h2.mean(), h2_min=d.h2.min(), h2_max=d.h2.max(),
+                         dv_mean=d.dv.mean(), dv_min=d.dv.min(), dv_max=d.dv.max(),
+                         adv_pct_mean=d.advantage_pct.mean(), adv_pct_min=d.advantage_pct.min(), adv_pct_max=d.advantage_pct.max(),
+                         adv_pct_ci_lo=lo, adv_pct_ci_hi=hi, n_positive=int((d.advantage_pct > 0).sum()),
+                         below_envelope_range=int((d.dv < env.dv.min()).sum())))
+    s = pd.DataFrame(rows)
+    s.to_csv(K / "seeds_summary.csv", index=False)
+    print("\nSUMMARY (advantage over best simple rule at the same degradation; CI = bootstrap over seeds):")
+    print(s.round(2).to_string(index=False))
+
+
+if __name__ == "__main__":
+    main()

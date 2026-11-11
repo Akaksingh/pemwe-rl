@@ -65,3 +65,10 @@ CSV, the decision JSON with the numbers behind it, the evaluation CSVs, the trai
 - **Time budget.** `--max-hours` (default 8) stops new jobs from starting late, and the zip is written even if the run is cut short.
 - **Your own GPU.** The same script also runs on your laptop's GTX 1650 if PyTorch works there (it needs Linux or WSL2 for the
   `fork`-based evaluation step; on plain Windows use Kaggle).
+
+## Status (2026-11-11)
+
+Both runs were done through the Kaggle API (`kaggle/kernel/`, `kaggle kernels push -p kaggle/kernel`; the token is an environment
+variable and is never stored in the repo). Run 1 (two jobs in parallel) lost three of four jobs, probably to memory; one SAC job
+uses about 22.5 GB of the 31 GB. The default is now `--parallel 1`, a killed job is retried once, and memory is logged every
+2 minutes. Run 2 finished in 271 minutes; its data is in `results_kaggle/run2/` and its analysis is `scripts/analyze_kaggle.py`.

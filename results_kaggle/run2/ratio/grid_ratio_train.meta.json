@@ -1,0 +1,21 @@
+{
+  "units": 11,
+  "env_steps": 934560,
+  "wall_s": 264.5,
+  "workers": 4,
+  "steps_per_s": 3534,
+  "sim_days_per_wall_s": 2.5,
+  "split": "train",
+  "grid": "nominal",
+  "models": [
+    "models/kg_utd0.125_w2-20.0_s0.zip",
+    "models/kg_utd0.125_w2-20.0_s1.zip",
+    "models/kg_utd0.25_w2-20.0_s0.zip",
+    "models/kg_utd0.25_w2-20.0_s1.zip",
+    "models/e5_w2-20.0_s0.zip",
+    "models/e5_w2-20.0_s1.zip",
+    "models/chk_utd32_w2-20.0_s0.zip",
+    "models/chk_utd32_w2-20.0_s1.zip"
+  ],
+  "note": "machine was shared with other jobs while this ran"
+}
