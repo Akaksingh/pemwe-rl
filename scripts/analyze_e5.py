@@ -119,6 +119,19 @@ def main():
         for r in nm.itertuples():
             ax.annotate(f"{r.w2:g}", (r.dv, r.h2), textcoords="offset points", xytext=(-3, 6), fontsize=6.3,
                         color=H.INK2, ha="center")
+    kgp = ROOT / "results_kaggle" / "seeds_per_seed.csv"      # six extra seeds at update ratio 1/4 (Kaggle), optional
+    if kgp.exists():
+        kg = pd.read_csv(kgp)
+        kg = kg[kg.group.str.startswith("utd 1/4")]
+        if len(kg):
+            km = kg.groupby("w2").agg(h2=("h2", "mean"), dv=("dv", "mean")).reset_index().sort_values("w2")
+            ax.scatter(kg.dv, kg.h2, s=9, color=H.ORANGE, alpha=0.4, linewidths=0, marker="v", zorder=4)
+            ax.plot(km.dv, km.h2, color=H.ORANGE, marker="v", ms=5, lw=1.3, ls="--", mec=H.SURFACE, mew=0.8, zorder=5,
+                    label="SAC, UTD 1/4, 6 seeds")
+            for r in km.itertuples():
+                ax.annotate(f"{r.w2:g}", (r.dv, r.h2), textcoords="offset points", xytext=(5, -9), fontsize=6.3,
+                            color=H.ORANGE, ha="center")
+            print(f"plotted {len(kg)} ratio-1/4 seeds at w2 = {sorted(kg.w2.unique())}")
     label_at = {"naive_as_published": (97.0, 178.0), "ramp_limited": (89.0, 162.0), "no_threshold": (85.0, 208.5)}
     for c, (mk, lab) in BASE_STYLE.items():
         if c in b.index:

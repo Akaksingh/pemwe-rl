@@ -154,11 +154,17 @@ correction, not a new algorithm:
   \item \textbf{Parallel sensitivity analysis.} A parameterised renewable-variability generator and a
         process-parallel evaluation harness for controller comparison under uncertainty in
         both the resource and the degradation coefficients.
+  \item \textbf{Update ratio and time to quality.} Whether a cheaper update ratio matches the full one
+        depends on the degradation weight: at a low weight every ratio reaches the same plateau, at high
+        weights the effect of the weight is learned gradually as the ratio rises. Configurations should be
+        compared by time to a stated quality at the weight of interest, not by steps per second.
   \item \textbf{A fair controller comparison.} Learned policies are compared with grids of simple
-        rules (slew limits with and without the idle threshold, power caps) by the yield they achieve at
+        rules (slew limits with and without the idle threshold, power caps, and a hysteresis rule with
+        start/stop confirmation) by the yield they achieve at
         the \emph{same degradation}, and are re-evaluated under degradation-coefficient and
         resource-variability shifts against rules matched to their degradation level. We report
-        where the learned policy does not help as well as where it does.
+        where the learned policy does not help as well as where it does: the hysteresis rule closes most of
+        the low-degradation advantage that slew-limit and power-cap rules leave.
 \end{itemize}
 
 \emph{Scope.} This is a simulation study. No physical stack was operated, the degradation model
@@ -458,7 +464,8 @@ low-weight plateau, whereas the full ratio gives \NumChkTwelveHighHydrogen{} and
 \NumChkTwelveHighDeg{} and \NumChkTwentyHighDeg\,\si{\micro\volt}/day. The response to the degradation weight is learned only with
 enough updates, so the update-ratio pitfall has a real consequence: the earlier runs, at a ratio of $1/32$ and
 $\gamma=0.999$, would not be expected to have learned the high-weight end of the frontier.
-Intermediate ratios, tried at $w_2=20$ on a different platform (see Section~\ref{sec:learn}), fall in between.
+Intermediate ratios, tried at $w_2=20$ on a different platform (see Section~\ref{sec:learn}), fall in between
+(Table~\ref{tab:ratio}).
 Degradation on the same training days is \NumChkTwentyLowDeg{}, \NumRatioEighthDeg{}, \NumRatioQuarterDeg{} and
 \NumChkTwentyHighDeg\,\si{\micro\volt}/day at ratios $1/32$, $1/8$, $1/4$ and $1$, with hydrogen of
 \NumChkTwentyLowHydrogen{}, \NumRatioEighthHydrogen{}, \NumRatioQuarterHydrogen{} and \NumChkTwentyHighHydrogen\,kg/day.
@@ -471,6 +478,17 @@ against a tolerance of 10\,\%), and on held-out days those policies stop short o
 (Section~\ref{sec:frontier}).
 Caveats: two seeds, in-sample days; the $1/8$ and $1/4$ policies were trained on Kaggle and the others on the
 workstation, where four runs shared one GPU, so wall-clock times are not comparable across platforms or to single-run speeds.
+
+\begin{table}[t]
+\caption{Update ratio at $w_2=20$, $\gamma=0.95$, 300k steps, 32 environments: mean of two seeds on every fifth
+\emph{training} day (in-sample; the held-out days are not used). The last column is degradation relative to the
+full ratio; the tolerance fixed in advance was $1.10$ (and hydrogen at least $0.95\times$). Training platform differs
+between rows.}
+\label{tab:ratio}
+\centering
+\footnotesize
+\resizebox{\columnwidth}{!}{\input{table_ratio}}
+\end{table}
 
 \subsection{What the policy learns}
 A probe of the update-ratio-1 checkpoint on twelve held-out days (every sixth) shows where the shortfall
@@ -489,7 +507,8 @@ This is a descriptive probe of a few checkpoints, not a statistic.
 \caption{Hydrogen against degradation on the 72 held-out days (lower degradation to the right).
 Grey dots: every point of the slew-limit, power-cap and hysteresis-rule grids; dashed line: their non-dominated envelope.
 Blue: corrected SAC (mean of two seeds, faint dots are seeds), labelled with the degradation weight
-$w_2$. Green: the earlier SAC runs. Open markers: the three named rules.}
+$w_2$. Orange: six further seeds at update ratio $1/4$ (triangles are seeds, line is the mean), trained on a
+different platform. Green: the earlier SAC runs. Open markers: the three named rules.}
 \label{fig:frontier}
 \end{figure}
 Figure~\ref{fig:frontier} places the corrected policies against the rule grids. The envelope is the
