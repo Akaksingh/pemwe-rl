@@ -1,0 +1,11 @@
+method,size,episodes,env_steps,seconds,steps_per_s,note
+scalar_1proc,1,12,17280,3.5316,4893.0,"in-process, median of 3; min 3.52s max 3.57s"
+grid_scalar_pool,4,5184,7464960,773.776,9647.4,"72 rules x 72 days, 4 spawn-pool workers"
+batched,1,1,1440,0.4668,3084.7,median of 3; min 0.46s max 0.47s
+batched,8,8,11520,0.458,25150.5,median of 3; min 0.45s max 0.46s
+batched,72,72,103680,0.4984,208011.1,median of 3; min 0.50s max 0.50s
+batched,512,512,737280,0.8159,903663.8,median of 3; min 0.81s max 0.86s
+batched,2048,2048,2949120,1.6972,1737597.1,median of 3; min 1.69s max 1.71s
+batched,5184,5184,7464960,3.4623,2156048.9,median of 3; min 3.45s max 3.48s
+batched,16384,16384,23592960,10.0247,2353473.7,median of 3; min 10.02s max 10.04s
+grid_batched,5184,5184,7464960,2.6192,2850045.7,"72 rules x 72 days, one batch, median of 3; min 2.61s max 2.63s"
