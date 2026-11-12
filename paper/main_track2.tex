@@ -78,47 +78,49 @@
 
 \begin{document}
 
-\title{Simulation Throughput and Learner Scaling for Reinforcement-Learning Control of a PEM
-Electrolyzer under Variable Renewable Input: A Computational Performance Study}
+\title{Simulation Throughput and Learner Scaling for Reinforcement-Learning Control of a
+Renewable-Powered PEM Electrolyzer}
 
-\author{\IEEEauthorblockN{\TODO{authors}}
-\IEEEauthorblockA{\TODO{affiliation}}}
+\author{\IEEEauthorblockN{Akaksha Singh}
+\IEEEauthorblockA{\textit{\TODO{department}} \\
+\textit{\TODO{institution}} \\
+\TODO{city, country} \\
+akakshasingh@ce.du.ac.in}
+\and
+\IEEEauthorblockN{Nishant Gupta}
+\IEEEauthorblockA{\textit{\TODO{department}} \\
+\textit{\TODO{institution}} \\
+\TODO{city, country} \\
+nishu30092000@ce.du.ac.in}}
 
 \maketitle
 
 % =============================================================================
 \begin{abstract}
 Degradation of proton-exchange-membrane (PEM) electrolyzer stacks unfolds over years, so control
-strategies for renewable-powered operation must be screened in simulation long before any
-hardware test is possible. We study the computational side of that screening for a
-\SI{1}{\mega\watt}-class plant simulated at a one-minute control interval. On a single
-workstation (8 cores, one GPU) the simulator runs at \NumSimOne{} environment steps/s on one core
-and \NumSimSixteen{} steps/s with 16 workers, i.e.\ \NumYearSeconds{} s of wall time per
-simulated year; scaling is limited by the 8 physical cores (speedup \NumSpeedEight{} on 8
-workers). Soft Actor-Critic (SAC) training at a correct update-to-data ratio is
-learner-bound at \NumGpuUps{} updates/s on the GPU and \NumCpuUpsFour{}--\NumCpuUpsEight{} on
-the CPU, independent of the number of environments. We also report a measurement pitfall: a
-vectorized SAC configuration documented as one gradient update per transition performed
-$\NumUtdMeasuredLow$, so speedups quoted in steps/s overstated learning throughput by about $30\times$. The
-update ratio matters only where the policy has something to learn. At a low degradation weight SAC reached the
-same plateau at every ratio from $1/32$ to $1$, about \NumEThreeShortfallMin--\NumEThreeShortfallMax\,\% below a one-line
-rule on its training reward, within its first checkpoint; at the high weights that define the frontier the cheap ratio
-did not learn the weight's effect at all (\NumChkTwentyLowDeg\,\si{\micro\volt}/day at $w_2=20$ against
-\NumChkTwentyHighDeg{} at the full ratio, on training days; a ratio of $1/4$ recovers most of the effect, at
-\NumRatioQuarterDeg). Configurations should therefore be compared by time to a
-stated quality at the weight of interest, not by steps per second. On held-out days the learned controller matches the best
-simple rule at moderate degradation reductions. At low degradation the rule baseline matters: against slew-limit and
-power-cap rules the learned policy yields up to \NumAdvTwentyPctOldRules\,\% more hydrogen at the same degradation, but a
-grid of 72 hysteresis rules (start/stop confirmation, power cap, slew limit) closes most of that gap. Over six further
-seeds the remaining advantage is \NumKgQuarterTwelveAdvMean\,\% at $w_2=12.9$ and \NumKgQuarterTwentyAdvMean\,\% at
-$w_2=20$ (positive for every seed), and \NumKgFullTwentyAdvMean\,\% for the two full-update-ratio policies at
-$w_2=20$, with a projected life that depends on coefficients the model cannot pin down. No physical stack was operated: the simulator is a pre-screening tool, and
-conclusions concern relative controller behaviour and computational performance, not absolute stack lifetime.
+strategies for renewable-powered operation must be screened in simulation, and the cost of that
+screening is a high-performance-computing problem. We characterise it for a \SI{1}{\mega\watt}-class
+plant simulated at a one-minute control interval, on one 8-core workstation with one GPU. The simulator
+runs at \NumSimOne{} environment steps/s on one core and \NumSimSixteen{} steps/s with 16 workers.
+Scaling stops at the 8 physical cores (speedup
+\NumSpeedEight{} on 8 workers); a Karp--Flatt analysis and clock measurements point to the processor
+lowering its clock under multi-core load, not to serial work. Soft Actor-Critic (SAC) training is
+learner-bound at \NumGpuUps{} updates/s on the GPU, flat in batch size and independent of the number of
+environments, so concurrent independent runs, not more environments, raise throughput. We report a
+benchmarking pitfall: a vectorized SAC configuration documented as one update per transition performed
+$\NumUtdMeasuredLow$, so steps/s overstated learning throughput by about $30\times$. Whether a cheaper
+update ratio suffices depends on the quality sought: at a low degradation weight every ratio from $1/32$ to
+$1$ reaches the same plateau, whereas at high weights the effect of the weight is learned gradually and a
+ratio of $1/4$ recovers most of it. The baseline matters as much as the compute: the learned controller
+yields up to \NumAdvTwentyPctOldRules\,\% more hydrogen at equal degradation than slew-limit and power-cap
+rules, but only \NumKgQuarterTwelveAdvMean\,\% and \NumKgQuarterTwentyAdvMean\,\% (six seeds, every seed
+positive) than a hysteresis rule. No physical stack was operated; results concern computational
+performance and relative controller behaviour.
 \end{abstract}
 
 \begin{IEEEkeywords}
-PEM water electrolysis, reinforcement learning, parallel simulation, scaling analysis,
-update-to-data ratio, performance benchmarking
+high-performance computing, parallel simulation, scaling analysis, reinforcement learning, PEM water
+electrolysis, update-to-data ratio, performance benchmarking
 \end{IEEEkeywords}
 
 % =============================================================================
@@ -258,6 +260,34 @@ originally a bisection, uses a table of the zero-degradation power curve (4096 p
 linear interpolation and two fixed-point corrections for the degradation term. We parallelise
 across independent episodes in separate processes; there is no shared state between workers.
 
+\subsection{Test systems}
+\begin{table}[t]
+\caption{Systems. All timing results are from the workstation; the cloud notebook was used only to train
+and evaluate learned policies (Section~\ref{sec:learn}) and contributes no timing claim.}
+\label{tab:system}
+\centering
+\footnotesize
+\begin{tabular}{@{}lp{0.60\columnwidth}@{}}
+\toprule
+ & Specification \\
+\midrule
+\multicolumn{2}{@{}l}{\emph{Workstation (all timing results)}} \\
+CPU & Intel Core i9-9900KF, 8 cores / 16 threads, \SI{3.6}{\giga\hertz} base, \SI{16}{\mebi\byte} L3; governor \texttt{powersave} \\
+Memory & \SI{94}{\gibi\byte} \\
+GPU & NVIDIA RTX A5000, \SI{24}{\gibi\byte} \\
+Software & Ubuntu 20.04.6, Python 3.12, PyTorch 2.14.1 (CUDA 12.6), Gymnasium 1.3.0, Stable-Baselines3 2.9.0 \\
+Use & Shared with other users; clock frequency could not be fixed \\
+\midrule
+\multicolumn{2}{@{}l}{\emph{Cloud notebook (learning follow-up only)}} \\
+CPU & 4 vCPU, Intel Xeon \SI{2.0}{\giga\hertz} \\
+Memory & \SI{31}{\gibi\byte} \\
+GPU & NVIDIA Tesla T4, \SI{15}{\gibi\byte} \\
+Software & PyTorch 2.11.0 (CUDA 13.0), Stable-Baselines3 2.9.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+% specification source: results_hpc/hardware_specifications.txt and results_kaggle/run2/hardware_specifications_kaggle.txt
+
 \subsection{Simulator benchmark protocol}
 Workers run random-action episodes of the bare environment (no policy, no SB3). Each worker builds its
 environment and takes warm-up steps, then all workers pass a barrier; timing starts at the
@@ -351,6 +381,14 @@ therefore attribute the efficiency loss to the processor lowering its clock unde
 load (the machine runs the \texttt{powersave} governor), not to the parallel decomposition.
 This is an inference from one clock reading per worker per run, not a controlled experiment: the
 clock could not be fixed on a shared machine.
+
+As a cross-check, the Karp--Flatt experimentally determined serial fraction
+$e(n)=(1/S(n)-1/n)/(1-1/n)$ is \NumKarpFlattTwo{}, \NumKarpFlattFour{} and \NumKarpFlattEight{} at two, four and
+eight workers. Under Amdahl's law $e$ would be constant; here it rises between two and four workers and then
+falls, which is what a step in per-core throughput looks like and not what a fixed serial fraction looks like.
+Weak scaling agrees: with eight episodes per worker, eight workers deliver \NumWeakEffEight{} of eight times
+the single-worker rate. Neither metric proves the cause, but both are consistent with the clock explanation and
+inconsistent with a serial bottleneck or load imbalance.
 
 \begin{figure}[t]
 \centering
@@ -660,7 +698,30 @@ are two one-dimensional grids (slew limit, power cap) and one 72-point hysteresi
 of the low-degradation gap, so a finer or richer rule, or a model-predictive controller, could close more, and we
 tried neither. The robustness comparison in the sensitivity section is against slew limits only, not against the hysteresis rules. The degradation weights $w_2$ have no
 economic calibration here, so which point on the frontier is preferable is not decided by this study.
-\emph{Single site and year.}
+\emph{Single site and year.} All days come from one site (Kutch, Gujarat) and one year (2019) of ERA5 data,
+converted to power with our own PV and turbine models; the 293 training and 72 held-out days share that year's
+weather, so we make no claim about other sites, years or measured one-minute resource data.
+
+% =============================================================================
+\section{Implications for HPC Practice}
+The measurements support five recommendations for anyone benchmarking a simulation-plus-learning workload of this
+kind (small state, cheap steps, learner-bound training).
+\begin{enumerate}
+  \item \emph{Report the update-to-data ratio and time to a stated quality, not steps per second.} A
+        configuration documented as one-to-one was $\NumUtdMeasuredLow$, and a cheaper ratio is adequate at
+        one degradation weight and not at another.
+  \item \emph{Scale out runs, not environments or batch size.} The learner is latency-bound (flat from batch 256
+        to 2048) and independent of the environment count, so independent seeds and settings on one machine are the
+        effective unit of parallelism (best measured aggregate: \NumMultiBest{} updates/s).
+  \item \emph{Check the processor clock before attributing efficiency loss to the code.} Efficiency fell from
+        about $1$ to $0.75$ at four workers regardless of pinning, and the Karp--Flatt fraction was not constant;
+        the clock fell with load under the \texttt{powersave} governor.
+  \item \emph{Do not count hyper-threads as cores for this workload.} Sixteen workers on eight cores added only
+        \NumSmtGain\,\% over eight.
+  \item \emph{Spend compute on the baseline as well as the learner.} A 72-point hysteresis-rule grid is cheap
+        next to training, and it removed most of the apparent advantage of the learned controller
+        (\NumAdvTwentyPctOldRules\,\% to a few percent).
+\end{enumerate}
 
 % =============================================================================
 \section{Conclusion}
@@ -681,6 +742,11 @@ depends on degradation coefficients the model cannot identify. These are simulat
 calibrated to literature rates and a synthetic sub-hourly resource; hardware validation, measured
 high-frequency resource data, an economic calibration of the degradation weight and a model-predictive
 baseline are the necessary next steps.
+
+\emph{Availability.} The simulator, benchmark and analysis scripts, raw per-run results, trained policies and the
+scripts that generate every number and figure in this paper are public at
+\url{https://github.com/Akaksingh/pemwe-rl}; each reported number is produced from the raw CSVs by
+\texttt{scripts/make\_paper\_numbers.py}.
 
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
