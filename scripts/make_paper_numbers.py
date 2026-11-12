@@ -50,6 +50,14 @@ def main():
                 M[f"NumSim{key}"] = num(st.loc[n, "steps_per_s"])
                 M[f"NumSpeed{key}"] = sig(st.loc[n, "speedup"], 2)
                 M[f"NumEff{key}"] = sig(st.loc[n, "efficiency"], 2)
+        # Karp-Flatt experimentally determined serial fraction e(n) = (1/S - 1/n) / (1 - 1/n); constant under Amdahl's law
+        for n, key in ((2, "Two"), (4, "Four"), (8, "Eight")):
+            if n in st.index:
+                S_ = float(st.loc[n, "speedup"])
+                M[f"NumKarpFlatt{key}"] = sig((1.0 / S_ - 1.0 / n) / (1.0 - 1.0 / n), 2).replace("-", "$-$")
+        wk = t[(t.experiment == "raw_env_weak_scaling") & (t.placement == "unpinned")].set_index("n_workers")
+        if 1 in wk.index and 8 in wk.index:       # weak-scaling efficiency: throughput(8) / (8 x throughput(1))
+            M["NumWeakEffEight"] = sig(float(wk.loc[8, "steps_per_s"]) / (8.0 * float(wk.loc[1, "steps_per_s"])), 2)
         smt = t[(t.experiment == "raw_env_strong_scaling") & (t.placement == "smt_pairs")].set_index("n_workers")
         if 2 in smt.index:
             M["NumSmtTwo"] = sig(smt.loc[2, "speedup"], 3)
