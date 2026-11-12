@@ -203,6 +203,28 @@ def main():
                 M[f"NumKg{g_}{tag}AdvMin"] = sig(q.adv_pct_min, 2)
                 M[f"NumKg{g_}{tag}AdvMax"] = sig(q.adv_pct_max, 2)
                 M[f"NumKg{g_}{tag}Positive"] = str(int(q.n_positive))
+    # ---- batched (episode-parallel) simulator, Kaggle CPU kernel: same-machine ratios (scripts/analyze_batch.py)
+    bsum = ROOT / "results_batch" / "batch_summary.json"
+    if bsum.exists():
+        bj = json.loads(bsum.read_text())
+        M["NumBatchScalarOne"] = num(bj["scalar_one_steps_per_s"], 3)
+        M["NumBatchScalarPool"] = num(bj["scalar_pool_steps_per_s"], 3)
+        M["NumBatchPoolOverOne"] = sig(bj["pool_over_one"], 2)
+        M["NumBatchPeak"] = num(bj["peak_steps_per_s"], 3)
+        M["NumBatchPeakBatch"] = num(bj["peak_batch"], 5)
+        M["NumBatchGridEpisodes"] = num(bj["grid_episodes"], 4)
+        M["NumBatchGridSeconds"] = sig(bj["grid_batched_seconds"], 2)
+        M["NumBatchPoolSeconds"] = sig(bj["scalar_pool_seconds"], 3)
+        M["NumBatchGridSpeedup"] = sig(bj["grid_speedup_vs_pool"], 3)
+        M["NumBatchOneSpeedup"] = sig(bj["speedup_vs_one_process"], 2)
+        M["NumBatchOverheadMs"] = sig(bj["hockney_overhead_ms"], 2)
+        M["NumBatchUsPerEp"] = sig(bj["hockney_us_per_episode_step"], 2)
+        M["NumBatchRInf"] = num(bj["hockney_r_inf"], 3)
+        M["NumBatchNHalf"] = sig(bj["hockney_n_half"], 2)
+        M["NumBatchFitErr"] = sig(100.0 * bj["hockney_max_rel_err"], 1)
+        M["NumBatchValEpisodes"] = str(bj["validation_episodes"])
+        M["NumBatchValDiff"] = "0" if bj["validation_max_rel_diff"] == 0 else sig(bj["validation_max_rel_diff"], 2)
+
     # training wall time of the Kaggle runs (one job at a time on a T4; a different platform from the workstation)
     walls_k = {}
     for f_ in (kd / "run2" / "curves").glob("kg_utd*_w2-20.0_s*.csv"):

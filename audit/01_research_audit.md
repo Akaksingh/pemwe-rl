@@ -610,3 +610,16 @@ kept in `results_kaggle/run1_partial/` and is not used for any result.
   ratio-1/4 operating points; the +14% at the full-ratio w2 = 20 point rests on two seeds at the end of a sparse envelope.
 * Caveats: the ratio-1/4 and 1/8 policies were trained on a different platform than the full-ratio ones; the comparison with the
   full ratio is also a comparison of platforms. Timings from Kaggle are not used for any scaling claim.
+
+## Addendum (2026-11-12): episode-parallel (batched) simulator
+
+New HPC contribution: `src/pemwe/batch.py` steps B independent days in lockstep with NumPy, reusing `StackModel` and the
+degradation constants and mirroring `PEMWEEnv.step` (including float32 rounding of the action and of the observation seen by
+rules). Validation: `tests/test_batch.py` (8 tests; ordinary and extreme profiles; random actions, three rule types, a grid of
+rules in one batch): hydrogen, degradation and reward agree with relative difference 0.0, mean efficiency to 1e-15; a
+deliberately broken inversion is detected (3e-5). On the real held-out days, 24 random grid episodes agree with relative
+difference 0.0. Benchmark (Kaggle CPU kernel, 4 vCPU Xeon 2.2 GHz, same-machine ratios): scalar 4,893 steps/s in one process and
+9,647 in a 4-worker pool; batched 2.35M steps/s at B = 16,384 and 2.85M for the 5,184-episode grid; the 72-rule x 72-day grid takes
+2.6 s batched against 774 s with the pool (295x; 582x vs one process). Hockney fit t(B) = a + bB: a = 0.32 ms, b = 0.41 us, n_half
+~ 785 episodes (max fit error 6%). Limits: not supported are persistent degradation and the gym API; learned-policy
+inference was not batched or benchmarked; the workstation was unavailable, so no workstation timing exists for it.

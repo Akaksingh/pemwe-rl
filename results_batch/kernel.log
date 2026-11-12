@@ -1,0 +1,127 @@
+Cloning into '/kaggle/working/repo'...
+Updating files:  12% (68/553)
+Updating files:  13% (72/553)
+Updating files:  14% (78/553)
+Updating files:  15% (83/553)
+Updating files:  16% (89/553)
+Updating files:  17% (95/553)
+Updating files:  18% (100/553)
+Updating files:  19% (106/553)
+Updating files:  20% (111/553)
+Updating files:  21% (117/553)
+Updating files:  22% (122/553)
+Updating files:  22% (126/553)
+Updating files:  23% (128/553)
+Updating files:  24% (133/553)
+Updating files:  25% (139/553)
+Updating files:  26% (144/553)
+Updating files:  27% (150/553)
+Updating files:  28% (155/553)
+Updating files:  29% (161/553)
+Updating files:  30% (166/553)
+Updating files:  31% (172/553)
+Updating files:  32% (177/553)
+Updating files:  33% (183/553)
+Updating files:  34% (189/553)
+Updating files:  35% (194/553)
+Updating files:  36% (200/553)
+Updating files:  37% (205/553)
+Updating files:  38% (211/553)
+Updating files:  39% (216/553)
+Updating files:  40% (222/553)
+Updating files:  41% (227/553)
+Updating files:  42% (233/553)
+Updating files:  43% (238/553)
+Updating files:  44% (244/553)
+Updating files:  45% (249/553)
+Updating files:  46% (255/553)
+Updating files:  47% (260/553)
+Updating files:  48% (266/553)
+Updating files:  49% (271/553)
+Updating files:  50% (277/553)
+Updating files:  51% (283/553)
+Updating files:  52% (288/553)
+Updating files:  53% (294/553)
+Updating files:  54% (299/553)
+Updating files:  55% (305/553)
+Updating files:  56% (310/553)
+Updating files:  57% (316/553)
+Updating files:  58% (321/553)
+Updating files:  59% (327/553)
+Updating files:  60% (332/553)
+Updating files:  61% (338/553)
+Updating files:  62% (343/553)
+Updating files:  63% (349/553)
+Updating files:  64% (354/553)
+Updating files:  65% (360/553)
+Updating files:  66% (365/553)
+Updating files:  67% (371/553)
+Updating files:  68% (377/553)
+Updating files:  69% (382/553)
+Updating files:  70% (388/553)
+Updating files:  71% (393/553)
+Updating files:  72% (399/553)
+Updating files:  73% (404/553)
+Updating files:  74% (410/553)
+Updating files:  75% (415/553)
+Updating files:  76% (421/553)
+Updating files:  77% (426/553)
+Updating files:  78% (432/553)
+Updating files:  79% (437/553)
+Updating files:  80% (443/553)
+Updating files:  81% (448/553)
+Updating files:  82% (454/553)
+Updating files:  83% (459/553)
+Updating files:  84% (465/553)
+Updating files:  85% (471/553)
+Updating files:  86% (476/553)
+Updating files:  87% (482/553)
+Updating files:  88% (487/553)
+Updating files:  89% (493/553)
+Updating files:  90% (498/553)
+Updating files:  91% (504/553)
+Updating files:  92% (509/553)
+Updating files:  93% (515/553)
+Updating files:  94% (520/553)
+Updating files:  95% (526/553)
+Updating files:  96% (531/553)
+Updating files:  97% (537/553)
+Updating files:  98% (542/553)
+Updating files:  99% (548/553)
+Updating files: 100% (553/553)
+Updating files: 100% (553/553), done.
+commit: d19f14e3df09a54d6592904e01efe253a43fa0fc
+/../../usr/local/lib/python3.13/dist-packages/matplotlib/_fontconfig_pattern.py:85
+../../../usr/local/lib/python3.13/dist-packages/matplotlib/_fontconfig_pattern.py:85
+../../../usr/local/lib/python3.13/dist-packages/matplotlib/_fontconfig_pattern.py:85
+    parse = parser.parseString(pattern)
+
+../../../usr/local/lib/python3.13/dist-packages/matplotlib/_fontconfig_pattern.py:89
+../../../usr/local/lib/python3.13/dist-packages/matplotlib/_fontconfig_pattern.py:89
+../../../usr/local/lib/python3.13/dist-packages/matplotlib/_fontconfig_pattern.py:89
+../../../usr/local/lib/python3.13/dist-packages/matplotlib/_fontconfig_pattern.py:89
+../../../usr/local/lib/python3.13/dist-packages/matplotlib/_fontconfig_pattern.py:89
+../../../usr/local/lib/python3.13/dist-packages/matplotlib/_fontconfig_pattern.py:89
+    parser.resetCache()
+
+../../../usr/local/lib/python3.13/dist-packages/matplotlib/_mathtext.py:45
+    ParserElement.enablePackrat()
+
+
+scalar_1proc   size=     1  episodes=    12     3.532s         4,893 steps/s  in-process, median of 3; min 3.52s max 3.57s
+grid_scalar_pool size=     4  episodes=  5184   773.776s         9,647 steps/s  72 rules x 72 days, 4 spawn-pool workers
+batched        size=     1  episodes=     1     0.467s         3,085 steps/s  median of 3; min 0.46s max 0.47s
+batched        size=     8  episodes=     8     0.458s        25,151 steps/s  median of 3; min 0.45s max 0.46s
+batched        size=    72  episodes=    72     0.498s       208,011 steps/s  median of 3; min 0.50s max 0.50s
+batched        size=   512  episodes=   512     0.816s       903,664 steps/s  median of 3; min 0.81s max 0.86s
+batched        size=  2048  episodes=  2048     1.697s     1,737,597 steps/s  median of 3; min 1.69s max 1.71s
+batched        size=  5184  episodes=  5184     3.462s     2,156,049 steps/s  median of 3; min 3.45s max 3.48s
+batched        size= 16384  episodes= 16384    10.025s     2,353,474 steps/s  median of 3; min 10.02s max 10.04s
+grid_batched   size=  5184  episodes=  5184     2.619s     2,850,046 steps/s  72 rules x 72 days, one batch, median of 3; min 2.61s max 2.63s
+validation: 24 random grid episodes, max relative difference batched vs scalar = 0.00e+00
+wrote /kaggle/working/batch_results/bench_batch.csv
+bench exit code: 0 pytest exit code: 0
+  cells[i][c] = re.sub('\\\\\|', '|', cell)
+  text = re.sub(r'_', '\_', text) # Escape underscores in display text
+[NbConvertApp] Converting notebook __script__.ipynb to html
+[NbConvertApp] Writing 282651 bytes to __results__.html
