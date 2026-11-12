@@ -262,8 +262,8 @@ across independent episodes in separate processes; there is no shared state betw
 
 \subsection{Test systems}
 \begin{table}[t]
-\caption{Systems. All timing results are from the workstation; the cloud notebook was used only to train
-and evaluate learned policies (Section~\ref{sec:learn}) and contributes no timing claim.}
+\caption{Systems. All timing results are from the workstation; the cloud notebook and the earlier server were
+used only to train and evaluate learned policies (Section~\ref{sec:learn}) and contribute no timing claim.}
 \label{tab:system}
 \centering
 \footnotesize
@@ -283,6 +283,9 @@ CPU & 4 vCPU, Intel Xeon \SI{2.0}{\giga\hertz} \\
 Memory & \SI{31}{\gibi\byte} \\
 GPU & NVIDIA Tesla T4, \SI{15}{\gibi\byte} \\
 Software & PyTorch 2.11.0 (CUDA 13.0), Stable-Baselines3 2.9.0 \\
+\midrule
+\multicolumn{2}{@{}l}{\emph{Earlier server (earlier SAC sweep only)}} \\
+Hardware & 4$\times$ NVIDIA H200, AMD EPYC 9535 (128 cores), per project documentation; no timing claim \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -516,6 +519,17 @@ against a tolerance of 10\,\%), and on held-out days those policies stop short o
 (Section~\ref{sec:frontier}).
 Caveats: two seeds, in-sample days; the $1/8$ and $1/4$ policies were trained on Kaggle and the others on the
 workstation, where four runs shared one GPU, so wall-clock times are not comparable across platforms or to single-run speeds.
+
+The earlier sweep, run on a 4$\times$H200 server before the update ratio was corrected, makes the same point at
+scale. Its \NumLegacyRuns{} runs (\NumLegacyWeights{} weights, \NumLegacySeeds{} seeds each, $2\times10^6$ steps, ratio
+$1/32$, $\gamma=0.999$) used $6.7\times$ more environment steps per run than the corrected runs but about
+$4.8\times$ fewer gradient updates (\num{62500} against \num{300000}). At $w_2=20$ they reached
+\NumLegacyTwentyDv\,\si{\micro\volt}/day (\NumLegacyTwentyDvMin--\NumLegacyTwentyDvMax over seeds) with
+\NumLegacyTwentyHydrogen\,kg/day on the held-out days, against \NumKgFullTwentyDeg\,\si{\micro\volt}/day with
+\NumKgFullTwentyHydrogenKg\,kg/day for the full-ratio policies; the two sweeps also differ in discount factor, so this
+is a comparison of configurations and not of the ratio alone. More environment steps did not substitute for more
+updates. The earlier result files record neither wall-clock time nor hardware, and the server was not available for
+re-measurement, so we report no timing for that sweep.
 
 \begin{table}[t]
 \caption{Update ratio at $w_2=20$, $\gamma=0.95$, 300k steps, 32 environments: mean of two seeds on every fifth
