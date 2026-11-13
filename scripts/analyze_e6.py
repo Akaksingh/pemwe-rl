@@ -39,7 +39,7 @@ DV_EOL = 177000.0
 VARIANTS = ["nominal", "base_low", "base_high", "stress_low", "stress_high", "ramp_low", "ramp_high",
             "cycle_low", "cycle_high", "idle_low", "idle_high", "all_low", "all_high"]
 SCEN = ["low_variability", "original", "high_solar", "high_wind", "combined_high"]
-STYLE = {"naive_as_published": (H.BLUE, "o", "published rule (10% threshold)"),
+STYLE = {"naive_as_published": (H.BLUE, "o", "threshold rule (10%)"),
          "no_threshold": (H.ORANGE, "s", "threshold removed"),
          "ramp_limited": (H.AQUA, "^", "tuned slew limit")}
 
