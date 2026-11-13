@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 NAMES = [  # (controller id, label)
     ("no_threshold", r"Constant action $+1$ (threshold removed)"),
     ("ramp_limited", r"Tuned slew limit"),
-    ("naive_as_published", r"Published rule (10\,\% threshold)"),
+    ("naive_as_published", r"Threshold rule (10\,\% idle threshold)"),
     ("pilot_utd1_w2-0.1_seed0", r"SAC, $\gamma{=}0.999$, seed 0"),
     ("pilot_utd1_w2-0.1_seed1", r"SAC, $\gamma{=}0.999$, seed 1"),
     ("pilot_utd1_g0.99_seed0", r"SAC, $\gamma{=}0.99$, seed 0"),
