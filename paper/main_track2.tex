@@ -271,14 +271,15 @@ minute.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{fig_hpc_sim.pdf}
-\caption{Simulator speedup and parallel efficiency for fixed total work. Dashed lines: ideal. Bars: bootstrap
-intervals over repeats. The vertical line marks the 8 physical cores.}
+\caption{Parallel efficiency of the simulator for fixed total work (speedups are quoted in the text). Dashed
+line: ideal. Bars: bootstrap intervals over repeats. Vertical line: the 8 physical cores.}
 \label{fig:sim}
 \end{figure}
 One core simulates \NumSimOne{} steps/s, or \NumSimDaysPerSecOne{} simulated days per second. With 8 workers the
 throughput is \NumSimEight{} steps/s (speedup \NumSpeedEight{}, efficiency \NumEffEight{}) and with 16 workers
-\NumSimSixteen{} steps/s (speedup \NumSpeedSixteen{}); scaling flattens at the physical-core count
-(Fig.~\ref{fig:sim}), and at the highest rate a simulated year takes \NumYearSeconds{} s. Placement does not matter:
+\NumSimSixteen{} steps/s (speedup \NumSpeedSixteen{}); the speedup flattens at the physical-core count and the
+efficiency keeps falling beyond it (Fig.~\ref{fig:sim}), and at the highest rate a simulated year takes
+\NumYearSeconds{} s. Placement does not matter:
 one worker per physical core and operating-system placement agree, two workers on one hyper-thread pair give only
 \NumSmtTwo{}$\times$ the throughput of one, and 16 workers on 8 cores add \NumSmtGain{}\,\% over 8. Efficiency
 nevertheless falls from about $1$ at two workers to about $0.75$ at four, with or without pinning. Giving every
