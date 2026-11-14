@@ -103,36 +103,26 @@ def scaling_table(env: pd.DataFrame, rng) -> pd.DataFrame:
 
 
 def fig_sim(tab: pd.DataFrame, path: Path):
+    """Parallel efficiency against worker count (single panel, column width). Speedups are quoted in the text."""
     st = tab[tab.experiment == "raw_env_strong_scaling"]
-    fig, ax = plt.subplots(1, 2, figsize=(7.0, 2.7))
-    ns = np.array([1, 2, 4, 8, 12, 16])
-    for k, a in enumerate(ax):
-        a.set_xlim(0, 17.5)
-        a.set_xticks([1, 2, 4, 8, 12, 16])
-        a.set_xlabel("Worker processes")
-        a.axvline(8, color=BASE, lw=0.9, ls=(0, (2, 2)), zorder=1)
-    ax[0].plot([0, 16], [0, 16], color=MUTED, lw=1.0, ls=(0, (4, 3)), zorder=2)
-    ax[0].text(11.3, 14.2, "ideal", color=MUTED, fontsize=7.5)
-    ax[1].axhline(1.0, color=MUTED, lw=1.0, ls=(0, (4, 3)), zorder=2)
-    ends = {}
+    fig, a = plt.subplots(figsize=(3.5, 2.5))
+    a.set_xlim(0, 17.5)
+    a.set_xticks([1, 2, 4, 8, 12, 16])
+    a.set_xlabel("Worker processes")
+    a.axvline(8, color=BASE, lw=0.9, ls=(0, (2, 2)), zorder=1)
+    a.axhline(1.0, color=MUTED, lw=1.0, ls=(0, (4, 3)), zorder=2)
     for pl, (col, mk, ls) in STYLE.items():
         d = st[st.placement == pl]
         if d.empty:
             continue
-        for a, y, lo, hi in ((ax[0], "speedup", "speedup_lo", "speedup_hi"),
-                             (ax[1], "efficiency", "efficiency_lo", "efficiency_hi")):
-            yerr = np.vstack([(d[y] - d[lo]).clip(lower=0), (d[hi] - d[y]).clip(lower=0)])
-            a.errorbar(d.n_workers, d[y], yerr=yerr, color=col, marker=mk, ms=5.5, lw=1.5, ls=ls,
-                       mec=SURFACE, mew=0.8, capsize=2, elinewidth=0.9, label=LABEL[pl], zorder=3)
-        ends[pl] = d.iloc[-1]
-    ax[0].set_ylabel("Speedup, $S(n)=T(1)/T(n)$")
-    ax[1].set_ylabel("Parallel efficiency, $E(n)=S(n)/n$")
-    ax[0].set_ylim(0, 16.5)
-    ax[1].set_ylim(0, 1.15)
-    ax[0].set_title("(a) Simulator speedup, fixed work", loc="left", color=INK)
-    ax[1].set_title("(b) Parallel efficiency", loc="left", color=INK)
-    ax[0].text(8.15, 0.6, "8 physical cores", color=MUTED, fontsize=7)
-    ax[0].legend(frameon=False, loc="upper left", handlelength=2.6)
+        yerr = np.vstack([(d["efficiency"] - d["efficiency_lo"]).clip(lower=0), (d["efficiency_hi"] - d["efficiency"]).clip(lower=0)])
+        a.errorbar(d.n_workers, d["efficiency"], yerr=yerr, color=col, marker=mk, ms=5, lw=1.4, ls=ls,
+                   mec=SURFACE, mew=0.8, capsize=2, elinewidth=0.9, label=LABEL[pl], zorder=3)
+    a.set_ylabel("Parallel efficiency, $E(n)=S(n)/n$")
+    a.set_ylim(0, 1.18)
+    a.text(8.3, 0.04, "8 physical cores", color=MUTED, fontsize=7)
+    a.text(16.9, 1.015, "ideal", color=MUTED, fontsize=7, ha="right", va="bottom")
+    a.legend(frameon=False, loc="upper right", bbox_to_anchor=(1.0, 0.93), fontsize=6.2, handlelength=1.7)
     fig.tight_layout()
     _save(fig, path)
 
