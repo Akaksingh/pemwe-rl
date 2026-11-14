@@ -45,6 +45,15 @@ m = re.findall(r"Output written on main_track2.pdf \((\d+) pages?", log)
 summary.append("PAGES: " + (m[-1] if m else "no PDF produced"))
 errs = [l for l in log.splitlines() if l.startswith("!") or "Warning" in l and ("undefined" in l or "Overfull" in l and "pt" in l and float(re.findall(r"([\d.]+)pt", l)[0]) > 20)]
 summary.append(f"errors/serious warnings: {len(errs)}")
+blg = (paper / "main_track2.blg").read_text(errors="replace") if (paper / "main_track2.blg").exists() else ""
+bib_problems = [l for l in blg.splitlines() if l.startswith("Warning") or "missing a field" in l or "error" in l.lower()]
+summary.append(f"bibtex problems: {len(bib_problems)}")
+summary += bib_problems[:20]
+undefined = sorted(set(re.findall(r"Citation `([^']+)' .*undefined", log)) | set(re.findall(r"Reference `([^']+)' .*undefined", log)))
+summary.append("undefined citations/references: " + (", ".join(undefined) if undefined else "none"))
+sh("pdftoppm -r 80 -png main_track2.pdf page", cwd=paper)
+for png in sorted(paper.glob("page-*.png")):
+    shutil.copy(png, OUT / png.name)
 summary += errs[:60]
 for f in ("main_track2.pdf", "main_track2.log", "main_track2.blg", "main_track2.bbl"):
     if (paper / f).exists():
