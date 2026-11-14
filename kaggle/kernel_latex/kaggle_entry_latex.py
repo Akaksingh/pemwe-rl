@@ -53,11 +53,11 @@ def build(name):
     summary.append(f"[{name}] PAGES: " + (m[-1] if m else "no PDF produced"))
     errs = [l for l in log.splitlines() if l.startswith("!")]
     summary.append(f"[{name}] LaTeX errors: {len(errs)}")
-    summary += errs[:20]
+    summary.extend(errs[:20])
     blg = (paper / f"{name}.blg").read_text(errors="replace") if (paper / f"{name}.blg").exists() else ""
     bib_problems = [l for l in blg.splitlines() if l.startswith("Warning") or "missing a field" in l or "rror" in l]
     summary.append(f"[{name}] bibtex problems: {len(bib_problems)}")
-    summary += bib_problems[:20]
+    summary.extend(bib_problems[:20])
     undefined = sorted(set(re.findall(r"Citation `([^']+)' .*undefined", log)) | set(re.findall(r"Reference `([^']+)' .*undefined", log)))
     summary.append(f"[{name}] undefined citations/references: " + (", ".join(undefined) if undefined else "none"))
     for ext in ("pdf", "log", "blg", "bbl"):
