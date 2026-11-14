@@ -255,7 +255,7 @@ $N=F=32$ needs $G=1024$.
 a replay buffer of $10^6$, 32 environments and \num{300000} steps per run, with $w_1=1$ and $w_3=0.1$. The
 discount factor $\gamma=0.95$ was chosen from in-sample pilots on training days ($0.999$ was worse) and never from
 the held-out days. The frontier experiment trains at $w_2\in\{1.41,5.32,12.9,20\}$ with two seeds each and
-evaluates each policy once on the 72 held-out days. A follow-up on a cloud notebook (one job at a time) trained
+evaluates each policy once on the 72 held-out days. A follow-up on a cloud notebook trained
 update ratios $1/8$ and $1/4$ at $w_2=20$, evaluated on training days against a rule fixed beforehand
 (degradation at most $1.10\times$ and hydrogen at least $0.95\times$ those of the full-ratio policies); the ratio
 that passed was then trained with six further seeds at $w_2=12.9$ and $20$ and evaluated once on the held-out
@@ -370,7 +370,7 @@ full-ratio degradation (Section~\ref{sec:frontier}). The 300k-step runs took \Nu
 \NumLegacyWeights{} weights, \NumLegacySeeds{} seeds, $2\times10^6$ steps, ratio $1/32$, $\gamma=0.999$) used
 $6.7\times$ more steps per run but $4.8\times$ fewer updates than the corrected runs and reached
 \NumLegacyTwentyDv{} \si{\micro\volt}/day at $w_2=20$ against \NumKgFullTwentyDeg{} for the full-ratio policies;
-it differs in discount factor as well, so it compares configurations, and its files record no timing.
+its discount factor also differed, and its files record no timing.
 
 \begin{table}[t]
 \caption{Update ratio at $w_2=20$, $\gamma=0.95$, 300k steps: mean of two seeds on every fifth \emph{training} day
@@ -415,9 +415,9 @@ cannot pin down.
 assumed and calibrated to a nominal life, so we claim neither absolute lifetimes nor transfer of controller rankings
 to hardware. \emph{Synthetic data:} the one-minute variability is generated and all days come from one site and year
 of ERA5 data, so we make no claim about other sites or measured data. \emph{Scale:} scaling and learner measurements
-come from one shared workstation; the intermediate-ratio and extra-seed runs were trained on a free cloud notebook;
-the batched-simulator timings are same-machine ratios on a four-vCPU cloud kernel; the batched simulator was not used
-for learned policies; we make no claim about larger systems. \emph{Statistics:} most settings have two seeds, six
+come from one shared workstation; the intermediate-ratio and extra-seed runs were trained on a cloud notebook;
+the batched-simulator timings are same-machine ratios on a four-vCPU cloud kernel and were not extended to learned
+policies; we make no claim about larger systems. \emph{Statistics:} most settings have two seeds, six
 more at ratio $1/4$ support the sign and rough size of the gap but not a significance test, and the pilots and
 update-ratio study are in-sample on training days. \emph{Baselines:} a finer rule grid or a model-predictive
 controller could close more of the gap; we tried neither. The weights $w_2$ have no economic calibration.
@@ -448,9 +448,8 @@ grid \NumBatchGridSpeedup{} times faster than a process pool on the same machine
 learner, a documented one-to-one update ratio was in fact \NumUtdMeasuredLow{}, and a cheaper ratio suffices at a low
 degradation weight but only partly at high weights, so configurations should be compared by time to a stated
 quality. A hysteresis rule closes most of the learned controller's low-degradation advantage (\NumKgQuarterTwelveAdvMean\,\%
-and \NumKgQuarterTwentyAdvMean\,\% remain over six seeds), so baselines must be chosen with care. These are simulation
-results on an assumed degradation model and a synthetic resource; hardware validation, measured resource data, batched
-evaluation of learned policies and a model-predictive baseline are the necessary next steps. Code, raw results and the
+and \NumKgQuarterTwentyAdvMean\,\% remain over six seeds), so baselines must be chosen with care. Hardware validation, measured
+resource data, batched evaluation of learned policies and a model-predictive baseline are the necessary next steps. Code, raw results and the
 scripts that generate every number and figure are publicly available; the repository link is withheld for
 double-blind review and will be given in the camera-ready version.
 
