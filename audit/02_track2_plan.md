@@ -141,3 +141,19 @@ policies are out of scope.
 4. Rotate the shared-server password pasted in chat (or allow key-based login).
 5. Compile `paper/main_track2.tex` on Overleaf and report any errors (no LaTeX is installed here and
    downloading a LaTeX engine was blocked).
+
+## Official INDIACom 2027 submission facts (read from bvicam.ac.in/indiacom, 2026-11-14)
+
+* Full-paper deadline **7 December 2026** (not 20 Nov); notification 8 Feb 2027; final version and early-bird registration 22 Feb 2027;
+  slides 8 Mar 2027; conference 7-9 Apr 2027, BVICAM New Delhi (the listing also shows "Apr 7-10": confirm).
+* Template: standard IEEE conference template (US Letter, two column), `Downloads` page; no page limit stated anywhere readable.
+  Rules applied: no math or symbols in title or abstract, acronyms redefined in the body, "Fig." at sentence start, "(1)" for
+  equations, no page numbers, conference header on every page. The paper was cut to 6 pages at the authors' request.
+* Review: round 1 scope and plagiarism (Turnitin), round 2 double-blind by three experts. The paper source has an `\ifanon` switch;
+  `paper/build/` holds a named and an anonymised PDF (the anonymised one has no names, e-mails, affiliation or repository link).
+* Process: free account on the INDIACom site first; every co-author must also be a member; one corresponding author; originality
+  certificate and copyright form for the camera-ready; at least one author must register in advance for publication.
+* Compiled with TeX Live 2023 on a Kaggle CPU kernel (`kaggle/kernel_latex`): 6 pages, 0 LaTeX errors, 0 BibTeX problems,
+  no undefined references (first full compile found six references skipped by BibTeX because of inline % comments; fixed).
+* Cut for length (still in the repository and the audit): pilots table and discount-factor study, update-ratio checkpoint figure,
+  clock-diagnosis figure, three sensitivity/robustness figures, the "what the policy learns" probe, the robustness section.

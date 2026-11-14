@@ -1,0 +1,19 @@
+commit: 354e795643134904cf50aef58b0ce649b9240fb6
+apt install exit code: 0
+[main_track2] pdflatex -interaction=nonstopmode main_track2: exit 0
+[main_track2] bibtex main_track2: exit 0
+[main_track2] pdflatex -interaction=nonstopmode main_track2: exit 0
+[main_track2] pdflatex -interaction=nonstopmode main_track2: exit 0
+[main_track2] PAGES: 6
+[main_track2] LaTeX errors: 0
+[main_track2] bibtex problems: 0
+[main_track2] undefined citations/references: none
+[main_track2_anon] pdflatex -interaction=nonstopmode main_track2_anon: exit 0
+[main_track2_anon] bibtex main_track2_anon: exit 0
+[main_track2_anon] pdflatex -interaction=nonstopmode main_track2_anon: exit 0
+[main_track2_anon] pdflatex -interaction=nonstopmode main_track2_anon: exit 0
+[main_track2_anon] PAGES: 6
+[main_track2_anon] LaTeX errors: 0
+[main_track2_anon] bibtex problems: 0
+[main_track2_anon] undefined citations/references: none
+anonymised PDF still contains: no author name, email, affiliation or repo link
