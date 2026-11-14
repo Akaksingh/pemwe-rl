@@ -1,7 +1,9 @@
-"""Kaggle kernel (CPU): compile paper/main_track2.tex with TeX Live and report the page count and any errors.
+"""Kaggle kernel (CPU): compile paper/main_track2.tex with TeX Live and report page count, errors and page images.
 
-Push with `kaggle kernels push -p kaggle/kernel_latex`. Output: /kaggle/working/latex_out/
-(main_track2.pdf, main_track2.log, main_track2.blg, summary.txt). The repo clone is removed afterwards.
+Push with `kaggle kernels push -p kaggle/kernel_latex`. Builds two PDFs from the same source: the named version
+(main_track2.pdf) and an anonymised copy for double-blind review (main_track2_anon.pdf, produced by switching the
+\\anonfalse flag to \\anontrue). Output: /kaggle/working/latex_out/ (PDFs, logs, page PNGs, summary.txt).
+The repo clone is removed afterwards.
 """
 import re
 import shutil
@@ -31,33 +33,47 @@ pkgs = ("texlive-latex-base texlive-latex-recommended texlive-latex-extra texliv
         "texlive-publishers texlive-science texlive-bibtex-extra poppler-utils")
 r = sh("apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends " + pkgs)
 summary.append(f"apt install exit code: {r.returncode}")
-print("apt exit", r.returncode, r.stderr[-800:], flush=True)
+print("apt exit", r.returncode, flush=True)
 
 paper = REPO / "paper"
-for cmd in ("pdflatex -interaction=nonstopmode main_track2", "bibtex main_track2",
-            "pdflatex -interaction=nonstopmode main_track2", "pdflatex -interaction=nonstopmode main_track2"):
-    r = sh(cmd, cwd=paper)
-    summary.append(f"{cmd}: exit {r.returncode}")
-    print(cmd, "->", r.returncode, flush=True)
+# anonymised copy: the source has \anonfalse; switch it to \anontrue
+src = (paper / "main_track2.tex").read_text(encoding="utf-8")
+BS = chr(92)
+assert BS + "anonfalse" in src
+(paper / "main_track2_anon.tex").write_text(src.replace(BS + "anonfalse", BS + "anontrue", 1), encoding="utf-8")
 
-log = (paper / "main_track2.log").read_text(errors="replace") if (paper / "main_track2.log").exists() else ""
-m = re.findall(r"Output written on main_track2.pdf \((\d+) pages?", log)
-summary.append("PAGES: " + (m[-1] if m else "no PDF produced"))
-errs = [l for l in log.splitlines() if l.startswith("!") or "Warning" in l and ("undefined" in l or "Overfull" in l and "pt" in l and float(re.findall(r"([\d.]+)pt", l)[0]) > 20)]
-summary.append(f"errors/serious warnings: {len(errs)}")
-blg = (paper / "main_track2.blg").read_text(errors="replace") if (paper / "main_track2.blg").exists() else ""
-bib_problems = [l for l in blg.splitlines() if l.startswith("Warning") or "missing a field" in l or "error" in l.lower()]
-summary.append(f"bibtex problems: {len(bib_problems)}")
-summary += bib_problems[:20]
-undefined = sorted(set(re.findall(r"Citation `([^']+)' .*undefined", log)) | set(re.findall(r"Reference `([^']+)' .*undefined", log)))
-summary.append("undefined citations/references: " + (", ".join(undefined) if undefined else "none"))
+
+def build(name):
+    for cmd in (f"pdflatex -interaction=nonstopmode {name}", f"bibtex {name}",
+                f"pdflatex -interaction=nonstopmode {name}", f"pdflatex -interaction=nonstopmode {name}"):
+        r = sh(cmd, cwd=paper)
+        summary.append(f"[{name}] {cmd}: exit {r.returncode}")
+    log = (paper / f"{name}.log").read_text(errors="replace") if (paper / f"{name}.log").exists() else ""
+    m = re.findall(rf"Output written on {name}.pdf \((\d+) pages?", log)
+    summary.append(f"[{name}] PAGES: " + (m[-1] if m else "no PDF produced"))
+    errs = [l for l in log.splitlines() if l.startswith("!")]
+    summary.append(f"[{name}] LaTeX errors: {len(errs)}")
+    summary += errs[:20]
+    blg = (paper / f"{name}.blg").read_text(errors="replace") if (paper / f"{name}.blg").exists() else ""
+    bib_problems = [l for l in blg.splitlines() if l.startswith("Warning") or "missing a field" in l or "rror" in l]
+    summary.append(f"[{name}] bibtex problems: {len(bib_problems)}")
+    summary += bib_problems[:20]
+    undefined = sorted(set(re.findall(r"Citation `([^']+)' .*undefined", log)) | set(re.findall(r"Reference `([^']+)' .*undefined", log)))
+    summary.append(f"[{name}] undefined citations/references: " + (", ".join(undefined) if undefined else "none"))
+    for ext in ("pdf", "log", "blg", "bbl"):
+        if (paper / f"{name}.{ext}").exists():
+            shutil.copy(paper / f"{name}.{ext}", OUT / f"{name}.{ext}")
+
+
+build("main_track2")
 sh("pdftoppm -r 80 -png main_track2.pdf page", cwd=paper)
 for png in sorted(paper.glob("page-*.png")):
     shutil.copy(png, OUT / png.name)
-summary += errs[:60]
-for f in ("main_track2.pdf", "main_track2.log", "main_track2.blg", "main_track2.bbl"):
-    if (paper / f).exists():
-        shutil.copy(paper / f, OUT / f)
+build("main_track2_anon")
+sh("pdftotext -layout main_track2_anon.pdf anon.txt", cwd=paper)
+anon_txt = (paper / "anon.txt").read_text(errors="replace") if (paper / "anon.txt").exists() else ""
+leaks = [w for w in ("Akaksha", "Singh", "Nishant", "Gupta", "du.ac.in", "Delhi", "github", "Akaksingh") if w.lower() in anon_txt.lower()]
+summary.append("anonymised PDF still contains: " + (", ".join(leaks) if leaks else "no author name, email, affiliation or repo link"))
 (OUT / "summary.txt").write_text("\n".join(summary))
 print("\n".join(summary[:80]), flush=True)
 shutil.rmtree(REPO, ignore_errors=True)
