@@ -81,8 +81,8 @@
 
 \begin{document}
 
-\title{Simulation Throughput and Learner Scaling for Reinforcement-Learning Control of a
-Renewable-Powered PEM Electrolyzer}
+\title{Scaling Simulation and Learning for Screening Reinforcement-Learning Controllers of a
+Renewable-Powered Electrolyzer}
 
 \ifanon
 \author{\IEEEauthorblockN{Anonymous authors}
@@ -114,8 +114,8 @@ steps per second but stops scaling at the physical cores; Karp-Flatt and clock-f
 the processor lowering its clock under load rather than to serial work. Restructuring the computation does far
 better: an episode-parallel simulator, which advances thousands of episodes in lockstep and reproduces the scalar
 simulator exactly, evaluates a \NumBatchGridEpisodes{}-episode rule grid \NumBatchGridSpeedup{} times faster than
-a process pool on the same machine, and its throughput follows a Hockney overhead-plus-work model. Training of
-the Soft Actor-Critic (SAC) learner is bound by the learner and not by the simulator, so concurrent runs raise
+a process pool on the same machine, and its throughput follows a Hockney overhead-plus-work model. Soft
+Actor-Critic (SAC) training is bound by the learner and not by the simulator, so concurrent runs raise
 throughput. We also document a benchmarking pitfall: a vectorized SAC configuration documented as one update per
 transition performed one per 32, so steps per second overstated learning throughput about thirty-fold, and
 cheaper update ratios suffice only at some degradation weights. Finally, a simple hysteresis rule removes most of
@@ -167,7 +167,10 @@ execution is often the slowest part of a reinforcement-learning system~\cite{wen
 Python model, so we study process-level parallelism and then episode-level batching. The number of gradient updates
 per collected transition, the update-to-data ratio (UTD), is a first-order determinant of off-policy performance
 and is treated as an explicit variable in~\cite{fedus2020replay,chen2021redq,doro2023replay}; comparing training
-speeds across configurations that differ in it compares different amounts of learning work.
+speeds across configurations that differ in it compares different amounts of learning work. Parallel
+performance is conventionally reported as speedup and efficiency~\cite{amdahl1967,gustafson1988}; the Karp--Flatt
+metric~\cite{karpflatt1990} estimates the serial fraction from measurements, and Hockney's model~\cite{hockney1991}
+describes throughput by an asymptotic rate and a half-performance length. We use all three.
 
 % =============================================================================
 \section{Workload}\label{sec:workload}
@@ -211,7 +214,8 @@ two fixed-point corrections. We parallelise across independent episodes in separ
 \begin{table}[t]
 \caption{Systems. Timing results are from the workstation, except the batched-simulator benchmark, which ran on the
 cloud CPU kernel and reports same-machine ratios. The cloud GPU notebook and an earlier server (4$\times$ NVIDIA H200,
-128-core AMD EPYC 9535) trained and evaluated learned policies only and contribute no timing claim.}
+128-core AMD EPYC 9535, per its documentation) trained and evaluated learned policies only and contribute no timing
+claim.}
 \label{tab:system}
 \centering
 \footnotesize
@@ -285,9 +289,9 @@ worker identical episodes removes load imbalance and the drop persists (the slow
 \NumPerGhzRatioEight{}. We attribute the loss to the processor lowering its clock under multi-core load (the
 machine runs the \texttt{powersave} governor) and not to the decomposition. This is an inference from one clock
 reading per worker per run on a shared machine, not a controlled experiment. As a cross-check, the Karp--Flatt
-serial fraction $e(n)=(1/S(n)-1/n)/(1-1/n)$ is \NumKarpFlattTwo{}, \NumKarpFlattFour{} and \NumKarpFlattEight{} at
-two, four and eight workers: under Amdahl's law it would be constant, whereas here it rises and then falls, the
-signature of a step in per-core throughput. Weak scaling agrees, with eight workers delivering \NumWeakEffEight{} of
+serial fraction~\cite{karpflatt1990} $e(n)=(1/S(n)-1/n)/(1-1/n)$ is \NumKarpFlattTwo{}, \NumKarpFlattFour{} and \NumKarpFlattEight{} at
+two, four and eight workers: under Amdahl's law~\cite{amdahl1967} it would be constant, whereas here it rises and then falls, the
+signature of a step in per-core throughput. Weak scaling~\cite{gustafson1988} agrees, with eight workers delivering \NumWeakEffEight{} of
 eight times the single-worker rate.
 
 \subsection{Batching episodes instead of adding processes}\label{sec:batch}
@@ -312,7 +316,7 @@ On the cloud CPU kernel the scalar environment reaches \NumBatchScalarOne{} step
 hyper-threads). The batched simulator in one process reaches \NumBatchPeak{} steps/s at $B=\NumBatchPeakBatch{}$
 (Fig.~\ref{fig:batch}). The time per lockstep step is well described by $t(B)=a+bB$ with a fixed overhead
 $a=\NumBatchOverheadMs$\,ms and $b=\NumBatchUsPerEp$\,\si{\micro\second} per episode (largest fit error
-\NumBatchFitErr\,\%), which is Hockney's model: asymptotic rate \NumBatchRInf{} steps/s and half-performance length
+\NumBatchFitErr\,\%), which is Hockney's model~\cite{hockney1991}: asymptotic rate \NumBatchRInf{} steps/s and half-performance length
 $n_{1/2}=a/b\approx\NumBatchNHalf{}$ episodes, below which the overhead dominates. The 72-setting hysteresis grid over
 the 72 held-out days is \NumBatchGridEpisodes{} episodes: one batch evaluates it in \NumBatchGridSeconds\,s and the
 four-worker scalar pool needs \NumBatchPoolSeconds\,s, a factor of \NumBatchGridSpeedup{} (\NumBatchOneSpeedup{}
@@ -325,7 +329,8 @@ bounded by the learner.
 \centering
 \includegraphics[width=0.9\textwidth]{fig_hpc_learner.pdf}
 \caption{SAC learner throughput (updates only; environment stepping excluded). (a) GPU rate is flat from batch 256
-to 2048. (b) One learner, batch 512, by device and CPU thread count. (c) Total rate of $k$ concurrent runs.}
+to 2048. (b) One learner, batch 512, by device and CPU thread count. (c) Total rate of $k$ concurrent runs (GPU runs
+use one CPU thread each, CPU runs four threads each except $\times8$, which uses two).}
 \label{fig:learner}
 \end{figure*}
 At a correct update ratio SAC is limited by the learner. The GPU performs \NumGpuUps{} updates/s and the rate does
@@ -337,7 +342,7 @@ GPU one process delivers \NumMultiGpuOne{} updates/s, two together \NumMultiGpuT
 aggregate throughput grows while each process slows down. CPU learners saturate sooner, and mixing devices is worse
 than the GPU alone (two GPU plus three CPU processes reach \NumMultiMixed{} updates/s), plausibly because CPU
 learners take cores from the GPU processes' launch threads, which we did not isolate. The best configuration
-(\NumMultiBestCase{}) gives \NumMultiBest{} updates/s in total. Evaluating learned policies is also costly:
+(four concurrent GPU runs) gives \NumMultiBest{} updates/s in total. Evaluating learned policies is also costly:
 rollouts that include them ran \NumEvalRatio$\times$ slower than rule-based ones on the same workers, because the
 library's prediction call costs more per step than the plant.
 
@@ -417,7 +422,7 @@ update-ratio study are in-sample on training days. \emph{Baselines:} a finer rul
 controller could close more of the gap; we tried neither. The weights $w_2$ have no economic calibration.
 
 % =============================================================================
-\section{Implications for HPC Practice}\label{sec:practice}
+\section{Implications for High-Performance Computing Practice}\label{sec:practice}
 \begin{enumerate}
   \item \emph{Restructure the computation before adding processes.} Batching episodes gave \NumBatchGridSpeedup{}
         times the throughput of a process pool on the same machine, against a speedup of \NumSpeedEight{} on 8

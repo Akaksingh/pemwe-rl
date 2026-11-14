@@ -42,12 +42,12 @@ STYLE = {  # series -> (colour, marker, linestyle)
     "physical":  (ORANGE, "s", "--"),
     "smt_pairs": (AQUA, "^", ":"),
 }
-LABEL = {"unpinned": "OS-placed", "physical": "1 worker / physical core", "smt_pairs": "packed on SMT pairs"}
+LABEL = {"unpinned": "OS-placed", "physical": "one worker per physical core", "smt_pairs": "packed on hyper-thread pairs"}
 
 
 def setup():
     plt.rcParams.update({
-        "font.family": "DejaVu Sans", "font.size": 8, "axes.titlesize": 8.5, "axes.labelsize": 8,
+        "font.family": "STIXGeneral", "mathtext.fontset": "stix", "font.size": 8, "axes.titlesize": 8.5, "axes.labelsize": 8,
         "xtick.labelsize": 7.5, "ytick.labelsize": 7.5, "legend.fontsize": 7.5,
         "axes.edgecolor": BASE, "axes.labelcolor": INK2, "xtick.color": MUTED, "ytick.color": MUTED,
         "text.color": INK, "axes.facecolor": SURFACE, "figure.facecolor": SURFACE,
@@ -109,7 +109,7 @@ def fig_sim(tab: pd.DataFrame, path: Path):
     for k, a in enumerate(ax):
         a.set_xlim(0, 17.5)
         a.set_xticks([1, 2, 4, 8, 12, 16])
-        a.set_xlabel("worker processes")
+        a.set_xlabel("Worker processes")
         a.axvline(8, color=BASE, lw=0.9, ls=(0, (2, 2)), zorder=1)
     ax[0].plot([0, 16], [0, 16], color=MUTED, lw=1.0, ls=(0, (4, 3)), zorder=2)
     ax[0].text(11.3, 14.2, "ideal", color=MUTED, fontsize=7.5)
@@ -125,8 +125,8 @@ def fig_sim(tab: pd.DataFrame, path: Path):
             a.errorbar(d.n_workers, d[y], yerr=yerr, color=col, marker=mk, ms=5.5, lw=1.5, ls=ls,
                        mec=SURFACE, mew=0.8, capsize=2, elinewidth=0.9, label=LABEL[pl], zorder=3)
         ends[pl] = d.iloc[-1]
-    ax[0].set_ylabel("speedup  $S(n)=T(1)/T(n)$")
-    ax[1].set_ylabel("parallel efficiency  $E(n)=S(n)/n$")
+    ax[0].set_ylabel("Speedup, $S(n)=T(1)/T(n)$")
+    ax[1].set_ylabel("Parallel efficiency, $E(n)=S(n)/n$")
     ax[0].set_ylim(0, 16.5)
     ax[1].set_ylim(0, 1.15)
     ax[0].set_title("(a) Simulator speedup, fixed work", loc="left", color=INK)
@@ -157,19 +157,19 @@ def fig_learner(learn: pd.DataFrame, multi: pd.DataFrame | None, path: Path, rng
                    yerr=[[t[0] - t[1] for t in m], [t[2] - t[0] for t in m]],
                    color=BLUE, marker="o", ms=5.5, lw=1.5, mec=SURFACE, mew=0.8, capsize=2, elinewidth=0.9)
     ax[0].set_xticks(range(len(xs)), [str(x) for x in xs])
-    ax[0].set_xlabel("SAC batch size")
-    ax[0].set_ylabel("learner updates / s")
+    ax[0].set_xlabel("Batch size (samples per update)")
+    ax[0].set_ylabel("Learner updates per second")
     ax[0].set_ylim(0, 215)
     ax[0].set_title("(a) GPU: flat in batch size", loc="left", color=INK)
-    ax[0].text(0.0, 28, "8x more samples per update,\nsame update rate", color=INK2, fontsize=7)
+    ax[0].text(0.0, 28, "8 times more samples per update,\nsame update rate", color=INK2, fontsize=7)
 
     # (b) single learner, device/threads at batch 512
     sel = learn[(learn.note == "batch=512")]
     cats, vals, cols = [], [], []
     for lab, mask, col in (("GPU", sel.backend == "cuda", BLUE),
-                           ("CPU\n4 thr", (sel.backend == "cpu") & (sel.n_workers == 4), ORANGE),
-                           ("CPU\n8 thr", (sel.backend == "cpu") & (sel.n_workers == 8), ORANGE),
-                           ("CPU\n16 thr", (sel.backend == "cpu") & (sel.n_workers == 16), ORANGE)):
+                           ("CPU 4\nthreads", (sel.backend == "cpu") & (sel.n_workers == 4), ORANGE),
+                           ("CPU 8\nthreads", (sel.backend == "cpu") & (sel.n_workers == 8), ORANGE),
+                           ("CPU 16\nthreads", (sel.backend == "cpu") & (sel.n_workers == 16), ORANGE)):
         v = sel[mask].steps_per_s
         if len(v):
             cats.append(lab)
@@ -183,7 +183,7 @@ def fig_learner(learn: pd.DataFrame, multi: pd.DataFrame | None, path: Path, rng
         ax[1].text(x, v[0] + 6, f"{v[0]:.0f}", ha="center", fontsize=7.5, color=INK2)
     ax[1].set_xticks(xb, cats)
     ax[1].set_ylim(0, 215)
-    ax[1].set_ylabel("learner updates / s")
+    ax[1].set_ylabel("Learner updates per second")
     ax[1].set_title("(b) One learner, batch 512", loc="left", color=INK)
 
     # (c) aggregate throughput vs concurrency
@@ -207,8 +207,8 @@ def fig_learner(learn: pd.DataFrame, multi: pd.DataFrame | None, path: Path, rng
             ax[2].text(x, y[0] + 8, f"{y[0]:.0f}", ha="center", fontsize=7, color=INK2)
         ax[2].set_xticks(xs2, labs)
         ax[2].tick_params(axis="x", labelsize=6.5)
-        ax[2].set_ylabel("aggregate updates / s")
-        ax[2].set_title("(c) Concurrent runs (total)", loc="left", color=INK)
+        ax[2].set_ylabel("Aggregate updates per second")
+        ax[2].set_title("(c) Concurrent runs, total rate", loc="left", color=INK)
     fig.tight_layout()
     _save(fig, path)
 
