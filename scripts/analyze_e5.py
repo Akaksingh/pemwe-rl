@@ -110,12 +110,12 @@ def main():
     ax.plot(env.dv, env.h2, color=H.INK2, lw=1.1, ls=(0, (4, 2)), zorder=3, label="best simple rule (envelope)")
     lm = leg.groupby("w2").agg(h2=("h2", "mean"), dv=("dv", "mean")).reset_index().sort_values("w2")
     ax.plot(lm.dv, lm.h2, color=H.AQUA, marker="o", ms=3.5, lw=1.2, mec=H.SURFACE, mew=0.6, zorder=4,
-            label="SAC, earlier runs (UTD 0.03, 2M steps)")
+            label="SAC, earlier runs (ratio 1/32, 2M steps)")
     if len(new):
         nm = new.groupby("w2").agg(h2=("h2", "mean"), dv=("dv", "mean")).reset_index().sort_values("w2")
         ax.scatter(new.dv, new.h2, s=9, color=H.BLUE, alpha=0.35, linewidths=0, zorder=4)
         ax.plot(nm.dv, nm.h2, color=H.BLUE, marker="D", ms=5, lw=1.5, mec=H.SURFACE, mew=0.8, zorder=5,
-                label="SAC, corrected (UTD 1, 300k steps)")
+                label="SAC, full ratio (300k steps)")
         for r in nm.itertuples():
             ax.annotate(f"{r.w2:g}", (r.dv, r.h2), textcoords="offset points", xytext=(-3, 6), fontsize=6.3,
                         color=H.INK2, ha="center")
@@ -127,7 +127,7 @@ def main():
             km = kg.groupby("w2").agg(h2=("h2", "mean"), dv=("dv", "mean")).reset_index().sort_values("w2")
             ax.scatter(kg.dv, kg.h2, s=9, color=H.ORANGE, alpha=0.4, linewidths=0, marker="v", zorder=4)
             ax.plot(km.dv, km.h2, color=H.ORANGE, marker="v", ms=5, lw=1.3, ls="--", mec=H.SURFACE, mew=0.8, zorder=5,
-                    label="SAC, UTD 1/4, 6 seeds")
+                    label="SAC, ratio 1/4, six seeds")
             print(f"plotted {len(kg)} ratio-1/4 seeds at w2 = {sorted(kg.w2.unique())}")
     label_at = {"naive_as_published": (97.0, 178.0), "ramp_limited": (89.0, 162.0), "no_threshold": (85.0, 208.5)}
     for c, (mk, lab) in BASE_STYLE.items():
@@ -137,8 +137,8 @@ def main():
             ax.annotate(lab, (b.loc[c, "dv_uv_day"], b.loc[c, "h2_kg_day"]), xytext=label_at[c], textcoords="data",
                         fontsize=6.5, color=H.INK, ha="left", va="center",
                         arrowprops=dict(arrowstyle="-", color=H.MUTED, lw=0.7, shrinkA=1, shrinkB=4))
-    ax.set_xlabel("degradation (µV / day, lower is better)")
-    ax.set_ylabel("hydrogen (kg / day)")
+    ax.set_xlabel("Degradation (µV/day; lower is better)")
+    ax.set_ylabel("Hydrogen (kg/day)")
     ax.set_xlim(100, 44)
     ax.set_ylim(60, 212)
     ax.grid(axis="x", visible=True)

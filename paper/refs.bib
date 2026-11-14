@@ -143,11 +143,13 @@
   number      = {NREL/TP-6A20-62641}, year = {2014}
 }
 
-@article{haarnoja2018sac,
-  author  = {Haarnoja, Tuomas and Zhou, Aurick and Abbeel, Pieter and Levine, Sergey},
-  title   = {Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning
-             with a Stochastic Actor},
-  journal = {Proc. ICML}, year = {2018}
+@inproceedings{haarnoja2018sac,
+  author    = {Haarnoja, Tuomas and Zhou, Aurick and Abbeel, Pieter and Levine, Sergey},
+  title     = {Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning
+               with a Stochastic Actor},
+  booktitle = {Proc. 35th International Conference on Machine Learning (ICML)},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {80}, pages = {1861--1870}, year = {2018}
 }
 
 @article{schulman2017ppo,
@@ -205,4 +207,37 @@
   booktitle = {Advances in Neural Information Processing Systems (NeurIPS), Datasets and Benchmarks Track},
   year      = {2022},
   note      = {arXiv:2206.10558}
+}
+
+% ---- Parallel-performance classics, cited where the corresponding metric is used.
+@inproceedings{amdahl1967,
+  author    = {Amdahl, Gene M.},
+  title     = {Validity of the single processor approach to achieving large scale computing capabilities},
+  booktitle = {Proc. AFIPS Spring Joint Computer Conference},
+  pages     = {483--485}, year = {1967},
+  doi       = {10.1145/1465482.1465560}
+}
+
+@article{gustafson1988,
+  author  = {Gustafson, John L.},
+  title   = {Reevaluating {Amdahl's} law},
+  journal = {Communications of the ACM},
+  volume  = {31}, number = {5}, pages = {532--533}, year = {1988},
+  doi     = {10.1145/42411.42415}
+}
+
+@article{karpflatt1990,
+  author  = {Karp, Alan H. and Flatt, Horace P.},
+  title   = {Measuring parallel processor performance},
+  journal = {Communications of the ACM},
+  volume  = {33}, number = {5}, pages = {539--543}, year = {1990},
+  doi     = {10.1145/78607.78614}
+}
+
+@article{hockney1991,
+  author  = {Hockney, Roger W.},
+  title   = {Performance parameters and benchmarking of supercomputers},
+  journal = {Parallel Computing},
+  volume  = {17}, number = {10--11}, pages = {1111--1120}, year = {1991},
+  doi     = {10.1016/S0167-8191(05)80029-8}
 }
