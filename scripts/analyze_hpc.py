@@ -105,7 +105,7 @@ def scaling_table(env: pd.DataFrame, rng) -> pd.DataFrame:
 def fig_sim(tab: pd.DataFrame, path: Path):
     """Parallel efficiency against worker count (single panel, column width). Speedups are quoted in the text."""
     st = tab[tab.experiment == "raw_env_strong_scaling"]
-    fig, a = plt.subplots(figsize=(3.5, 2.5))
+    fig, a = plt.subplots(figsize=(3.5, 2.3))
     a.set_xlim(0, 17.5)
     a.set_xticks([1, 2, 4, 8, 12, 16])
     a.set_xlabel("Worker processes")
