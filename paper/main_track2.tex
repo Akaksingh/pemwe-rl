@@ -168,9 +168,8 @@ Python model, so we study process-level parallelism and then episode-level batch
 per collected transition, the update-to-data ratio (UTD), is a first-order determinant of off-policy performance
 and is treated as an explicit variable in~\cite{fedus2020replay,chen2021redq,doro2023replay}; comparing training
 speeds across configurations that differ in it compares different amounts of learning work. Parallel
-performance is conventionally reported as speedup and efficiency~\cite{amdahl1967,gustafson1988}; the Karp--Flatt
-metric~\cite{karpflatt1990} estimates the serial fraction from measurements, and Hockney's model~\cite{hockney1991}
-describes throughput by an asymptotic rate and a half-performance length. We use all three.
+performance is conventionally reported as speedup and efficiency~\cite{amdahl1967,gustafson1988}; we add the
+Karp--Flatt serial fraction~\cite{karpflatt1990} and Hockney's half-performance length~\cite{hockney1991}.
 
 % =============================================================================
 \section{Workload}\label{sec:workload}
@@ -213,9 +212,9 @@ two fixed-point corrections. We parallelise across independent episodes in separ
 
 \begin{table}[t]
 \caption{Systems. Timing results are from the workstation, except the batched-simulator benchmark, which ran on the
-cloud CPU kernel and reports same-machine ratios. The cloud GPU notebook and an earlier server (4$\times$ NVIDIA H200,
-128-core AMD EPYC 9535, per its documentation) trained and evaluated learned policies only and contribute no timing
-claim.}
+cloud CPU kernel and reports same-machine ratios. The cloud GPU notebook only trained and evaluated learned
+policies. The earlier server (4$\times$ NVIDIA H200, 128-core AMD EPYC 9535, \SI{1}{\tera\byte}, per its
+documentation) ran the earlier training sweep and supplies earlier benchmark notes, reported as context only.}
 \label{tab:system}
 \centering
 \footnotesize
@@ -234,7 +233,7 @@ Cloud CPU kernel & 4 vCPU (2 cores, 2 threads each) Intel Xeon \SI{2.2}{\giga\he
 environment and warms up; all pass a barrier, and timing runs from the barrier to the last finish. \emph{Strong
 scaling} fixes the work (64 episodes, \num{92160} steps) and gives $S(n)=T(1)/T(n)$ and $E(n)=S(n)/n$;
 \emph{weak scaling} uses 8 episodes per worker. Workers are unpinned, pinned one per physical core, or pinned onto
-hyper-thread pairs; bootstrap intervals over repeats describe this machine only. The learner is timed on
+hyper-thread pairs. The learner is timed on
 \texttt{model.train()} over a replay buffer already filled, so environment stepping is excluded, varying device,
 batch size and thread count; for concurrency, $k$ independent processes start together and the aggregate rate is
 total updates over the span from first start to last finish. The batched simulator and the scalar environment run
@@ -347,6 +346,16 @@ learners take cores from the GPU processes' launch threads, which we did not iso
 rollouts that include them ran \NumEvalRatio$\times$ slower than rule-based ones on the same workers, because the
 library's prediction call costs more per step than the plant.
 
+\emph{Earlier measurements on the H200 server.} The earlier server is a shared machine with a 128-core AMD EPYC 9535,
+\SI{1}{\tera\byte} of memory and four NVIDIA H200 GPUs reached through a broker. Its benchmarks were taken by the
+authors with an earlier simulator version (iterative power inversion; \num{8225} steps/s for one bare environment) and
+were not repeated, but they point the same way. PPO with 32 environments ran at \num{9712} steps/s on the CPU and
+\num{6814} (70\,\%) on the GPU, and raising the CPU environments from 8 to 32 lifted the rate only from \num{8636} to
+\num{9712} steps/s, so neither more cores nor a GPU helped a workload bound by Python environment stepping. The
+$2.7\times$ GPU advantage for SAC there (\num{6520} against \num{2450} steps/s) was measured at the mistaken
+ratio $1/32$. These are context only: the raw logs were not archived, the simulator has since changed, and the earlier
+sweep's result files record no timing, so none of it enters the comparisons above.
+
 \subsection{Update-to-data ratio and time to quality}\label{sec:utdres}
 The repository configuration performed \NumEThreeUpdLow{} updates in \num{300000} steps, a measured ratio of
 \NumUtdMeasuredLow{} against a documented ratio of one (over $2\times10^6$ steps, about \num{62500} updates instead
@@ -370,7 +379,7 @@ full-ratio degradation (Section~\ref{sec:frontier}). The 300k-step runs took \Nu
 \NumLegacyWeights{} weights, \NumLegacySeeds{} seeds, $2\times10^6$ steps, ratio $1/32$, $\gamma=0.999$) used
 $6.7\times$ more steps per run but $4.8\times$ fewer updates than the corrected runs and reached
 \NumLegacyTwentyDv{} \si{\micro\volt}/day at $w_2=20$ against \NumKgFullTwentyDeg{} for the full-ratio policies;
-its discount factor also differed, and its files record no timing.
+its discount factor also differed.
 
 \begin{table}[t]
 \caption{Update ratio at $w_2=20$, $\gamma=0.95$, 300k steps: mean of two seeds on every fifth \emph{training} day
@@ -403,8 +412,8 @@ at $w_2=20$ (\NumKgQuarterTwentyAdvMin--\NumKgQuarterTwentyAdvMax\,\%, all posit
 The full-ratio policies at $w_2=20$ reach lower degradation (\NumKgFullTwentyDeg{} against
 \NumKgQuarterTwentyDeg{} \si{\micro\volt}/day) with a larger advantage (\NumKgFullTwentyAdvMean\,\%, two seeds), at
 the sparse end of the envelope; we treat that as an open question. A sensitivity sweep of the three baseline rules
-over \NumVariants{} coefficient variants and five resource scenarios (\NumGridUnits{} units, \NumGridSteps{} steps in
-\NumGridSeconds\,s on \NumGridWorkers{} workers) shows hydrogen yield ranking the rules identically everywhere, while
+over \NumVariants{} coefficient variants and five resource scenarios shows hydrogen yield ranking the rules
+identically everywhere, while
 projected life varies by a factor of \NumLifeSpread{} across the assumed coefficient intervals and the lifetime
 ranking changes in \NumRankFlips{} of \NumVariants{} variants: lifetime conclusions depend on coefficients the model
 cannot pin down.
