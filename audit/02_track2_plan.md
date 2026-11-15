@@ -157,3 +157,16 @@ policies are out of scope.
   no undefined references (first full compile found six references skipped by BibTeX because of inline % comments; fixed).
 * Cut for length (still in the repository and the audit): pilots table and discount-factor study, update-ratio checkpoint figure,
   clock-diagnosis figure, three sensitivity/robustness figures, the "what the policy learns" probe, the robustness section.
+
+## Final audit of tables, figures and references (2026-11-15)
+
+* Compiled (TeX Live 2023, Kaggle CPU kernel): named and anonymised PDFs, 6 pages each, 0 LaTeX errors, 0 BibTeX problems, no undefined
+  references; page 6 is about 85% used (margin for a different TeX version on Overleaf is thin: if Overleaf reports 7 pages, cut a few lines).
+* Tables: Table I (systems) checked against `hardware_specifications*.txt` and the Kaggle `lscpu`; Table II (update ratio) regenerated
+  from `results_kaggle/ratio_per_seed.csv` with spelled-out headers; every number matches the per-seed CSV.
+* Figures: labels in words with units in parentheses, Times-style font (STIX), the two-panel simulator figure replaced by a readable
+  single efficiency panel (it was unreadable at column width), learner-figure tick labels fixed, code identifier `gpu_x4` removed from the text.
+* References (18): sayedahmed2024dynamic, degmodels2025, bernhardt2026degradation, karpflatt1990 confirmed by web search (authors,
+  venue, DOI); hockney1991 DOI confirmed (volume and pages from memory: check); drl_scheduling_2026 authors from an aggregator only (check
+  on the MDPI page); degmodels2025 first initial of Makhsoos assumed ("A."). Added classics: amdahl1967, gustafson1988, karpflatt1990,
+  hockney1991. Inline % comments inside bib entries had made BibTeX skip six entries (fixed).
