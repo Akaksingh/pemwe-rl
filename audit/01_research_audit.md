@@ -416,7 +416,7 @@ is 59% of it; base is 32%. "Dominated by cycling" is stronger than that table su
   CSV; the numbers above come from the log of its first pass, which is complete for the sections
   cited. Replaced by `scripts/bench_hpc_env.py` (pinned/unpinned/SMT placement, 5 repeats).
 - Local hardware [RAN, Windows]: i5-12450H (8 cores / 12 threads), 7.7 GB RAM, GTX 1650 4 GB.
-  That cannot support the 32-environment workload. The documented server is `h200-server`
+  That cannot support the 32-environment workload. The documented server is the H200 server
   (4× H200, EPYC 9535, 128 cores) at a private address with a weekly GPU quota; its current
   availability is unknown to me (see questions).
 

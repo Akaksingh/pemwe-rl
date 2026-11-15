@@ -1,4 +1,4 @@
-# Measured throughput — `h200-server`
+# Measured throughput — the H200 server
 
 Run on 4× NVIDIA H200 / AMD EPYC 9535 (128 cores), torch 2.13.0+cu130, SB3 2.9.0.
 Reproduce with `scripts/bench_device.py` and `scripts/bench_sac.py`.

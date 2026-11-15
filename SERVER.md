@@ -1,11 +1,11 @@
-# Compute: the `h200-server` server
+# Compute: the H200 server
 
 Shared training box. Person B owns the run schedule on it; A and C use it for the
 long-horizon rollout and for figure regeneration respectively.
 
 ```
-host    <server address>   (h200-server)
-user    <login name>          key-based SSH, no password
+host    <server address, kept out of the public repository>
+user    <your login name>          key-based SSH, no password
 cpu     AMD EPYC 9535, 128 cores
 ram     1 TB
 gpu     4x NVIDIA H200, 143 GB each
@@ -16,7 +16,7 @@ os      Ubuntu 24.04.4, Python 3.12.3
 ## Connecting
 
 ```bash
-ssh <login name>@<server address>
+ssh <your login name>@<server address>
 ```
 
 **Do not add `-L 11434:localhost:11434`.** That is Ollama's port: nothing listens on it on
@@ -58,7 +58,7 @@ machines.
 The repo is private, and the server has no GitHub credentials. Push from your laptop:
 
 ```bash
-git archive HEAD | ssh <login name>@<server address> 'tar -x -C ~/pemwe-rl'
+git archive HEAD | ssh <your login name>@<server address> 'tar -x -C ~/pemwe-rl'
 ```
 
 Only committed files go across, which is the point — if it is not committed, it does not run
