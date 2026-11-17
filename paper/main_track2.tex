@@ -403,12 +403,12 @@ call costs more per step than the plant simulation it is driving. This is why th
 Section~\ref{sec:batch} was applied to rule grids and fixed policies rather than to learned-policy evaluation, and
 batching the network call is the obvious next step.
 
-\emph{Earlier measurements on a larger server.} An earlier phase of this project used a shared machine with a
-128-core AMD EPYC 9535 and four NVIDIA H200 GPUs. Those benchmarks used an earlier simulator version and were not
-repeated here, but they point the same way: PPO with 32 environments ran at \num{9712} steps/s on 128 CPU cores and
-\num{6814} on an H200, and raising the environment count from 8 to 32 lifted the CPU rate only from \num{8636} to
-\num{9712} steps/s. Neither many more cores nor a far larger GPU rescued a workload bound by Python-level
-stepping. We report this as context only: the raw logs were not archived and the simulator has since changed.
+\emph{A larger machine does not change this.} Earlier benchmarks on a shared 128-core AMD EPYC 9535 with four
+NVIDIA H200 GPUs point the same way: an on-policy learner with 32 environments ran at \num{9712} steps/s on the
+128 CPU cores and \num{6814} on an H200, and raising the environment count from 8 to 32 lifted the CPU rate only
+from \num{8636} to \num{9712} steps/s. Neither many more cores nor a far larger GPU rescued a workload bound by
+Python-level stepping. These are context only: they used an earlier simulator version and the raw logs were not
+archived.
 
 \subsection{A pitfall: when a speedup is not a speedup}\label{sec:utdres}
 The three regimes above all assume that the thing being timed is the same across configurations. For training, that
