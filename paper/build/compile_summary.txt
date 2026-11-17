@@ -1,4 +1,4 @@
-commit: 359574e85b7971e1851ba5ae5c2f510d2f10abef
+commit: 4c06276fe729dade44a77bad5880429a13c77b26
 apt install exit code: 0
 [main_track2] pdflatex -interaction=nonstopmode main_track2: exit 0
 [main_track2] bibtex main_track2: exit 0
