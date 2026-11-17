@@ -75,7 +75,7 @@ def main():
         print(f"{k:30s} {v}")
 
     # ---- figure: throughput against batch size, log-log
-    fig, ax = plt.subplots(figsize=(3.5, 2.7))
+    fig, ax = plt.subplots(figsize=(3.5, 2.35))
     xs = np.logspace(0, np.log10(B.max() * 1.3), 200)
     ax.plot(xs, xs / (a0 + b * xs), color=H.MUTED, lw=1.0, ls=(0, (4, 2)), zorder=2, label="overhead + work model")
     ax.plot(B, B / t_step, color=H.BLUE, marker="o", ms=4.5, lw=0, mec=H.SURFACE, mew=0.7, zorder=4,

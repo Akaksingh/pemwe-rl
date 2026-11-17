@@ -105,7 +105,7 @@ def main():
         print(f"including {len(v2)} hysteresis-rule grid points in the rule envelope")
     env = envelope(rules)
 
-    fig, ax = plt.subplots(figsize=(3.5, 3.1))
+    fig, ax = plt.subplots(figsize=(3.5, 2.6))
     ax.scatter(rules.dv, rules.h2, s=7, color=H.BASE, linewidths=0, zorder=2)
     ax.plot(env.dv, env.h2, color=H.INK2, lw=1.1, ls=(0, (4, 2)), zorder=3, label="best simple rule (envelope)")
     lm = leg.groupby("w2").agg(h2=("h2", "mean"), dv=("dv", "mean")).reset_index().sort_values("w2")
@@ -129,7 +129,7 @@ def main():
             ax.plot(km.dv, km.h2, color=H.ORANGE, marker="v", ms=5, lw=1.3, ls="--", mec=H.SURFACE, mew=0.8, zorder=5,
                     label="SAC, ratio 1/4, six seeds")
             print(f"plotted {len(kg)} ratio-1/4 seeds at w2 = {sorted(kg.w2.unique())}")
-    label_at = {"naive_as_published": (97.0, 178.0), "ramp_limited": (89.0, 162.0), "no_threshold": (85.0, 208.5)}
+    label_at = {"naive_as_published": (97.0, 178.0), "ramp_limited": (89.0, 162.0), "no_threshold": (92.0, 213.0)}
     for c, (mk, lab) in BASE_STYLE.items():
         if c in b.index:
             ax.plot(b.loc[c, "dv_uv_day"], b.loc[c, "h2_kg_day"], marker=mk, ms=6.5, mfc=H.SURFACE, mec=H.INK, mew=1.2,
