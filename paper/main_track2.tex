@@ -214,8 +214,8 @@ available parallelism is across steps that belong to different simulations.
 
 \emph{Degradation.} $\dVdeg$ is a scalar cell-voltage rise in microvolts, accumulated from five additive terms per
 step: a base rate while on, a high-current term, a ramp term, a fixed cost per on/off transition, and an idle rate
-while off. The coefficients were chosen so that the threshold rule described below projects a stack life of about
-five years. That anchor is an assumption, not a measurement, so every comparison we report is relative.
+while off. The coefficients were chosen so that the threshold rule below projects a stack life of about five
+years; that anchor is an assumption, not a measurement, so every comparison we report is relative.
 
 \emph{Control problem.} Control is a Markov decision process with a one-minute step and a one-day episode
 ($T=1440$ steps). The action $a_t\in[-1,1]$ sets a fraction $\tfrac12(a_t+1)$ of the \emph{currently available}
@@ -227,18 +227,19 @@ is what makes the workload large: each weight needs its own training run and its
 
 \emph{Resource and baselines.} The resource is ERA5 hourly data~\cite{hersbach2020era5} for Kutch, Gujarat (2019),
 converted with a PVWatts-style PV model~\cite{dobos2014pvwatts} and a turbine power curve, then upsampled to one
-minute with Ornstein--Uhlenbeck noise that preserves each hourly mean. \num{293} days are used for training and
+minute with Ornstein--Uhlenbeck noise that preserves each hourly mean; \num{293} days are used for training and
 \num{72} are held out. We have no measured one-minute data, so the noise amplitudes are assumptions. Three simple
 controllers serve as baselines: a \emph{threshold rule} that follows the resource above a \SI{10}{\percent} idle
-threshold, the same rule without the threshold (a constant action of $+1$), and a tuned slew-rate-limited rule.
+threshold, the same rule without it, and a tuned slew-rate-limited rule.
 
 % =============================================================================
 \section{Method}\label{sec:method}
 
 \begin{table}[t]
-\caption{Systems. Timing results come from the workstation, except the batched-simulator benchmark, which ran on
-the cloud CPU kernel and is reported only as a same-machine ratio. The cloud GPU notebook trained and evaluated
-learned policies and contributes no timing claim.}
+\caption{Systems. Timing results come from the workstation, except the batched-simulator benchmark, which was
+built after the workstation became unavailable and ran on the cloud CPU kernel; it is reported only as a ratio
+between two implementations timed back to back there, never as an absolute rate. The cloud GPU notebook trained
+and evaluated learned policies and contributes no timing claim.}
 \label{tab:system}
 \centering
 \footnotesize
@@ -252,11 +253,6 @@ Cloud CPU kernel & 4 vCPU (2 cores, 2 threads each) Intel Xeon \SI{2.2}{\giga\he
 \bottomrule
 \end{tabular}
 \end{table}
-
-\emph{Systems.} Table~\ref{tab:system} lists the machines. The workstation carries the scaling and learner
-measurements. The batched simulator was built after the workstation became unavailable, so its benchmark ran on a
-cloud CPU kernel and is reported as a ratio between two implementations timed back to back there, never as an
-absolute rate to be compared across systems.
 
 \emph{Benchmarks.} Simulator workers run random-action episodes of the bare environment, with no policy and no
 learning library, so the number measures the simulator alone; each worker warms up, all pass a barrier, and timing
@@ -290,9 +286,8 @@ that of the full-ratio policies. The ratio that passed was retrained with six fu
 
 \emph{Rule baselines.} Rules are evaluated on the same held-out days, every grid point is reported, and none is
 tuned on those days. The grids are slew limits (13 values, with and without the idle threshold), power caps (9
-values), and a hysteresis rule with 72 settings that confirms a start once the resource has stayed above $0.08$ or
-$0.15$ of rated for 5 or 20 minutes, and a stop after 5 or 20 minutes below $0.03$, combined with a cap of $0.5$,
-$0.7$ or $1.0$ and a slew limit of $0.001$, $0.003$ or $0.01$ per minute. This grid is the workload used for the
+values), and a hysteresis rule with 72 settings that confirms a start and a stop over 5- or 20-minute windows and
+combines a power cap with a slew limit. That last grid, over the held-out days, is the workload used for the
 batched-simulator benchmark in Section~\ref{sec:batch}: \NumBatchGridEpisodes{} independent episodes.
 
 % =============================================================================
