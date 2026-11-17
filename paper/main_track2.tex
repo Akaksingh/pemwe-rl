@@ -138,15 +138,15 @@ This paper measures a workload of that shape and finds the instinct to be only h
 control strategies for a \SI{1}{\mega\watt}-class proton-exchange-membrane (PEM) electrolyzer driven directly by
 solar and wind power. Stack degradation accumulates over years and depends on how the plant is
 operated~\cite{sayedahmed2024dynamic,feng2017pemwe,bernhardt2026degradation}, so testing one control strategy on
-hardware would consume a large part of a stack lifetime. Screening has to be done in simulation. The plant is
-simulated at a one-minute interval, one day at a time, and a reinforcement-learning controller is trained against
-that simulator. Every step is cheap, and there are hundreds of millions of them.
+hardware would consume a large part of a stack lifetime, and screening has to be done in simulation. The plant is
+simulated at a one-minute interval, one day at a time, with a reinforcement-learning controller trained against it:
+every step is cheap, and there are hundreds of millions of them.
 
-We ran the same workload three ways, on the same machines, and measured all three. Adding worker processes helped
-until the physical cores ran out, and then stopped. Restructuring the computation, so that thousands of simulation
-episodes advance together as array operations inside a single process, was two orders of magnitude more effective
-than the process pool it replaced. The learner responded to neither lever: it is bound by the latency of one small
-update, so the only thing that moved it was running independent jobs side by side.
+We ran the same workload three ways, on the same machines. Adding worker processes helped until the physical cores
+ran out, and then stopped. Restructuring the computation, so that thousands of episodes advance together as array
+operations inside one process, was two orders of magnitude more effective than the process pool it replaced. The
+learner responded to neither lever: it is bound by the latency of one small update, so only running independent
+jobs side by side moved it.
 
 Those three behaviours are the paper, and they give one finding: \emph{for workloads of this shape, how the
 computation is arranged matters more than how many cores are applied to it, and a few cheap measurements tell you
@@ -186,16 +186,14 @@ model~\cite{hockney1991} describes a vectorized rate by an asymptotic throughput
 which is the question any batched implementation raises: how much work must be in flight before batching is worth
 it?
 
-\emph{Environment execution.} Running many simulation environments in parallel is standard practice in
-reinforcement learning, and dedicated engines exist because environment stepping is often the slowest
-part~\cite{weng2022envpool}. Those engines move the environment into compiled code. Our simulator is a small Python
-and NumPy model that we did not want to reimplement, so we ask a narrower question: how far does restructuring get
-without leaving the language the model is written in?
-
-\emph{Update-to-data ratio.} The number of gradient updates per collected transition is a first-order determinant
-of off-policy learning performance, and recent work treats it as an explicit experimental
-variable~\cite{fedus2020replay,chen2021redq,doro2023replay}. We use it for a different purpose: as the quantity
-that makes two training throughputs comparable, or reveals that they are not.
+\emph{Environment execution.} Dedicated engines run many simulation environments in parallel because environment
+stepping is often the slowest part of a reinforcement-learning system~\cite{weng2022envpool}, and they do so by
+moving the environment into compiled code. Our simulator is a small Python and NumPy model that we did not want to
+reimplement, so we ask a narrower question: how far does restructuring get without leaving the language the model
+is written in? The number of gradient updates per collected transition, meanwhile, is a first-order determinant of
+off-policy performance and an explicit experimental variable in recent
+work~\cite{fedus2020replay,chen2021redq,doro2023replay}; we use it as the quantity that makes two training
+throughputs comparable, or reveals that they are not.
 
 % =============================================================================
 \section{The Workload}\label{sec:workload}
@@ -207,9 +205,9 @@ begin in Section~\ref{sec:results}.
 $j_\mathrm{r}=\SI{2.0}{\ampere\per\centi\meter\squared}$ and \SI{60}{\celsius}, with the cathode at \SI{30}{\bar}.
 One simulation step maps a commanded power to a current density, evaluates the polarisation model and updates the
 degradation state. The cell voltage is a reversible term with a Nernst pressure correction, plus Butler--Volmer
-activation losses, ohmic loss, a concentration term and the accumulated degradation $\dVdeg$. Hydrogen output
-follows Faraday's law, derated for crossover. Rated plant power is \SI{1049}{\kilo\watt} and the plant cannot run
-below \SI{36.8}{\kilo\watt}. The model uses typical values for this cell class and is not fitted to a device.
+activation losses, ohmic loss, a concentration term and the accumulated degradation $\dVdeg$; hydrogen output
+follows Faraday's law, derated for crossover. Rated plant power is \SI{1049}{\kilo\watt}. The model uses typical
+values for this cell class and is not fitted to a device.
 
 The step is small. That matters for everything that follows: no single step is worth parallelising, so all the
 available parallelism is across steps that belong to different simulations.
@@ -221,11 +219,11 @@ five years. That anchor is an assumption, not a measurement, so every comparison
 
 \emph{Control problem.} Control is a Markov decision process with a one-minute step and a one-day episode
 ($T=1440$ steps). The action $a_t\in[-1,1]$ sets a fraction $\tfrac12(a_t+1)$ of the \emph{currently available}
-renewable power, so the setpoint can never exceed the resource. The eight-dimensional observation holds the
+renewable power, so the setpoint can never exceed the resource, and the eight-dimensional observation holds the
 available power, its 15-minute mean, the previous setpoint, current density, normalised degradation, hydrogen rate
 and the time of day. The reward is $w_1\tilde m_{\mathrm{H_2}}-w_2\widetilde{\dVdeg}-w_3|\Delta j|/j_\mathrm{r}$
 with fixed scales. Sweeping the degradation weight $w_2$ traces a yield-versus-degradation frontier, and that sweep
-is what makes the workload large: each weight needs its own training run, and each run needs its own evaluation.
+is what makes the workload large: each weight needs its own training run and its own evaluation.
 
 \emph{Resource and baselines.} The resource is ERA5 hourly data~\cite{hersbach2020era5} for Kutch, Gujarat (2019),
 converted with a PVWatts-style PV model~\cite{dobos2014pvwatts} and a turbine power curve, then upsampled to one
@@ -257,23 +255,18 @@ Cloud CPU kernel & 4 vCPU (2 cores, 2 threads each) Intel Xeon \SI{2.2}{\giga\he
 
 \emph{Systems.} Table~\ref{tab:system} lists the machines. The workstation carries the scaling and learner
 measurements. The batched simulator was built after the workstation became unavailable, so its benchmark ran on a
-cloud CPU kernel; we therefore report it as a ratio between two implementations timed back to back on that one
-machine, never as an absolute rate to be compared across systems.
+cloud CPU kernel and is reported as a ratio between two implementations timed back to back there, never as an
+absolute rate to be compared across systems.
 
-\emph{Simulator benchmark.} Workers run random-action episodes of the bare environment, with no policy and no
-learning library, so the number measures the simulator alone. Each worker builds its environment and warms up, all
-workers pass a barrier, and timing runs from the barrier until the last worker finishes. \emph{Strong scaling}
-fixes the total work (64 episodes, \num{92160} steps) and reports $S(n)=T(1)/T(n)$ and $E(n)=S(n)/n$; \emph{weak
-scaling} gives each worker 8 episodes. We repeat each case and vary placement: unpinned, one worker per physical
-core, or packed onto hyper-thread pairs.
-
-\emph{Learner benchmark.} We time \texttt{model.train()} on a replay buffer that is already full, which excludes
-environment stepping and so isolates the learner. The variables are device, batch size and CPU thread count. For
-concurrency, $k$ independent processes start together and the aggregate rate is the total number of updates divided
-by the span from the first start to the last finish.
-
-\emph{Batched simulator benchmark.} The batched and the original simulator run the same controller over the same
-days on one machine, back to back, and we report the ratio.
+\emph{Benchmarks.} Simulator workers run random-action episodes of the bare environment, with no policy and no
+learning library, so the number measures the simulator alone; each worker warms up, all pass a barrier, and timing
+runs from the barrier until the last worker finishes. \emph{Strong scaling} fixes the total work (64 episodes,
+\num{92160} steps) and reports $S(n)=T(1)/T(n)$ and $E(n)=S(n)/n$, while \emph{weak scaling} gives each worker 8
+episodes; we repeat each case and vary placement between unpinned, one worker per physical core, and packed onto
+hyper-thread pairs. The learner is timed on \texttt{model.train()} over an already-full replay buffer, which
+excludes environment stepping, varying device, batch size and thread count; for concurrency, $k$ processes start
+together and the aggregate rate is total updates over the span from first start to last finish. The batched and
+original simulators run the same controller over the same days, back to back.
 
 \emph{Update-to-data accounting.} Let $N$ be the number of vectorized environments, $F$ the \texttt{train\_freq}
 and $G$ the \texttt{gradient\_steps}. In Stable-Baselines3~\cite{raffin2021sb3}, which provides the Soft
@@ -291,10 +284,9 @@ is assumed instead of computed.
 512, a replay buffer of $10^6$, 32 environments and \num{300000} steps per run, with $w_1=1$ and $w_3=0.1$. The
 discount factor $\gamma=0.95$ was chosen from in-sample pilots on training days, never from the held-out days. The
 frontier experiment trains at $w_2\in\{1.41,5.32,12.9,20\}$ with two seeds each and evaluates each policy once on
-the 72 held-out days. A follow-up on the cloud notebook trained update ratios $1/8$ and $1/4$ at $w_2=20$ and
-compared them, on training days, against a tolerance fixed beforehand: degradation at most $1.10\times$ and hydrogen
-at least $0.95\times$ that of the full-ratio policies. The ratio that passed was then trained with six further
-seeds at $w_2=12.9$ and $20$ and evaluated once on the held-out days.
+the 72 held-out days. A follow-up trained update ratios $1/8$ and $1/4$ at $w_2=20$ and compared them, on training
+days, against a tolerance fixed beforehand: degradation at most $1.10\times$ and hydrogen at least $0.95\times$
+that of the full-ratio policies. The ratio that passed was retrained with six further seeds at $w_2=12.9$ and $20$.
 
 \emph{Rule baselines.} Rules are evaluated on the same held-out days, every grid point is reported, and none is
 tuned on those days. The grids are slew limits (13 values, with and without the idle threshold), power caps (9
@@ -322,18 +314,17 @@ reach \NumSimSixteen{} steps/s, a speedup of only \NumSpeedSixteen{}. The speedu
 are used up and the efficiency keeps falling beyond that point (Fig.~\ref{fig:sim}). At the best rate, simulating a
 year of plant operation takes \NumYearSeconds{} s.
 
-Hyper-threads do not help. Two workers sharing one physical core deliver only \NumSmtTwo{}$\times$ the throughput of
-a single worker, and 16 workers on 8 cores add \NumSmtGain{}\,\% over 8. Placement does not matter either: pinning
-one worker per physical core and letting the operating system decide give the same throughput.
+Hyper-threads do not help: two workers sharing one physical core deliver only \NumSmtTwo{}$\times$ the throughput
+of a single worker, and 16 workers on 8 cores add \NumSmtGain{}\,\% over 8. Placement does not matter either.
 
 The more interesting loss happens earlier. Efficiency falls from about $1$ at two workers to about $0.75$ at four,
-with or without pinning, which is well before the cores run out. We checked whether uneven work caused it by giving
-every worker identical episodes; the drop persisted, and the slowest worker took at most
-\NumSlowFastSameWork{}$\times$ as long as the fastest. The clock explains it instead. The sampled core frequency
-falls from \NumFreqOneGHz{}\,GHz at one worker to \NumFreqEightGHz{}\,GHz at eight, and the per-worker rate tracks
-it, from \NumPerWorkerOne{} to \NumPerWorkerEight{} steps/s. Dividing one by the other, the rate per GHz changes by
-a factor of only \NumPerGhzRatioEight{}. The work per worker is therefore unchanged; the processor is simply
-running slower under multi-core load, as the \texttt{powersave} governor on this shared machine allows.
+well before the cores run out. Uneven work is not the cause: giving every worker identical episodes left the drop
+in place, with the slowest worker taking at most \NumSlowFastSameWork{}$\times$ as long as the fastest. The clock
+explains it instead. The sampled core frequency falls from \NumFreqOneGHz{}\,GHz at one worker to
+\NumFreqEightGHz{}\,GHz at eight, and the per-worker rate tracks it, from \NumPerWorkerOne{} to
+\NumPerWorkerEight{} steps/s, so the rate per GHz changes by a factor of only \NumPerGhzRatioEight{}. The work per
+worker is unchanged; the processor is simply running slower under multi-core load, as the \texttt{powersave}
+governor on this shared machine allows.
 
 Two standard metrics agree. The Karp--Flatt serial fraction~\cite{karpflatt1990},
 $e(n)=(1/S(n)-1/n)/(1-1/n)$, is \NumKarpFlattTwo{}, \NumKarpFlattFour{} and \NumKarpFlattEight{} at two, four and
@@ -361,11 +352,11 @@ values, rather than $B$ separate passes through the Python interpreter. We imple
 that reuses the same plant and degradation models and mirrors the original step exactly, including the
 single-precision rounding of the action and of the observation the rules see.
 
-Exactness was a requirement, not a hope, because an approximate simulator would invalidate every result computed
-with it. Eight tests compare the two implementations step by step and episode by episode, on ordinary days and on
+Exactness was a requirement, not a hope, since an approximate simulator would invalidate every result computed with
+it. Eight tests compare the two implementations step by step and episode by episode, on ordinary days and on
 deliberately extreme ones: a square wave, a saturated plant, sparse spikes, and power below the plant minimum.
-Hydrogen, degradation and reward agree with relative difference $0$, and mean efficiency to $10^{-15}$. On the
-held-out days, a random sample of \NumBatchValEpisodes{} grid episodes agrees with maximum relative difference
+Hydrogen, degradation and reward agree with relative difference $0$, and mean efficiency to $10^{-15}$; on the
+held-out days, \NumBatchValEpisodes{} randomly sampled grid episodes agree with maximum relative difference
 \NumBatchValDiff{}.
 
 The speed difference is large. On the cloud CPU kernel the original simulator reaches \NumBatchScalarOne{} steps/s
@@ -402,15 +393,14 @@ learner is. The GPU performs \NumGpuUps{} updates/s, and that rate does not chan
 means the update is latency-bound rather than compute-bound. The CPU is not far behind, at \NumCpuUpsFour{}
 updates/s with 4 threads and \NumCpuUpsEight{} with 8, so the GPU advantage is only \NumGpuCpuRatio{}$\times$.
 
-Neither of the earlier levers applies. Because the update rate does not depend on the number of environments, adding
-environment parallelism does not shorten training. Because the rate does not depend on batch size, neither does
-feeding the GPU more work per update. What remains is running independent jobs side by side: one GPU process
+Neither of the earlier levers applies: the rate depends on neither the number of environments nor the batch size,
+so adding either does not shorten training. What remains is running independent jobs side by side. One GPU process
 delivers \NumMultiGpuOne{} updates/s, two together \NumMultiGpuTwo{}, and four \NumMultiGpuFour{}
-(Fig.~\ref{fig:learner}c). Aggregate throughput rises while each process slows down, which is the expected shape
-when a fixed per-update latency is being amortised across processes. CPU learners saturate sooner. Mixing devices is
-worse than using the GPU alone, since two GPU plus three CPU processes reach only \NumMultiMixed{} updates/s,
-plausibly because the CPU learners take cores from the launch threads of the GPU processes; we did not isolate
-that. The best configuration we measured, four concurrent GPU runs, gives \NumMultiBest{} updates/s in total.
+(Fig.~\ref{fig:learner}c): aggregate throughput rises while each process slows down, the expected shape when a
+fixed per-update latency is amortised across processes. Mixing devices is worse than the GPU alone, since two GPU
+plus three CPU processes reach only \NumMultiMixed{} updates/s, plausibly because the CPU learners take cores from
+the launch threads of the GPU processes; we did not isolate that. The best configuration we measured, four
+concurrent GPU runs, gives \NumMultiBest{} updates/s in total.
 
 Evaluation of learned policies sits in the same regime, for the same reason: rollouts that invoke the policy
 network ran \NumEvalRatio$\times$ slower than rule-based ones on the same workers, because the library prediction
@@ -419,14 +409,11 @@ Section~\ref{sec:batch} was applied to rule grids and fixed policies rather than
 batching the network call is the obvious next step.
 
 \emph{Earlier measurements on a larger server.} An earlier phase of this project used a shared machine with a
-128-core AMD EPYC 9535, \SI{1}{\tera\byte} of memory and four NVIDIA H200 GPUs behind a broker. Those benchmarks
-were taken with an earlier version of the simulator, which used an iterative power inversion and reached
-\num{8225} steps/s for one bare environment, and they were not repeated here. They point the same way. PPO with 32
-environments ran at \num{9712} steps/s on 128 CPU cores and \num{6814} on an H200, and raising the environment
-count from 8 to 32 lifted the CPU rate only from \num{8636} to \num{9712} steps/s. Neither many more cores nor a
-far larger GPU rescued a workload bound by Python-level stepping, which is the same conclusion the workstation
-measurements reach. We report this as context only: the raw logs were not archived and the simulator has since
-changed, so none of it enters the comparisons above.
+128-core AMD EPYC 9535 and four NVIDIA H200 GPUs. Those benchmarks used an earlier simulator version and were not
+repeated here, but they point the same way: PPO with 32 environments ran at \num{9712} steps/s on 128 CPU cores and
+\num{6814} on an H200, and raising the environment count from 8 to 32 lifted the CPU rate only from \num{8636} to
+\num{9712} steps/s. Neither many more cores nor a far larger GPU rescued a workload bound by Python-level
+stepping. We report this as context only: the raw logs were not archived and the simulator has since changed.
 
 \subsection{A pitfall: when a speedup is not a speedup}\label{sec:utdres}
 The three regimes above all assume that the thing being timed is the same across configurations. For training, that
@@ -532,19 +519,17 @@ The three regimes suggest a short checklist for workloads built from many small,
 We measured one simulation-and-learning workload three ways on the same machines. Adding processes gave a speedup
 of \NumSpeedEight{} on eight workers and then stopped, limited by the processor clock rather than by the
 decomposition. Restructuring the same computation so that episodes advance in lockstep gave \NumBatchGridSpeedup{}
-times the throughput of that process pool, while reproducing the original simulator exactly, and its
+times the throughput of that process pool while reproducing the original simulator exactly, and its
 half-performance length of about \NumBatchNHalf{} episodes says in advance when the restructuring is worth doing.
-The learner responded to neither lever, because it is latency-bound, so only concurrent runs raised its throughput.
+The learner responded to neither lever, because it is latency-bound.
 
-The finding is that these three regimes are distinguishable in advance, cheaply, and that knowing which one a
-component is in matters more than the core count applied to it. Two supporting results point the same way: a
-throughput comparison is meaningless without the update-to-data ratio beside it, and the cheapest experiment in the
-study, a grid of scripted rules, changed the headline conclusion more than any throughput gain did.
-
-Hardware validation, measured high-frequency resource data, batching the learned-policy forward pass and a
-model-predictive baseline are the natural next steps. The code, the raw results and the scripts that generate every
-number and figure in this paper are publicly available; the repository link is withheld for double-blind review and
-will be given in the camera-ready version.
+These three regimes are distinguishable in advance and cheaply, and knowing which one a component is in matters
+more than the core count applied to it. Two supporting results point the same way: a throughput comparison is
+meaningless without the update-to-data ratio beside it, and the cheapest experiment in the study, a grid of
+scripted rules, changed the headline conclusion more than any throughput gain did. Hardware validation, measured
+resource data, batching the learned-policy forward pass and a model-predictive baseline are the natural next steps.
+Code, raw results and the scripts that generate every number and figure are publicly available; the repository link
+is withheld for double-blind review.
 
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
