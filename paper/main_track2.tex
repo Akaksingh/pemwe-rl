@@ -81,8 +81,8 @@
 
 \begin{document}
 
-\title{Scaling Simulation and Learning for Screening Reinforcement-Learning Controllers of a
-Renewable-Powered Electrolyzer}
+\title{Restructure Before You Parallelise: A Measurement Study of a\\
+Reinforcement-Learning Simulation Workload}
 
 \ifanon
 \author{\IEEEauthorblockN{Anonymous authors}
@@ -106,115 +106,141 @@ nishu30092000@ce.du.ac.in}}
 
 % =============================================================================
 \begin{abstract}
-Degradation of proton-exchange-membrane (PEM) electrolyzer stacks unfolds over years, so control strategies for
-renewable-powered operation must be screened in simulation, and the cost of that screening is a
-high-performance-computing problem. We characterise it for a one-megawatt-class plant simulated at a one-minute
-control interval. Process-parallel simulation on an eight-core workstation reaches \NumSimSixteen{} environment
-steps per second but stops scaling at the physical cores; Karp-Flatt and clock-frequency measurements point to
-the processor lowering its clock under load rather than to serial work. Restructuring the computation does far
-better: an episode-parallel simulator, which advances thousands of episodes in lockstep and reproduces the scalar
-simulator exactly, evaluates a \NumBatchGridEpisodes{}-episode rule grid \NumBatchGridSpeedup{} times faster than
-a process pool on the same machine, and its throughput follows a Hockney overhead-plus-work model. Soft
-Actor-Critic (SAC) training is bound by the learner and not by the simulator, so concurrent runs raise
-throughput. We also document a benchmarking pitfall: a vectorized SAC configuration documented as one update per
-transition performed one per 32, so steps per second overstated learning throughput about thirty-fold, and
-cheaper update ratios suffice only at some degradation weights. Finally, a simple hysteresis rule removes most of
-the apparent advantage of the learned controller, from up to \NumAdvTwentyPctOldRules{} per cent more hydrogen at
-equal degradation to \NumKgQuarterTwelveAdvMean{} and \NumKgQuarterTwentyAdvMean{} per cent, so the baseline
-matters as much as the compute. No physical stack was operated.
+Many scientific workloads are built from small, independent simulations, and the usual way to make them faster is
+to run more of them at once. We measure what that buys, and what a different choice buys instead. Our workload
+screens control strategies for a renewable-powered electrolyzer: a one-minute plant simulation, run for millions of
+steps, with a reinforcement-learning controller trained against it. On an eight-core workstation, adding processes
+gave a speedup of \NumSpeedEight{} on eight workers and then stopped. The decomposition was not the limit. A
+Karp--Flatt analysis gives a serial fraction that is not constant, and the measured core clock falls as workers are
+added. Restructuring the same computation worked far better. Advancing many simulation episodes in lockstep, as
+array operations inside one process, evaluated a \NumBatchGridEpisodes{}-episode workload \NumBatchGridSpeedup{}
+times faster than a process pool on the same machine, and reproduced the original simulator exactly. Its throughput
+follows Hockney's overhead-plus-work model, whose half-performance length of about \NumBatchNHalf{} episodes says
+when the restructuring pays. The learner behaves differently again: it is latency-bound, so neither larger batches
+nor more environments shorten training, and only concurrent runs raise throughput. We also report a measurement
+pitfall that inflated an earlier speedup about thirty-fold. For this class of workload, the first question is not
+how many cores to use, but whether the work is shaped to use them.
 \end{abstract}
 
 \begin{IEEEkeywords}
-high-performance computing, parallel simulation, vectorization, scaling analysis, reinforcement learning, PEM
-water electrolysis, update-to-data ratio, performance benchmarking
+high-performance computing, parallel simulation, vectorization, scaling analysis, performance benchmarking,
+reinforcement learning, PEM water electrolysis
 \end{IEEEkeywords}
 
 % =============================================================================
 \section{Introduction}
-Green hydrogen from variable renewable generation depends on electrolyzer stacks that last. In proton-exchange-membrane
-(PEM) electrolyzers, degradation accumulates over years and depends on how the stack is operated: frequent load
-fluctuations during dynamic operation are reported to accelerate it~\cite{sayedahmed2024dynamic}, and the
-mechanisms are reviewed in~\cite{feng2017pemwe,bernhardt2026degradation}. Testing a control strategy on hardware
-therefore consumes a substantial fraction of a stack's life, and simulation is the practical way to screen
-strategies. Its usefulness is set by two computational questions: how fast can the plant and its operating
-environment be simulated, and what does it cost to train a learning-based controller against that simulator? We
-address both for a \SI{1}{\mega\watt}-class PEM electrolyzer powered by a hybrid solar--wind resource at a
-one-minute control interval, where the control problem is cheap per step but needs very many steps. This is a
-high-performance computing (HPC) question in miniature. The contributions are measurements, one correction and one
-implementation technique, not a new learning algorithm:
-\begin{itemize}
-  \item \textbf{Simulator scaling.} Throughput and parallel efficiency against worker count with placement
-        controlled, and a diagnosis of the efficiency loss.
-  \item \textbf{Episode-parallel simulation.} A batched simulator, validated to reproduce the scalar one exactly,
-        that evaluates a rule grid two orders of magnitude faster than a process pool on the same machine,
-        characterised with Hockney's overhead-plus-work model.
-  \item \textbf{Learner scaling and a benchmarking pitfall.} Where Soft Actor-Critic (SAC) training time goes, how a
-        documented one-update-per-transition configuration performed one update per 32 transitions, and why
-        configurations should be compared by time to a stated quality.
-  \item \textbf{A fair controller comparison.} Learned policies against grids of simple rules, including a
-        hysteresis rule, at equal degradation.
-\end{itemize}
-This is a simulation study: no physical stack was operated, the degradation model is an assumed lumped model
-calibrated to a nominal life, and the sub-hourly resource variability is synthetic (Section~\ref{sec:limits}).
+A large class of scientific computing consists of many small, independent runs. Parameter sweeps, Monte Carlo
+studies and simulation-based policy search all have this shape. Because the runs do not interact, the obvious way
+to go faster is to give the problem more cores. That instinct is usually right, and it is usually where the
+engineering effort stops.
 
-\section{Related Work}
-Degradation of PEM water electrolysis is reviewed in~\cite{feng2017pemwe,bernhardt2026degradation}, dynamic
-operation in~\cite{sayedahmed2024dynamic}, and degradation models for power allocation and energy management
-in~\cite{degmodels2025}. Deep reinforcement learning has been applied to scheduling an electric--hydrogen station
-with a data-driven electrolyzer model~\cite{drl_scheduling_2026}, at a coarser granularity than the one-minute
-control considered here. Engines that run many environments in parallel have been built because environment
-execution is often the slowest part of a reinforcement-learning system~\cite{weng2022envpool}; ours is a small
-Python model, so we study process-level parallelism and then episode-level batching. The number of gradient updates
-per collected transition, the update-to-data ratio (UTD), is a first-order determinant of off-policy performance
-and is treated as an explicit variable in~\cite{fedus2020replay,chen2021redq,doro2023replay}; comparing training
-speeds across configurations that differ in it compares different amounts of learning work. Parallel
-performance is conventionally reported as speedup and efficiency~\cite{amdahl1967,gustafson1988}; we add the
-Karp--Flatt serial fraction~\cite{karpflatt1990} and Hockney's half-performance length~\cite{hockney1991}.
+This paper measures a workload of that shape and finds the instinct to be only half the story. The workload screens
+control strategies for a \SI{1}{\mega\watt}-class proton-exchange-membrane (PEM) electrolyzer driven directly by
+solar and wind power. Stack degradation accumulates over years and depends on how the plant is
+operated~\cite{sayedahmed2024dynamic,feng2017pemwe,bernhardt2026degradation}, so testing one control strategy on
+hardware would consume a large part of a stack lifetime. Screening has to be done in simulation. The plant is
+simulated at a one-minute interval, one day at a time, and a reinforcement-learning controller is trained against
+that simulator. Every step is cheap, and there are hundreds of millions of them.
+
+We ran the same workload three ways, on the same machines, and measured all three. Adding worker processes helped
+until the physical cores ran out, and then stopped. Restructuring the computation, so that thousands of simulation
+episodes advance together as array operations inside a single process, was two orders of magnitude more effective
+than the process pool it replaced. The learner responded to neither lever: it is bound by the latency of one small
+update, so the only thing that moved it was running independent jobs side by side.
+
+Those three behaviours are the paper, and they give one finding: \emph{for workloads of this shape, how the
+computation is arranged matters more than how many cores are applied to it, and a few cheap measurements tell you
+in advance which of the three regimes a component is in.} The contributions are:
+
+\begin{itemize}
+  \item \textbf{A three-way comparison on one workload.} Process-level scaling, episode-level batching and learner
+        throughput, measured on the same code and the same machines, so that the numbers can be compared directly.
+  \item \textbf{An exact episode-parallel simulator.} It reproduces the original simulator bit for bit, which we
+        verify against it, and evaluates a rule grid \NumBatchGridSpeedup{} times faster than a process pool. We
+        characterise it with Hockney's model and report the batch size above which it pays.
+  \item \textbf{A diagnosis, not just a curve.} We trace the loss of parallel efficiency to the processor clock
+        rather than to serial work, using the Karp--Flatt metric and direct clock readings.
+  \item \textbf{A benchmarking pitfall with a measured cost.} A configuration documented as performing one gradient
+        update per transition performed one per 32, which inflated an apparent speedup about thirty-fold. We give
+        the accounting that catches it.
+\end{itemize}
+
+This is a simulation study. No physical stack was operated, the degradation model is an assumed lumped model
+calibrated to a nominal life, and the sub-hourly resource variability is synthetic. Section~\ref{sec:limits} states
+what that rules out.
 
 % =============================================================================
-\section{Workload}\label{sec:workload}
+\section{Related Work}
+\emph{The application.} Degradation mechanisms in PEM water electrolysis are reviewed
+in~\cite{feng2017pemwe,bernhardt2026degradation}, and the effect of dynamic operation
+in~\cite{sayedahmed2024dynamic}. Degradation models intended for power allocation and energy management are
+surveyed in~\cite{degmodels2025}. Deep reinforcement learning has been applied to scheduling an
+electric--hydrogen station using a data-driven electrolyzer model~\cite{drl_scheduling_2026}, at a coarser time
+granularity than the one-minute control studied here.
+
+\emph{Parallel performance.} Speedup and efficiency are the conventional
+summary~\cite{amdahl1967,gustafson1988}. They report how much was gained, but not why the gain stopped. Two older
+metrics answer that, and we use both. The Karp--Flatt serial fraction~\cite{karpflatt1990} is estimated from
+measured speedups, and if the limit really is serial work it stays constant as workers are added. Hockney's
+model~\cite{hockney1991} describes a vectorized rate by an asymptotic throughput and a half-performance length,
+which is the question any batched implementation raises: how much work must be in flight before batching is worth
+it?
+
+\emph{Environment execution.} Running many simulation environments in parallel is standard practice in
+reinforcement learning, and dedicated engines exist because environment stepping is often the slowest
+part~\cite{weng2022envpool}. Those engines move the environment into compiled code. Our simulator is a small Python
+and NumPy model that we did not want to reimplement, so we ask a narrower question: how far does restructuring get
+without leaving the language the model is written in?
+
+\emph{Update-to-data ratio.} The number of gradient updates per collected transition is a first-order determinant
+of off-policy learning performance, and recent work treats it as an explicit experimental
+variable~\cite{fedus2020replay,chen2021redq,doro2023replay}. We use it for a different purpose: as the quantity
+that makes two training throughputs comparable, or reveals that they are not.
+
+% =============================================================================
+\section{The Workload}\label{sec:workload}
+The computation has two parts, and they turn out to have different performance characters. The first is the plant
+simulator. The second is the learner trained against it. This section describes what they compute; the measurements
+begin in Section~\ref{sec:results}.
+
 \emph{Plant.} The plant has 280 cells of \SI{1000}{\centi\meter\squared}, rated at
 $j_\mathrm{r}=\SI{2.0}{\ampere\per\centi\meter\squared}$ and \SI{60}{\celsius}, with the cathode at \SI{30}{\bar}.
-The cell voltage is the sum of a reversible term with a Nernst pressure correction, Butler--Volmer activation
-losses, ohmic loss, a concentration term and the degradation state $\dVdeg$. Hydrogen follows Faraday's law
-derated by a Faradaic efficiency that accounts for crossover. A balance-of-plant load of \SI{1.5}{\percent} of
-rated power is drawn whenever the stack is on; the rated plant power is \SI{1049}{\kilo\watt} and the plant cannot
-run below \SI{36.8}{\kilo\watt}. The model is parameterised from typical values for this cell class and is not
-fitted to a device.
+One simulation step maps a commanded power to a current density, evaluates the polarisation model and updates the
+degradation state. The cell voltage is a reversible term with a Nernst pressure correction, plus Butler--Volmer
+activation losses, ohmic loss, a concentration term and the accumulated degradation $\dVdeg$. Hydrogen output
+follows Faraday's law, derated for crossover. Rated plant power is \SI{1049}{\kilo\watt} and the plant cannot run
+below \SI{36.8}{\kilo\watt}. The model uses typical values for this cell class and is not fitted to a device.
 
-\emph{Degradation.} $\dVdeg$ is a scalar cell-voltage rise in microvolts with five additive terms per step: a base
-rate while on, a high-current term, a ramp term, a fixed cost per on/off transition, and an idle rate while off.
-The coefficients were chosen so that the threshold rule below projects a stack life of about five years. That
-anchor is an assumption and not a measurement, so we report \emph{relative} comparisons only.
+The step is small. That matters for everything that follows: no single step is worth parallelising, so all the
+available parallelism is across steps that belong to different simulations.
+
+\emph{Degradation.} $\dVdeg$ is a scalar cell-voltage rise in microvolts, accumulated from five additive terms per
+step: a base rate while on, a high-current term, a ramp term, a fixed cost per on/off transition, and an idle rate
+while off. The coefficients were chosen so that the threshold rule described below projects a stack life of about
+five years. That anchor is an assumption, not a measurement, so every comparison we report is relative.
 
 \emph{Control problem.} Control is a Markov decision process with a one-minute step and a one-day episode
 ($T=1440$ steps). The action $a_t\in[-1,1]$ sets a fraction $\tfrac12(a_t+1)$ of the \emph{currently available}
-renewable power, so the setpoint never exceeds the resource. The eight-dimensional observation holds the available
-power, its 15-minute mean, the previous setpoint, current density, normalised degradation, hydrogen rate and the time
-of day. The reward is $w_1\tilde m_{\mathrm{H_2}}-w_2\widetilde{\dVdeg}-w_3|\Delta j|/j_\mathrm{r}$ with fixed
-scales; $w_2$ is swept to trace a yield--degradation frontier.
+renewable power, so the setpoint can never exceed the resource. The eight-dimensional observation holds the
+available power, its 15-minute mean, the previous setpoint, current density, normalised degradation, hydrogen rate
+and the time of day. The reward is $w_1\tilde m_{\mathrm{H_2}}-w_2\widetilde{\dVdeg}-w_3|\Delta j|/j_\mathrm{r}$
+with fixed scales. Sweeping the degradation weight $w_2$ traces a yield-versus-degradation frontier, and that sweep
+is what makes the workload large: each weight needs its own training run, and each run needs its own evaluation.
 
 \emph{Resource and baselines.} The resource is ERA5 hourly data~\cite{hersbach2020era5} for Kutch, Gujarat (2019),
-converted with a PVWatts-style PV model~\cite{dobos2014pvwatts} and a turbine power curve (our own
-implementations) and upsampled to one minute with Ornstein--Uhlenbeck noise that preserves each hourly mean. \num{293}
-days train and \num{72} are held out. No measured one-minute data are available to us, so the noise amplitudes are
-assumptions. Three simple controllers are the baselines: a \emph{threshold rule} that follows the resource above a
-\SI{10}{\percent} idle threshold and idles below it, the same rule without the threshold (a constant action of
-$+1$), and a tuned slew-rate-limited rule.
+converted with a PVWatts-style PV model~\cite{dobos2014pvwatts} and a turbine power curve, then upsampled to one
+minute with Ornstein--Uhlenbeck noise that preserves each hourly mean. \num{293} days are used for training and
+\num{72} are held out. We have no measured one-minute data, so the noise amplitudes are assumptions. Three simple
+controllers serve as baselines: a \emph{threshold rule} that follows the resource above a \SI{10}{\percent} idle
+threshold, the same rule without the threshold (a constant action of $+1$), and a tuned slew-rate-limited rule.
 
 % =============================================================================
-\section{Methodology}\label{sec:method}
-\emph{Simulator and parallelism.} One step maps the commanded power to a current density, evaluates the
-polarisation model and updates the degradation state; the power-to-current inversion uses a 4096-point table with
-two fixed-point corrections. We parallelise across independent episodes in separate processes
-(Section~\ref{sec:sim}) and, separately, advance many episodes in lockstep inside one process
-(Section~\ref{sec:batch}).
+\section{Method}\label{sec:method}
 
 \begin{table}[t]
-\caption{Systems. Timing results are from the workstation, except the batched-simulator benchmark, which ran on the
-cloud CPU kernel and reports same-machine ratios. The cloud GPU notebook only trained and evaluated learned
-policies. The earlier server (4$\times$ NVIDIA H200, 128-core AMD EPYC 9535, \SI{1}{\tera\byte}, per its
-documentation) ran the earlier training sweep and supplies earlier benchmark notes, reported as context only.}
+\caption{Systems. Timing results come from the workstation, except the batched-simulator benchmark, which ran on
+the cloud CPU kernel and is reported only as a same-machine ratio. The cloud GPU notebook trained and evaluated
+learned policies and contributes no timing claim.}
 \label{tab:system}
 \centering
 \footnotesize
@@ -229,238 +255,296 @@ Cloud CPU kernel & 4 vCPU (2 cores, 2 threads each) Intel Xeon \SI{2.2}{\giga\he
 \end{tabular}
 \end{table}
 
-\emph{Benchmark protocols.} Simulator workers run random-action episodes of the bare environment. Each builds its
-environment and warms up; all pass a barrier, and timing runs from the barrier to the last finish. \emph{Strong
-scaling} fixes the work (64 episodes, \num{92160} steps) and gives $S(n)=T(1)/T(n)$ and $E(n)=S(n)/n$;
-\emph{weak scaling} uses 8 episodes per worker. Workers are unpinned, pinned one per physical core, or pinned onto
-hyper-thread pairs. The learner is timed on
-\texttt{model.train()} over a replay buffer already filled, so environment stepping is excluded, varying device,
-batch size and thread count; for concurrency, $k$ independent processes start together and the aggregate rate is
-total updates over the span from first start to last finish. The batched simulator and the scalar environment run
-the same hysteresis rule on one machine, back to back.
+\emph{Systems.} Table~\ref{tab:system} lists the machines. The workstation carries the scaling and learner
+measurements. The batched simulator was built after the workstation became unavailable, so its benchmark ran on a
+cloud CPU kernel; we therefore report it as a ratio between two implementations timed back to back on that one
+machine, never as an absolute rate to be compared across systems.
 
-\emph{Update-to-data accounting.} Let $N$ be the number of vectorized environments, $F$ the \texttt{train\_freq} and
-$G$ the \texttt{gradient\_steps}. In Stable-Baselines3~\cite{raffin2021sb3}, which provides the SAC
-implementation~\cite{haarnoja2018sac,haarnoja2018sacapps} we use, a collection phase takes $F$ \emph{vectorized}
-steps, that is $FN$ transitions, before $G$ updates, so
+\emph{Simulator benchmark.} Workers run random-action episodes of the bare environment, with no policy and no
+learning library, so the number measures the simulator alone. Each worker builds its environment and warms up, all
+workers pass a barrier, and timing runs from the barrier until the last worker finishes. \emph{Strong scaling}
+fixes the total work (64 episodes, \num{92160} steps) and reports $S(n)=T(1)/T(n)$ and $E(n)=S(n)/n$; \emph{weak
+scaling} gives each worker 8 episodes. We repeat each case and vary placement: unpinned, one worker per physical
+core, or packed onto hyper-thread pairs.
+
+\emph{Learner benchmark.} We time \texttt{model.train()} on a replay buffer that is already full, which excludes
+environment stepping and so isolates the learner. The variables are device, batch size and CPU thread count. For
+concurrency, $k$ independent processes start together and the aggregate rate is the total number of updates divided
+by the span from the first start to the last finish.
+
+\emph{Batched simulator benchmark.} The batched and the original simulator run the same controller over the same
+days on one machine, back to back, and we report the ratio.
+
+\emph{Update-to-data accounting.} Let $N$ be the number of vectorized environments, $F$ the \texttt{train\_freq}
+and $G$ the \texttt{gradient\_steps}. In Stable-Baselines3~\cite{raffin2021sb3}, which provides the Soft
+Actor-Critic (SAC) implementation~\cite{haarnoja2018sac,haarnoja2018sacapps} we use, one collection phase takes $F$
+\emph{vectorized} steps, that is $FN$ transitions, before $G$ gradient updates. The update-to-data ratio is
+therefore
 \begin{equation}
 \mathrm{UTD}=\frac{G}{F\,N}.
 \label{eq:utd}
 \end{equation}
-Our earlier runs ($N=F=G=32$) were documented as one-to-one but have $\mathrm{UTD}=1/32$; one-to-one at
-$N=F=32$ needs $G=1024$.
+This is the quantity that makes two training runs comparable. Section~\ref{sec:utdres} shows what happens when it
+is assumed instead of computed.
 
-\emph{Learning experiments.} SAC uses two hidden layers of 256 units, learning rate $3\times10^{-4}$, batch size 512,
-a replay buffer of $10^6$, 32 environments and \num{300000} steps per run, with $w_1=1$ and $w_3=0.1$. The
-discount factor $\gamma=0.95$ was chosen from in-sample pilots on training days ($0.999$ was worse) and never from
-the held-out days. The frontier experiment trains at $w_2\in\{1.41,5.32,12.9,20\}$ with two seeds each and
-evaluates each policy once on the 72 held-out days. A follow-up on a cloud notebook trained
-update ratios $1/8$ and $1/4$ at $w_2=20$, evaluated on training days against a rule fixed beforehand
-(degradation at most $1.10\times$ and hydrogen at least $0.95\times$ those of the full-ratio policies); the ratio
-that passed was then trained with six further seeds at $w_2=12.9$ and $20$ and evaluated once on the held-out
-days. Rules are evaluated on the same days, every grid point is reported and none is tuned on them: slew limits
-(13 values, with and without the idle threshold), power caps (9 values), and a hysteresis rule (72 settings) that
-confirms a start after the resource has stayed above $0.08$ or $0.15$ of rated for 5 or 20 minutes and a stop after
-5 or 20 minutes below $0.03$, with a cap of $0.5$, $0.7$ or $1.0$ and a slew limit of $0.001$, $0.003$ or $0.01$ per
-minute.
+\emph{Learning experiments.} SAC uses two hidden layers of 256 units, learning rate $3\times10^{-4}$, batch size
+512, a replay buffer of $10^6$, 32 environments and \num{300000} steps per run, with $w_1=1$ and $w_3=0.1$. The
+discount factor $\gamma=0.95$ was chosen from in-sample pilots on training days, never from the held-out days. The
+frontier experiment trains at $w_2\in\{1.41,5.32,12.9,20\}$ with two seeds each and evaluates each policy once on
+the 72 held-out days. A follow-up on the cloud notebook trained update ratios $1/8$ and $1/4$ at $w_2=20$ and
+compared them, on training days, against a tolerance fixed beforehand: degradation at most $1.10\times$ and hydrogen
+at least $0.95\times$ that of the full-ratio policies. The ratio that passed was then trained with six further
+seeds at $w_2=12.9$ and $20$ and evaluated once on the held-out days.
+
+\emph{Rule baselines.} Rules are evaluated on the same held-out days, every grid point is reported, and none is
+tuned on those days. The grids are slew limits (13 values, with and without the idle threshold), power caps (9
+values), and a hysteresis rule with 72 settings that confirms a start once the resource has stayed above $0.08$ or
+$0.15$ of rated for 5 or 20 minutes, and a stop after 5 or 20 minutes below $0.03$, combined with a cap of $0.5$,
+$0.7$ or $1.0$ and a slew limit of $0.001$, $0.003$ or $0.01$ per minute. This grid is the workload used for the
+batched-simulator benchmark in Section~\ref{sec:batch}: \NumBatchGridEpisodes{} independent episodes.
 
 % =============================================================================
 \section{Results}\label{sec:results}
-\subsection{Simulator throughput and scaling}\label{sec:sim}
+We report the three regimes in turn: adding processes (Section~\ref{sec:sim}), restructuring the computation
+(Section~\ref{sec:batch}), and the learner, which responds to neither (Section~\ref{sec:learner}).
+
+\subsection{Adding processes stops at the cores}\label{sec:sim}
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{fig_hpc_sim.pdf}
-\caption{Parallel efficiency of the simulator for fixed total work (speedups are quoted in the text). Dashed
-line: ideal. Bars: bootstrap intervals over repeats. Vertical line: the 8 physical cores.}
+\caption{Parallel efficiency of the simulator for fixed total work; speedups are quoted in the text. Dashed line:
+ideal. Bars: bootstrap intervals over repeats. Vertical line: the 8 physical cores.}
 \label{fig:sim}
 \end{figure}
-One core simulates \NumSimOne{} steps/s, or \NumSimDaysPerSecOne{} simulated days per second. With 8 workers the
-throughput is \NumSimEight{} steps/s (speedup \NumSpeedEight{}, efficiency \NumEffEight{}) and with 16 workers
-\NumSimSixteen{} steps/s (speedup \NumSpeedSixteen{}); the speedup flattens at the physical-core count and the
-efficiency keeps falling beyond it (Fig.~\ref{fig:sim}), and at the highest rate a simulated year takes
-\NumYearSeconds{} s. Placement does not matter:
-one worker per physical core and operating-system placement agree, two workers on one hyper-thread pair give only
-\NumSmtTwo{}$\times$ the throughput of one, and 16 workers on 8 cores add \NumSmtGain{}\,\% over 8. Efficiency
-nevertheless falls from about $1$ at two workers to about $0.75$ at four, with or without pinning. Giving every
-worker identical episodes removes load imbalance and the drop persists (the slowest worker takes at most
-\NumSlowFastSameWork{}$\times$ as long as the fastest). The sampled core clock, however, falls from
-\NumFreqOneGHz{}\,GHz with one worker to \NumFreqEightGHz{}\,GHz with eight and tracks the per-worker rate (from
-\NumPerWorkerOne{} to \NumPerWorkerEight{} steps/s); the rate per GHz changes by a factor of only
-\NumPerGhzRatioEight{}. We attribute the loss to the processor lowering its clock under multi-core load (the
-machine runs the \texttt{powersave} governor) and not to the decomposition. This is an inference from one clock
-reading per worker per run on a shared machine, not a controlled experiment. As a cross-check, the Karp--Flatt
-serial fraction~\cite{karpflatt1990} $e(n)=(1/S(n)-1/n)/(1-1/n)$ is \NumKarpFlattTwo{}, \NumKarpFlattFour{} and \NumKarpFlattEight{} at
-two, four and eight workers: under Amdahl's law~\cite{amdahl1967} it would be constant, whereas here it rises and then falls, the
-signature of a step in per-core throughput. Weak scaling~\cite{gustafson1988} agrees, with eight workers delivering \NumWeakEffEight{} of
-eight times the single-worker rate.
+One core simulates \NumSimOne{} steps/s, which is \NumSimDaysPerSecOne{} simulated days per second. Eight workers
+reach \NumSimEight{} steps/s, a speedup of \NumSpeedEight{} at an efficiency of \NumEffEight{}. Sixteen workers
+reach \NumSimSixteen{} steps/s, a speedup of only \NumSpeedSixteen{}. The speedup flattens once the physical cores
+are used up and the efficiency keeps falling beyond that point (Fig.~\ref{fig:sim}). At the best rate, simulating a
+year of plant operation takes \NumYearSeconds{} s.
 
-\subsection{Batching episodes instead of adding processes}\label{sec:batch}
+Hyper-threads do not help. Two workers sharing one physical core deliver only \NumSmtTwo{}$\times$ the throughput of
+a single worker, and 16 workers on 8 cores add \NumSmtGain{}\,\% over 8. Placement does not matter either: pinning
+one worker per physical core and letting the operating system decide give the same throughput.
+
+The more interesting loss happens earlier. Efficiency falls from about $1$ at two workers to about $0.75$ at four,
+with or without pinning, which is well before the cores run out. We checked whether uneven work caused it by giving
+every worker identical episodes; the drop persisted, and the slowest worker took at most
+\NumSlowFastSameWork{}$\times$ as long as the fastest. The clock explains it instead. The sampled core frequency
+falls from \NumFreqOneGHz{}\,GHz at one worker to \NumFreqEightGHz{}\,GHz at eight, and the per-worker rate tracks
+it, from \NumPerWorkerOne{} to \NumPerWorkerEight{} steps/s. Dividing one by the other, the rate per GHz changes by
+a factor of only \NumPerGhzRatioEight{}. The work per worker is therefore unchanged; the processor is simply
+running slower under multi-core load, as the \texttt{powersave} governor on this shared machine allows.
+
+Two standard metrics agree. The Karp--Flatt serial fraction~\cite{karpflatt1990},
+$e(n)=(1/S(n)-1/n)/(1-1/n)$, is \NumKarpFlattTwo{}, \NumKarpFlattFour{} and \NumKarpFlattEight{} at two, four and
+eight workers. Under Amdahl's law~\cite{amdahl1967} a genuine serial bottleneck would hold $e$ constant; here it
+rises and then falls, which is what a step down in per-core throughput looks like. Weak
+scaling~\cite{gustafson1988} points the same way, with eight workers delivering \NumWeakEffEight{} of eight times
+the single-worker rate. We did not fix the clock, because the machine was shared, so this is an inference from
+one reading per worker per run rather than a controlled experiment.
+
+The practical consequence is the useful part: on this machine the process pool had reached its ceiling, and the
+ceiling was set by the hardware rather than by the program. More workers would not have helped. Something else had
+to change.
+
+\subsection{Restructuring the computation: two orders of magnitude}\label{sec:batch}
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{fig_batch.pdf}
-\caption{Throughput of the episode-parallel simulator against batch size (one process), with the scalar environment
-in one process and in a four-worker pool on the same machine (cloud CPU kernel, real held-out days). Dashed curve:
-overhead-plus-work model fitted to the points.}
+\caption{Throughput of the episode-parallel simulator against batch size, in one process, with the original
+simulator shown in one process and in a four-worker pool on the same machine. Dashed curve: the
+overhead-plus-work model fitted to the measured points.}
 \label{fig:batch}
 \end{figure}
-Episodes never interact, so one step of $B$ episodes can be one set of array operations instead of $B$ Python-level
-steps. We implemented this as a batched simulator that reuses the plant and degradation models and mirrors the
-scalar step, including the single-precision rounding of the action and of the observation seen by the rules. Eight
-tests compare it with the scalar environment step by step and episode by episode on ordinary and deliberately
-extreme profiles (square wave, saturated plant, sparse spikes, power below the plant minimum): hydrogen,
-degradation and reward agree with relative difference $0$ and mean efficiency to $10^{-15}$. On the 72 held-out days
-a random sample of \NumBatchValEpisodes{} grid episodes agrees with maximum relative difference \NumBatchValDiff{}.
+Episodes never interact. One step of $B$ episodes can therefore be a single set of array operations over $B$
+values, rather than $B$ separate passes through the Python interpreter. We implemented this as a batched simulator
+that reuses the same plant and degradation models and mirrors the original step exactly, including the
+single-precision rounding of the action and of the observation the rules see.
 
-On the cloud CPU kernel the scalar environment reaches \NumBatchScalarOne{} steps/s in one process and
-\NumBatchScalarPool{} in a four-worker pool (a factor of \NumBatchPoolOverOne{}, since four vCPUs are two cores with
-hyper-threads). The batched simulator in one process reaches \NumBatchPeak{} steps/s at $B=\NumBatchPeakBatch{}$
-(Fig.~\ref{fig:batch}). The time per lockstep step is well described by $t(B)=a+bB$ with a fixed overhead
-$a=\NumBatchOverheadMs$\,ms and $b=\NumBatchUsPerEp$\,\si{\micro\second} per episode (largest fit error
-\NumBatchFitErr\,\%), which is Hockney's model~\cite{hockney1991}: asymptotic rate \NumBatchRInf{} steps/s and half-performance length
-$n_{1/2}=a/b\approx\NumBatchNHalf{}$ episodes, below which the overhead dominates. The 72-setting hysteresis grid over
-the 72 held-out days is \NumBatchGridEpisodes{} episodes: one batch evaluates it in \NumBatchGridSeconds\,s and the
-four-worker scalar pool needs \NumBatchPoolSeconds\,s, a factor of \NumBatchGridSpeedup{} (\NumBatchOneSpeedup{}
-against one scalar process). These are same-machine ratios; the workstation was not available when this was built.
-The batched simulator serves rollouts of a fixed policy (evaluation, rule grids, sweeps); SAC training remains
-bounded by the learner.
+Exactness was a requirement, not a hope, because an approximate simulator would invalidate every result computed
+with it. Eight tests compare the two implementations step by step and episode by episode, on ordinary days and on
+deliberately extreme ones: a square wave, a saturated plant, sparse spikes, and power below the plant minimum.
+Hydrogen, degradation and reward agree with relative difference $0$, and mean efficiency to $10^{-15}$. On the
+held-out days, a random sample of \NumBatchValEpisodes{} grid episodes agrees with maximum relative difference
+\NumBatchValDiff{}.
 
-\subsection{Learner throughput}\label{sec:learner}
+The speed difference is large. On the cloud CPU kernel the original simulator reaches \NumBatchScalarOne{} steps/s
+in one process, and \NumBatchScalarPool{} in a four-worker pool, a factor of \NumBatchPoolOverOne{}. The batched
+simulator, in a single process, reaches \NumBatchPeak{} steps/s at $B=\NumBatchPeakBatch{}$ (Fig.~\ref{fig:batch}).
+On the real workload, the \NumBatchGridEpisodes{}-episode rule grid over the held-out days, one batch finishes in
+\NumBatchGridSeconds\,s where the four-worker pool needs \NumBatchPoolSeconds\,s: a factor of
+\NumBatchGridSpeedup{}, and \NumBatchOneSpeedup{} against a single process.
+
+Throughput follows Hockney's model~\cite{hockney1991}. The time for one lockstep step over $B$ episodes is well
+described by $t(B)=a+bB$, with a fixed overhead $a=\NumBatchOverheadMs$\,ms and $b=\NumBatchUsPerEp$\,\si{\micro\second}
+of work per episode; the largest fit error is \NumBatchFitErr\,\%. The asymptotic rate is \NumBatchRInf{} steps/s
+and the half-performance length is $n_{1/2}=a/b\approx\NumBatchNHalf{}$ episodes.
+
+That last number is the one to carry away. Below roughly \NumBatchNHalf{} episodes in flight, the fixed overhead
+dominates and batching gains little; far above it, the array work dominates and the gain is the full two orders of
+magnitude. It is cheap to measure for any workload of this shape, and it answers in advance whether restructuring
+is worth the effort. Here it clearly was, because the rule grid is six times larger than $n_{1/2}$. Note also what
+the comparison is not: these are two implementations timed on one machine, so the ratio is meaningful but the
+absolute rates describe that machine only.
+
+\subsection{The learner responds to neither lever}\label{sec:learner}
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.9\textwidth]{fig_hpc_learner.pdf}
-\caption{SAC learner throughput (updates only; environment stepping excluded). (a) GPU rate is flat from batch 256
-to 2048. (b) One learner, batch 512, by device and CPU thread count. (c) Total rate of $k$ concurrent runs (GPU runs
-use one CPU thread each, CPU runs four threads each except $\times8$, which uses two).}
+\caption{SAC learner throughput, counting updates only, with environment stepping excluded. (a) The GPU rate is
+flat from batch 256 to 2048. (b) One learner at batch 512, by device and CPU thread count. (c) Total rate of $k$
+concurrent runs; GPU runs use one CPU thread each, CPU runs four threads each except $\times8$, which uses two.}
 \label{fig:learner}
 \end{figure*}
-At a correct update ratio SAC is limited by the learner. The GPU performs \NumGpuUps{} updates/s and the rate does
-not change when the batch grows from 256 to 2048, so the update is latency-bound and not compute-bound; the CPU
-performs \NumCpuUpsFour{} updates/s with 4 threads and \NumCpuUpsEight{} with 8, a GPU advantage of only
-\NumGpuCpuRatio{}$\times$ (Fig.~\ref{fig:learner}). Because the rate does not depend on the number of environments,
-more environment parallelism does not shorten training. The remaining lever is concurrent independent runs: on the
-GPU one process delivers \NumMultiGpuOne{} updates/s, two together \NumMultiGpuTwo{} and four \NumMultiGpuFour{}, so
-aggregate throughput grows while each process slows down. CPU learners saturate sooner, and mixing devices is worse
-than the GPU alone (two GPU plus three CPU processes reach \NumMultiMixed{} updates/s), plausibly because CPU
-learners take cores from the GPU processes' launch threads, which we did not isolate. The best configuration
-(four concurrent GPU runs) gives \NumMultiBest{} updates/s in total. Evaluating learned policies is also costly:
-rollouts that include them ran \NumEvalRatio$\times$ slower than rule-based ones on the same workers, because the
-library's prediction call costs more per step than the plant.
+Training has the opposite character. At a correct update ratio the simulator is no longer the bottleneck: the
+learner is. The GPU performs \NumGpuUps{} updates/s, and that rate does not change as the batch grows from 256 to
+2048 (Fig.~\ref{fig:learner}a). Eight times more samples per update, at the same number of updates per second,
+means the update is latency-bound rather than compute-bound. The CPU is not far behind, at \NumCpuUpsFour{}
+updates/s with 4 threads and \NumCpuUpsEight{} with 8, so the GPU advantage is only \NumGpuCpuRatio{}$\times$.
 
-\emph{Earlier measurements on the H200 server.} The earlier server is a shared machine with a 128-core AMD EPYC 9535,
-\SI{1}{\tera\byte} of memory and four NVIDIA H200 GPUs reached through a broker. Its benchmarks were taken by the
-authors with an earlier simulator version (iterative power inversion; \num{8225} steps/s for one bare environment) and
-were not repeated, but they point the same way. PPO with 32 environments ran at \num{9712} steps/s on the CPU and
-\num{6814} (70\,\%) on the GPU, and raising the CPU environments from 8 to 32 lifted the rate only from \num{8636} to
-\num{9712} steps/s, so neither more cores nor a GPU helped a workload bound by Python environment stepping. The
-$2.7\times$ GPU advantage for SAC there (\num{6520} against \num{2450} steps/s) was measured at the mistaken
-ratio $1/32$. These are context only: the raw logs were not archived, the simulator has since changed, and the earlier
-sweep's result files record no timing, so none of it enters the comparisons above.
+Neither of the earlier levers applies. Because the update rate does not depend on the number of environments, adding
+environment parallelism does not shorten training. Because the rate does not depend on batch size, neither does
+feeding the GPU more work per update. What remains is running independent jobs side by side: one GPU process
+delivers \NumMultiGpuOne{} updates/s, two together \NumMultiGpuTwo{}, and four \NumMultiGpuFour{}
+(Fig.~\ref{fig:learner}c). Aggregate throughput rises while each process slows down, which is the expected shape
+when a fixed per-update latency is being amortised across processes. CPU learners saturate sooner. Mixing devices is
+worse than using the GPU alone, since two GPU plus three CPU processes reach only \NumMultiMixed{} updates/s,
+plausibly because the CPU learners take cores from the launch threads of the GPU processes; we did not isolate
+that. The best configuration we measured, four concurrent GPU runs, gives \NumMultiBest{} updates/s in total.
 
-\subsection{Update-to-data ratio and time to quality}\label{sec:utdres}
-The repository configuration performed \NumEThreeUpdLow{} updates in \num{300000} steps, a measured ratio of
-\NumUtdMeasuredLow{} against a documented ratio of one (over $2\times10^6$ steps, about \num{62500} updates instead
-of $\approx 2\times10^6$). An earlier benchmark reported a $26\times$ speedup of this configuration over the library
-default at ``identical learning dynamics'' (different hardware; not reproduced here); that is the order of magnitude
-that removing $31/32$ of the gradient work produces, so the speedup is largely less learning per step. Throughput in
-steps/s should be reported together with the update-to-data ratio.
+Evaluation of learned policies sits in the same regime, for the same reason: rollouts that invoke the policy
+network ran \NumEvalRatio$\times$ slower than rule-based ones on the same workers, because the library prediction
+call costs more per step than the plant simulation it is driving. This is why the batched simulator of
+Section~\ref{sec:batch} was applied to rule grids and fixed policies rather than to learned-policy evaluation, and
+batching the network call is the obvious next step.
 
-Whether a cheaper ratio suffices depends on the weight $w_2$. At $w_2=0.1$, SAC at ratios $1/32$ to $1$ reaches the
-same plateau, \NumEThreeShortfallMin--\NumEThreeShortfallMax\,\% below a constant-action rule on training days, at
-its first checkpoint, and further learning changes nothing, while the full ratio costs a factor of
-\NumEThreeWallRatio{} in wall time; the plateau is a property of the problem and not of the budget. At the higher
-weights the cheap ratio does not learn the effect of the weight. At $w_2=20$ the cheap ratio gives
-\NumChkTwentyLowDeg{} \si{\micro\volt}/day, close to its $w_2=12.9$ result, whereas the full ratio gives
-\NumChkTwentyHighDeg{}. Intermediate ratios (Table~\ref{tab:ratio}) show that the effect is learned gradually, not at
-a threshold. Against the tolerance fixed beforehand, $1/4$ passes (degradation \NumRatioQuarterDegRel$\times$ and
-hydrogen \NumRatioQuarterHydrogenRel$\times$ those of the full ratio) and $1/8$ does not
-(\NumRatioEighthDegRel$\times$); the pass is marginal, and on held-out days the $1/4$ policies stop short of the
-full-ratio degradation (Section~\ref{sec:frontier}). The 300k-step runs took \NumKgWallQuarterMin{} min at $1/4$ and
-\NumKgWallEighthMin{} min at $1/8$ on the cloud notebook. An earlier sweep on the H200 server (\NumLegacyRuns{} runs,
-\NumLegacyWeights{} weights, \NumLegacySeeds{} seeds, $2\times10^6$ steps, ratio $1/32$, $\gamma=0.999$) used
-$6.7\times$ more steps per run but $4.8\times$ fewer updates than the corrected runs and reached
-\NumLegacyTwentyDv{} \si{\micro\volt}/day at $w_2=20$ against \NumKgFullTwentyDeg{} for the full-ratio policies;
-its discount factor also differed.
+\emph{Earlier measurements on a larger server.} An earlier phase of this project used a shared machine with a
+128-core AMD EPYC 9535, \SI{1}{\tera\byte} of memory and four NVIDIA H200 GPUs behind a broker. Those benchmarks
+were taken with an earlier version of the simulator, which used an iterative power inversion and reached
+\num{8225} steps/s for one bare environment, and they were not repeated here. They point the same way. PPO with 32
+environments ran at \num{9712} steps/s on 128 CPU cores and \num{6814} on an H200, and raising the environment
+count from 8 to 32 lifted the CPU rate only from \num{8636} to \num{9712} steps/s. Neither many more cores nor a
+far larger GPU rescued a workload bound by Python-level stepping, which is the same conclusion the workstation
+measurements reach. We report this as context only: the raw logs were not archived and the simulator has since
+changed, so none of it enters the comparisons above.
+
+\subsection{A pitfall: when a speedup is not a speedup}\label{sec:utdres}
+The three regimes above all assume that the thing being timed is the same across configurations. For training, that
+assumption is easy to break, and we broke it.
+
+Our earlier runs used $N=F=G=32$, a configuration documented as performing one gradient update per transition. By
+(\ref{eq:utd}) it performs $1/32$. We confirmed this by counting: the configuration performed \NumEThreeUpdLow{}
+updates in \num{300000} steps, a measured ratio of \NumUtdMeasuredLow{}. Over $2\times10^6$ steps that is about
+\num{62500} updates instead of $2\times10^6$. An earlier benchmark had reported a $26\times$ speedup for this
+configuration over the library default at what it called identical learning dynamics. Removing $31/32$ of the
+gradient work produces a speedup of about that size on its own, so most of the gain was less learning per step
+rather than faster computation. A throughput in steps per second is meaningless unless the update-to-data ratio is
+reported beside it.
+
+The ratio also has a cost that depends on the problem, which is worth knowing before paying it. At a low
+degradation weight ($w_2=0.1$), ratios from $1/32$ to $1$ all reach the same quality plateau,
+\NumEThreeShortfallMin--\NumEThreeShortfallMax\,\% below a constant-action rule, at the first checkpoint, and
+further training changes nothing, while the full ratio costs a factor of \NumEThreeWallRatio{} in wall time. Here
+the cheap ratio is simply correct. At high weights it is not: at $w_2=20$ the cheap ratio reaches
+\NumChkTwentyLowDeg{}~\si{\micro\volt}/day, close to its own $w_2=12.9$ result, so it has barely responded to the
+weight at all, whereas the full ratio reaches \NumChkTwentyHighDeg{}. Intermediate ratios (Table~\ref{tab:ratio})
+show the response appearing gradually rather than at a threshold. Against the tolerance fixed beforehand, $1/4$
+passes and $1/8$ does not, though the pass is marginal. Configurations should therefore be compared by time to a
+stated quality at the setting of interest, not by raw throughput.
 
 \begin{table}[t]
 \caption{Update ratio at $w_2=20$, $\gamma=0.95$, 300k steps: mean of two seeds on every fifth \emph{training} day
-(in-sample). The last column is degradation relative to the full ratio (tolerance fixed in advance: $1.10$).}
+(in-sample). The last column is degradation relative to the full ratio; the tolerance fixed in advance was $1.10$.}
 \label{tab:ratio}
 \centering
 \footnotesize
 \resizebox{\columnwidth}{!}{\input{table_ratio}}
 \end{table}
 
-\subsection{Controller comparison on held-out days}\label{sec:frontier}
+\subsection{What the compute bought}\label{sec:frontier}
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{fig_frontier.pdf}
-\caption{Hydrogen against degradation on the 72 held-out days (lower degradation to the right). Grey: every point of
-the slew-limit, power-cap and hysteresis grids; dashed: their non-dominated envelope. Blue: SAC at the full ratio
-(mean of two seeds; faint dots are seeds), labelled with $w_2$. Orange: six further seeds at ratio $1/4$ (upper
-point $w_2=12.9$, lower $w_2=20$). Green: the earlier SAC runs. Open markers: the three named rules.}
+\caption{Hydrogen against degradation on the 72 held-out days, with lower degradation to the right. Grey: every
+point of the slew-limit, power-cap and hysteresis grids; dashed: their non-dominated envelope. Blue: SAC at the
+full update ratio, mean of two seeds, labelled with $w_2$. Orange: six further seeds at ratio $1/4$, the upper
+point $w_2=12.9$ and the lower $w_2=20$. Green: the earlier SAC runs. Open markers: the three named rules.}
 \label{fig:frontier}
 \end{figure}
-Fig.~\ref{fig:frontier} compares the policies with the non-dominated envelope of all rule settings, evaluated on the
-same held-out days, which favours the rules. At $w_2\le5.32$ the policy lies on the envelope
-(\NumAdvOnePct\,\% and \NumAdvFivePct\,\%). At higher weights the one-dimensional slew-limit and power-cap rules
-collapse, and against them the policy appears to gain \NumAdvTwelvePctOldRules\,\% ($w_2=12.9$) and
-\NumAdvTwentyPctOldRules\,\% ($w_2=20$) more hydrogen at equal degradation. The 72-setting hysteresis grid does not
-collapse, and it cuts these to \NumAdvTwelvePct\,\% and \NumAdvTwentyPct\,\%. Six further seeds at ratio $1/4$
-give \NumKgQuarterTwelveAdvMean\,\% at $w_2=12.9$ (range \NumKgQuarterTwelveAdvMin--\NumKgQuarterTwelveAdvMax\,\%,
-positive for \NumKgQuarterTwelvePositive{} of \NumKgQuarterTwelveSeeds{} seeds) and \NumKgQuarterTwentyAdvMean\,\%
-at $w_2=20$ (\NumKgQuarterTwentyAdvMin--\NumKgQuarterTwentyAdvMax\,\%, all positive): consistent in sign but small.
-The full-ratio policies at $w_2=20$ reach lower degradation (\NumKgFullTwentyDeg{} against
-\NumKgQuarterTwentyDeg{} \si{\micro\volt}/day) with a larger advantage (\NumKgFullTwentyAdvMean\,\%, two seeds), at
-the sparse end of the envelope; we treat that as an open question. A sensitivity sweep of the three baseline rules
-over \NumVariants{} coefficient variants and five resource scenarios shows hydrogen yield ranking the rules
-identically everywhere, while
-projected life varies by a factor of \NumLifeSpread{} across the assumed coefficient intervals and the lifetime
-ranking changes in \NumRankFlips{} of \NumVariants{} variants: lifetime conclusions depend on coefficients the model
-cannot pin down.
+A performance study should say what the computation was for, and whether the answer justified it. The learned
+controllers are compared against the non-dominated envelope of all rule settings, on the same held-out days, which
+favours the rules because the envelope is the best of many.
+
+At low degradation weights ($w_2\le5.32$) the learned policy sits on the envelope, within
+\NumAdvOnePct\,\% and \NumAdvFivePct\,\%, so learning buys nothing a slew limit does not. At higher weights the
+one-dimensional slew-limit and power-cap rules collapse, and against those rules the policy appears to gain
+\NumAdvTwelvePctOldRules\,\% at $w_2=12.9$ and \NumAdvTwentyPctOldRules\,\% at $w_2=20$. That comparison is the
+one a weak baseline would have let us publish. Adding the 72-setting hysteresis grid, which costs far less than one
+training run, cuts the same advantages to \NumAdvTwelvePct\,\% and \NumAdvTwentyPct\,\%. Six further seeds at ratio
+$1/4$ give \NumKgQuarterTwelveAdvMean\,\% and \NumKgQuarterTwentyAdvMean\,\%, positive for every seed but small.
+The full-ratio policies at $w_2=20$ reach lower degradation than any ratio-$1/4$ policy
+(\NumKgFullTwentyDeg{} against \NumKgQuarterTwentyDeg{}~\si{\micro\volt}/day) with a larger advantage
+(\NumKgFullTwentyAdvMean\,\%, two seeds) at the sparse end of the envelope; we treat that as open rather than
+established. A sensitivity sweep over \NumVariants{} degradation-coefficient variants and five resource scenarios
+ranks the rules identically everywhere on hydrogen yield, while projected life varies by a factor of
+\NumLifeSpread{} and the lifetime ranking changes in \NumRankFlips{} of \NumVariants{} variants.
+
+The computational reading is the one that generalises. The cheapest experiment in the whole study, a grid of
+scripted rules, changed the headline conclusion more than any amount of training throughput did. Spending part of
+the compute budget on a strong baseline is not overhead; it is what makes the rest of the budget interpretable.
 
 % =============================================================================
 \section{Limitations}\label{sec:limits}
-\emph{No hardware validation:} the plant model uses typical values for the cell class and the degradation model is
-assumed and calibrated to a nominal life, so we claim neither absolute lifetimes nor transfer of controller rankings
-to hardware. \emph{Synthetic data:} the one-minute variability is generated and all days come from one site and year
-of ERA5 data, so we make no claim about other sites or measured data. \emph{Scale:} scaling and learner measurements
-come from one shared workstation; the intermediate-ratio and extra-seed runs were trained on a cloud notebook;
-the batched-simulator timings are same-machine ratios on a four-vCPU cloud kernel and were not extended to learned
-policies; we make no claim about larger systems. \emph{Statistics:} most settings have two seeds, six
-more at ratio $1/4$ support the sign and rough size of the gap but not a significance test, and the pilots and
-update-ratio study are in-sample on training days. \emph{Baselines:} a finer rule grid or a model-predictive
-controller could close more of the gap; we tried neither. The weights $w_2$ have no economic calibration.
+\emph{No hardware validation.} The plant model uses typical values for the cell class and the degradation model is
+assumed and calibrated to a nominal life, so we claim neither absolute lifetimes nor that controller rankings
+transfer to hardware. \emph{Synthetic resource data.} The one-minute variability is generated, and all days come
+from one site and one year, so we make no claim about other sites or about measured data. \emph{Scale.} The scaling
+and learner measurements come from one shared workstation; the batched-simulator timings are same-machine ratios on
+a four-vCPU cloud kernel and were not extended to learned policies; we make no claim about larger systems or about
+multi-node behaviour. \emph{Statistics.} Most settings have two seeds, and the six extra seeds at ratio $1/4$
+support the sign and rough size of the gap but not a significance test. \emph{Baselines.} A finer rule grid or a
+model-predictive controller could close more of the remaining gap; we tried neither. The degradation weights have
+no economic calibration, so the paper does not say which point on the frontier is preferable.
 
 % =============================================================================
-\section{Implications for High-Performance Computing Practice}\label{sec:practice}
+\section{Implications for Practice}\label{sec:practice}
+The three regimes suggest a short checklist for workloads built from many small, independent simulations.
+
 \begin{enumerate}
-  \item \emph{Restructure the computation before adding processes.} Batching episodes gave \NumBatchGridSpeedup{}
-        times the throughput of a process pool on the same machine, against a speedup of \NumSpeedEight{} on 8
-        workers; it pays above the half-performance length ($\approx\NumBatchNHalf{}$ episodes here), which should
-        be measured for any workload.
-  \item \emph{Report the update-to-data ratio and time to a stated quality, not steps per second.}
-  \item \emph{Scale out runs, not environments or batch size,} because the learner is latency-bound and independent
-        of the environment count (best aggregate \NumMultiBest{} updates/s).
-  \item \emph{Check the processor clock before blaming the code} for efficiency loss; the Karp--Flatt fraction was
-        not constant and the clock fell with load.
-  \item \emph{Do not count hyper-threads as cores} here: 16 workers on 8 cores added only \NumSmtGain\,\%.
-  \item \emph{Spend compute on the baseline as well as the learner:} a 72-setting hysteresis grid is cheap next to
-        training and removed most of the learned controller's apparent advantage.
+  \item \emph{Measure the half-performance length before choosing a parallel strategy.} Batching episodes gave
+        \NumBatchGridSpeedup{} times the throughput of a process pool on the same machine, against \NumSpeedEight{}
+        for adding eight processes, but only above roughly \NumBatchNHalf{} episodes in flight. Both numbers are
+        cheap to obtain, and together they decide where the effort should go.
+  \item \emph{Check the processor clock before blaming the decomposition.} The Karp--Flatt fraction was not
+        constant and the clock fell with load, so the lost efficiency was hardware behaviour and not a serial
+        section waiting to be optimised.
+  \item \emph{Do not count hyper-threads as cores for this workload:} 16 workers on 8 cores added \NumSmtGain\,\%.
+  \item \emph{Report the update-to-data ratio with any training throughput,} and compare configurations by time to
+        a stated quality. Without it, a thirty-fold reduction in work reads as a thirty-fold speedup.
+  \item \emph{Scale out runs, not environments or batch size, for a latency-bound learner.} Concurrency was the
+        only lever that moved it, reaching \NumMultiBest{} updates/s in aggregate.
+  \item \emph{Budget compute for the baseline, not only for the method.} The rule grid cost a small fraction of one
+        training run and removed most of the apparent advantage of the learned controller.
 \end{enumerate}
 
 % =============================================================================
 \section{Conclusion}
-We characterised the computational cost of screening electrolyzer control strategies in simulation. Process-parallel
-simulation reaches \NumSimSixteen{} steps/s on 16 workers, and its inefficiency is the processor clock falling under
-load and not the decomposition. An exact episode-parallel simulator evaluates a \NumBatchGridEpisodes{}-episode rule
-grid \NumBatchGridSpeedup{} times faster than a process pool on the same machine. SAC training is bound by the
-learner, a documented one-to-one update ratio was in fact \NumUtdMeasuredLow{}, and a cheaper ratio suffices at a low
-degradation weight but only partly at high weights, so configurations should be compared by time to a stated
-quality. A hysteresis rule closes most of the learned controller's low-degradation advantage (\NumKgQuarterTwelveAdvMean\,\%
-and \NumKgQuarterTwentyAdvMean\,\% remain over six seeds), so baselines must be chosen with care. Hardware validation, measured
-resource data, batched evaluation of learned policies and a model-predictive baseline are the necessary next steps. Code, raw results and the
-scripts that generate every number and figure are publicly available; the repository link is withheld for
-double-blind review and will be given in the camera-ready version.
+We measured one simulation-and-learning workload three ways on the same machines. Adding processes gave a speedup
+of \NumSpeedEight{} on eight workers and then stopped, limited by the processor clock rather than by the
+decomposition. Restructuring the same computation so that episodes advance in lockstep gave \NumBatchGridSpeedup{}
+times the throughput of that process pool, while reproducing the original simulator exactly, and its
+half-performance length of about \NumBatchNHalf{} episodes says in advance when the restructuring is worth doing.
+The learner responded to neither lever, because it is latency-bound, so only concurrent runs raised its throughput.
+
+The finding is that these three regimes are distinguishable in advance, cheaply, and that knowing which one a
+component is in matters more than the core count applied to it. Two supporting results point the same way: a
+throughput comparison is meaningless without the update-to-data ratio beside it, and the cheapest experiment in the
+study, a grid of scripted rules, changed the headline conclusion more than any throughput gain did.
+
+Hardware validation, measured high-frequency resource data, batching the learned-policy forward pass and a
+model-predictive baseline are the natural next steps. The code, the raw results and the scripts that generate every
+number and figure in this paper are publicly available; the repository link is withheld for double-blind review and
+will be given in the camera-ready version.
 
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
