@@ -81,8 +81,8 @@
 
 \begin{document}
 
-\title{Restructure Before You Parallelise: A Measurement Study of a\\
-Reinforcement-Learning Simulation Workload}
+\title{Restructure Before You Parallelise: Measuring a\\
+Simulation-and-Learning Workload}
 
 \ifanon
 \author{\IEEEauthorblockN{Anonymous authors}
@@ -197,9 +197,8 @@ throughputs comparable, or reveals that they are not.
 
 % =============================================================================
 \section{The Workload}\label{sec:workload}
-The computation has two parts, and they turn out to have different performance characters. The first is the plant
-simulator. The second is the learner trained against it. This section describes what they compute; the measurements
-begin in Section~\ref{sec:results}.
+The computation has two parts with different performance characters: the plant simulator, and the learner trained
+against it. This section describes what they compute; the measurements begin in Section~\ref{sec:results}.
 
 \emph{Plant.} The plant has 280 cells of \SI{1000}{\centi\meter\squared}, rated at
 $j_\mathrm{r}=\SI{2.0}{\ampere\per\centi\meter\squared}$ and \SI{60}{\celsius}, with the cathode at \SI{30}{\bar}.
@@ -254,15 +253,13 @@ Cloud CPU kernel & 4 vCPU (2 cores, 2 threads each) Intel Xeon \SI{2.2}{\giga\he
 \end{tabular}
 \end{table}
 
-\emph{Benchmarks.} Simulator workers run random-action episodes of the bare environment, with no policy and no
-learning library, so the number measures the simulator alone; each worker warms up, all pass a barrier, and timing
-runs from the barrier until the last worker finishes. \emph{Strong scaling} fixes the total work (64 episodes,
-\num{92160} steps) and reports $S(n)=T(1)/T(n)$ and $E(n)=S(n)/n$, while \emph{weak scaling} gives each worker 8
-episodes; we repeat each case and vary placement between unpinned, one worker per physical core, and packed onto
-hyper-thread pairs. The learner is timed on \texttt{model.train()} over an already-full replay buffer, which
-excludes environment stepping, varying device, batch size and thread count; for concurrency, $k$ processes start
-together and the aggregate rate is total updates over the span from first start to last finish. The batched and
-original simulators run the same controller over the same days, back to back.
+\emph{Benchmarks.} Simulator workers run random-action episodes of the bare environment, so the number measures
+the simulator alone; all workers pass a barrier and timing runs from there until the last finishes. \emph{Strong
+scaling} fixes the total work (64 episodes, \num{92160} steps) and reports $S(n)=T(1)/T(n)$ and $E(n)=S(n)/n$,
+while \emph{weak scaling} gives each worker 8 episodes; we repeat each case and vary placement. The learner is
+timed on \texttt{model.train()} over an already-full replay buffer, which excludes environment stepping; for
+concurrency, $k$ processes start together and the aggregate rate is total updates over the span from first start
+to last finish. The batched and original simulators run the same controller over the same days, back to back.
 
 \emph{Update-to-data accounting.} Let $N$ be the number of vectorized environments, $F$ the \texttt{train\_freq}
 and $G$ the \texttt{gradient\_steps}. In Stable-Baselines3~\cite{raffin2021sb3}, which provides the Soft
@@ -292,8 +289,7 @@ batched-simulator benchmark in Section~\ref{sec:batch}: \NumBatchGridEpisodes{} 
 
 % =============================================================================
 \section{Results}\label{sec:results}
-We report the three regimes in turn: adding processes (Section~\ref{sec:sim}), restructuring the computation
-(Section~\ref{sec:batch}), and the learner, which responds to neither (Section~\ref{sec:learner}).
+We report the three regimes in turn.
 
 \subsection{Adding processes stops at the cores}\label{sec:sim}
 \begin{figure}[t]
@@ -342,10 +338,10 @@ simulator shown in one process and in a four-worker pool on the same machine. Da
 overhead-plus-work model fitted to the measured points.}
 \label{fig:batch}
 \end{figure}
-Episodes never interact. One step of $B$ episodes can therefore be a single set of array operations over $B$
-values, rather than $B$ separate passes through the Python interpreter. We implemented this as a batched simulator
-that reuses the same plant and degradation models and mirrors the original step exactly, including the
-single-precision rounding of the action and of the observation the rules see.
+Episodes never interact, so one step of $B$ episodes can be a single set of array operations over $B$ values
+rather than $B$ separate passes through the Python interpreter. We implemented this as a batched simulator that
+reuses the same plant and degradation models and mirrors the original step exactly, including the single-precision
+rounding of the action and of the observation the rules see.
 
 Exactness was a requirement, not a hope, since an approximate simulator would invalidate every result computed with
 it. Eight tests compare the two implementations step by step and episode by episode, on ordinary days and on
