@@ -129,7 +129,7 @@ reinforcement learning, PEM water electrolysis
 
 % =============================================================================
 \section{Introduction}
-A large class of scientific computing consists of many small, independent runs. Parameter sweeps, Monte Carlo
+A large class of scientific computing consists of many small, independent runs: parameter sweeps, Monte Carlo
 studies and simulation-based policy search all have this shape. Because the runs do not interact, the obvious way
 to go faster is to give the problem more cores. That instinct is usually right, and it is usually where the
 engineering effort stops.
@@ -153,16 +153,16 @@ computation is arranged matters more than how many cores are applied to it, and 
 in advance which of the three regimes a component is in.} The contributions are:
 
 \begin{itemize}
-  \item \textbf{A three-way comparison on one workload.} Process-level scaling, episode-level batching and learner
-        throughput, measured on the same code and the same machines, so that the numbers can be compared directly.
-  \item \textbf{An exact episode-parallel simulator.} It reproduces the original simulator bit for bit, which we
-        verify against it, and evaluates a rule grid \NumBatchGridSpeedup{} times faster than a process pool. We
-        characterise it with Hockney's model and report the batch size above which it pays.
-  \item \textbf{A diagnosis, not just a curve.} We trace the loss of parallel efficiency to the processor clock
+  \item \textbf{A three-way comparison on one workload,} measured on the same code and machines, so that the
+        numbers can be compared directly.
+  \item \textbf{An exact episode-parallel simulator,} verified against the original bit for bit, which evaluates a
+        rule grid \NumBatchGridSpeedup{} times faster than a process pool; we characterise it with Hockney's model
+        and report the batch size above which it pays.
+  \item \textbf{A diagnosis, not just a curve:} we trace the loss of parallel efficiency to the processor clock
         rather than to serial work, using the Karp--Flatt metric and direct clock readings.
   \item \textbf{A benchmarking pitfall with a measured cost.} A configuration documented as performing one gradient
-        update per transition performed one per 32, which inflated an apparent speedup about thirty-fold. We give
-        the accounting that catches it.
+        update per transition performed one per 32, inflating an apparent speedup about thirty-fold; we give the
+        accounting that catches it.
 \end{itemize}
 
 This is a simulation study. No physical stack was operated, the degradation model is an assumed lumped model
