@@ -458,27 +458,19 @@ full update ratio, mean of two seeds, labelled with $w_2$. Orange: six further s
 point $w_2=12.9$ and the lower $w_2=20$. Green: the earlier SAC runs. Open markers: the three named rules.}
 \label{fig:frontier}
 \end{figure}
-A performance study should say what the computation was for, and whether the answer justified it. The learned
-controllers are compared against the non-dominated envelope of all rule settings, on the same held-out days, which
-favours the rules because the envelope is the best of many.
-
-At low degradation weights ($w_2\le5.32$) the learned policy sits on the envelope, within
+A performance study should say what the computation was for. The learned controllers are compared against the
+non-dominated envelope of all rule settings on the same held-out days, which favours the rules because the envelope
+is the best of many. At low degradation weights ($w_2\le5.32$) the policy sits on the envelope, within
 \NumAdvOnePct\,\% and \NumAdvFivePct\,\%, so learning buys nothing a slew limit does not. At higher weights the
 one-dimensional slew-limit and power-cap rules collapse, and against those rules the policy appears to gain
-\NumAdvTwelvePctOldRules\,\% at $w_2=12.9$ and \NumAdvTwentyPctOldRules\,\% at $w_2=20$. That comparison is the
-one a weak baseline would have let us publish. Adding the 72-setting hysteresis grid, which costs far less than one
-training run, cuts the same advantages to \NumAdvTwelvePct\,\% and \NumAdvTwentyPct\,\%. Six further seeds at ratio
-$1/4$ give \NumKgQuarterTwelveAdvMean\,\% and \NumKgQuarterTwentyAdvMean\,\%, positive for every seed but small.
-The full-ratio policies at $w_2=20$ reach lower degradation than any ratio-$1/4$ policy
-(\NumKgFullTwentyDeg{} against \NumKgQuarterTwentyDeg{}~\si{\micro\volt}/day) with a larger advantage
-(\NumKgFullTwentyAdvMean\,\%, two seeds) at the sparse end of the envelope; we treat that as open rather than
-established. A sensitivity sweep over \NumVariants{} degradation-coefficient variants and five resource scenarios
-ranks the rules identically everywhere on hydrogen yield, while projected life varies by a factor of
-\NumLifeSpread{} and the lifetime ranking changes in \NumRankFlips{} of \NumVariants{} variants.
+\NumAdvTwelvePctOldRules\,\% at $w_2=12.9$ and \NumAdvTwentyPctOldRules\,\% at $w_2=20$: the comparison a weak
+baseline would have let us publish. Adding the 72-setting hysteresis grid, which costs far less than one training
+run, cuts those to \NumAdvTwelvePct\,\% and \NumAdvTwentyPct\,\%, and six further seeds at ratio $1/4$ give
+\NumKgQuarterTwelveAdvMean\,\% and \NumKgQuarterTwentyAdvMean\,\%, positive for every seed but small.
 
-The computational reading is the one that generalises. The cheapest experiment in the whole study, a grid of
-scripted rules, changed the headline conclusion more than any amount of training throughput did. Spending part of
-the compute budget on a strong baseline is not overhead; it is what makes the rest of the budget interpretable.
+The computational reading generalises beyond this application: the cheapest experiment in the study, a grid of
+scripted rules, changed the headline conclusion more than any throughput gain did. Spending part of the compute
+budget on a strong baseline is not overhead; it is what makes the rest of the budget interpretable.
 
 % =============================================================================
 \section{Limitations}\label{sec:limits}
